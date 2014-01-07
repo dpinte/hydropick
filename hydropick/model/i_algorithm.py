@@ -20,3 +20,4 @@ class IAlgorithm(Interface):
 
     def process_line(self, survey_line):
         """ Process a line, returning an array of depths """
+        raise NotImplementedError

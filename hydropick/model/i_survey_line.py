@@ -5,7 +5,9 @@
 # This code is open-source. See LICENSE file for details.
 #
 
-from traits.api import Interface, Array, Dict, Event, Property
+from traits.api import Interface, Array, Dict, Event, List, Property, Supports
+
+from .i_core_sample import ICoreSample
 
 
 class ISurveyLine(Interface):
@@ -14,8 +16,11 @@ class ISurveyLine(Interface):
     #: sample locations, an Nx2 array of lat/long (or easting/northing?)
     locations = Array(shape=(None, 2))
 
-    #: a dictionary mapping frquencies to intensity arrays
+    #: a dictionary mapping frequencies to intensity arrays
     frequencies = Dict
+
+    #: relevant core samples
+    core_samples = List(Supports(ICoreSample))
 
     #: depth of the lake at each location generated algorithmically
     algorithmic_lake_depths = Array

@@ -14,5 +14,3 @@ class ILake(Interface):
 
     # XXX this should have things like the map outline coordinates, projections,
     # and other metadata about the lake itself
-
-    pass
