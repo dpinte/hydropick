@@ -62,6 +62,8 @@ class LineSelectTool(BaseTool):
 
 
 class LakePlot(HasTraits):
+    """ Standalone chaco plot of a lake.
+    """
 
     #: Lake to plot
     lake = Instance(Lake)
@@ -117,8 +119,8 @@ class LakePlot(HasTraits):
         return plot
 
     traits_view = View(Item('plot', editor=ComponentEditor(), show_label=False),
-                       width=600,
-                       height=400,
+                       width=800,
+                       height=600,
                        resizable=True,
                        title='Lake plot')
 
