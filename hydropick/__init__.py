@@ -5,5 +5,7 @@ __requires__ = [
     "traits>=4.4",
     "enable>4.2",
     "chaco>=4.4",
+    "fiona>=1.0.2",
+    "shapely>=1.2.17",
     "sdi",
 ]
