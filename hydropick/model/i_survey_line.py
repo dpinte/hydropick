@@ -32,6 +32,6 @@ class ISurveyLine(Interface):
     preimpoundment_depths = Dict(Str, Array)
 
     # and event fired when the lake depth is updated
-    preimpoundment_depths _updated = Event
+    preimpoundment_depths_updated = Event
 
     # XXX probably other metadata should be here
