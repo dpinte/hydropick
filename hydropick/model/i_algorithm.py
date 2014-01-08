@@ -5,6 +5,8 @@
 # This code is open-source. See LICENSE file for details.
 #
 
+from __future__ import absolute_import
+
 from traits.api import Interface, Str
 
 class IAlgorithm(Interface):

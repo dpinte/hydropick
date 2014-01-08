@@ -7,12 +7,14 @@
 
 from __future__ import absolute_import
 
-from traits.api import Interface, Array, Dict, Event, List, Supports, Str
+from traits.api import HasTraits, Array, Dict, Event, List, Supports, Str, provides
 
 from .i_core_sample import ICoreSample
+from .i_survey_line import ISurveyLine
 
 
-class ISurveyLine(Interface):
+@provides(ISurveyLine)
+class SurveyLine(HasTraits):
     """ A class representing a single survey line """
 
     #: sample locations, an Nx2 array of lat/long (or easting/northing?)
