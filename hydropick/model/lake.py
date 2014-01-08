@@ -12,11 +12,13 @@ from shapely.geometry.base import BaseGeometry
 
 # ETS imports
 from scimath import units
-from traits.api import Dict, Instance, Float, HasTraits, Property, Str
+from traits.api import Dict, Instance, Float, HasTraits, Property, provides, Str
+
+# local imports
+from hydropick.model.i_lake import ILake
 
 
-# XXX: uncomment when interface is implemented
-#@provides(ILake)
+@provides(ILake)
 class Lake(HasTraits):
     """ A model of a lake that contains its shoreline, map projection
     information, and other metadata.

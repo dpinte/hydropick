@@ -5,12 +5,26 @@
 # This code is open-source. See LICENSE file for details.
 #
 
-from traits.api import Interface, Str
+from traits.api import Any, Dict, Instance, Interface, Float, Str
+from scimath import units
+
 
 class ILake(Interface):
     """ The interface for an object representing a lake """
 
+    #### 'ILake' protocol #################################################
+
+    #: Name of the lake
     name = Str
 
-    # XXX this should have things like the map outline coordinates, projections,
-    # and other metadata about the lake itself
+    #: The coordinate reference system as a pyproj dictionary mapping
+    crs = Dict
+
+    #: Elevation (in elevation_units)
+    elevation = Float
+
+    #: Units for elevation
+    elevation_units = Instance(units.unit.unit)
+
+    #: The geometry of the shoreline.
+    shoreline = Any
