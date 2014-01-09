@@ -33,8 +33,8 @@ def import_cores(directory):
 
 def import_lake(directory):
     # XXX this needs a proper implementation
-    #from ..model.lake import Lake
-    #return Lake()
+    from ..model.lake import Lake
+    return Lake()
     pass
 
 
