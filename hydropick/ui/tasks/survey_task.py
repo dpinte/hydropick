@@ -9,7 +9,7 @@ from __future__ import absolute_import
 
 from traits.api import Supports, List
 from pyface.action.api import Action
-from pyface.tasks.api import Task, TaskLayout
+from pyface.tasks.api import Task, TaskLayout, PaneItem
 from pyface.tasks.action.api import DockPaneToggleGroup, SMenuBar, SMenu, \
     SGroup, TaskAction
 from apptools.undo.i_undo_manager import IUndoManager
@@ -47,9 +47,9 @@ class SurveyTask(Task):
     ###########################################################################
 
     def _default_layout_default(self):
-        return TaskLayout()
+        return TaskLayout(left=PaneItem('hydropick.survey_map'))
 
-    def _menubar_default(self):
+    def _menu_bar_default(self):
         from apptools.undo.action.api import UndoAction, RedoAction
         menu_bar = SMenuBar(
             SMenu(
@@ -74,13 +74,15 @@ class SurveyTask(Task):
                     Action(name='Cut', accelerator='Ctrl+X'),
                     Action(name='Copy', accelerator='Ctrl+C'),
                     Action(name='Paste', accelerator='Ctrl+V'),
-                    id='UndoGroup', name="Undo Group",
+                    id='CopyGroup', name="Copy Group",
                 ),
                 id='Edit', name="&Edit",
             ),
             SMenu(
                 SGroup(
                     TaskAction(name='Next Line', method='on_next_line'),
+                    TaskAction(name='Previous Line', method='on_next_line'),
+                    id='LineGroup', name='Line Group',
                 ),
                 DockPaneToggleGroup(),
                 id='View', name="&View",

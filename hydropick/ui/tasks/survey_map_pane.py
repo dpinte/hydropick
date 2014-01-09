@@ -16,6 +16,9 @@ from ...model.i_survey import ISurvey
 class SurveyMapPane(TraitsDockPane):
     """ The dock pane holding the map view of the survey """
 
+    id = 'hydropick.survey_map'
+    name = "Map"
+
     survey = Supports(ISurvey)
 
     view = View()
