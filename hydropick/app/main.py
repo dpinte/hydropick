@@ -1,3 +1,9 @@
+#
+# Copyright (c) 2014, Texas Water Development Board
+# All rights reserved.
+#
+# This code is open-source. See LICENSE file for details.
+#
 
 import sys
 

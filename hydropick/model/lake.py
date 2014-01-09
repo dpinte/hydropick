@@ -5,6 +5,8 @@
 # This code is open-source. See LICENSE file for details.
 #
 
+from __future__ import absolute_import
+
 # 3rd party imports
 import fiona
 from shapely.geometry import MultiLineString, shape
@@ -15,7 +17,7 @@ from scimath import units
 from traits.api import Dict, Instance, Float, HasTraits, Property, provides, Str
 
 # local imports
-from hydropick.model.i_lake import ILake
+from .i_lake import ILake
 
 
 @provides(ILake)
