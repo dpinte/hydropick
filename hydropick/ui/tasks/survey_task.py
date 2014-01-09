@@ -13,6 +13,7 @@ from pyface.tasks.api import Task, TaskLayout, PaneItem
 from pyface.tasks.action.api import DockPaneToggleGroup, SMenuBar, SMenu, \
     SGroup, TaskAction
 from apptools.undo.i_undo_manager import IUndoManager
+from apptools.undo.i_command_stack import ICommandStack
 
 from ...model.i_survey import ISurvey
 from ...model.i_survey_line import ISurveyLine
@@ -41,6 +42,9 @@ class SurveyTask(Task):
 
     #: the object that manages Undo/Redo stacks
     undo_manager = Supports(IUndoManager)
+
+    #: the object that holds the Task's commands
+    command_stack = Supports(ICommandStack)
 
     ###########################################################################
     # 'Task' interface.
@@ -80,8 +84,8 @@ class SurveyTask(Task):
             ),
             SMenu(
                 SGroup(
-                    TaskAction(name='Next Line', method='on_next_line'),
-                    TaskAction(name='Previous Line', method='on_next_line'),
+                    TaskAction(name='Next Line', method='on_next_line', accelerator='Ctrl+Right'),
+                    TaskAction(name='Previous Line', method='on_previous_line', accelerator='Ctrl+Left'),
                     id='LineGroup', name='Line Group',
                 ),
                 DockPaneToggleGroup(),
@@ -129,8 +133,22 @@ class SurveyTask(Task):
         """ Saves a hydrological survey file in a different location """
         pass
 
+    def on_next_line(self):
+        """ Move to the next selected line """
+        pass
+
+    def on_previous_line(self):
+        """ Move to the previous selected line """
+        pass
+
+    def _command_stack_default(self):
+        """ Return the default undo manager """
+        from apptools.undo.api import CommandStack
+        command_stack = CommandStack()
+        return command_stack
+
     def _undo_manager_default(self):
         """ Return the default undo manager """
         from apptools.undo.api import UndoManager
-        undo_manager = UndoManager()
+        undo_manager = UndoManager(active_stack=self.command_stack)
         return undo_manager
