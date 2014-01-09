@@ -17,6 +17,7 @@ from apptools.undo.i_command_stack import ICommandStack
 
 from ...model.i_survey import ISurvey
 from ...model.i_survey_line import ISurveyLine
+from ...model.i_survey_line_group import ISurveyLineGroup
 
 class SurveyTask(Task):
     """ A task for viewing and editing hydrological survey data """
@@ -33,6 +34,9 @@ class SurveyTask(Task):
 
     #: the survey object that we are viewing
     survey = Supports(ISurvey)
+
+    #: the currently active survey line group
+    current_survey_line_group = Supports(ISurveyLineGroup)
 
     #: the currently active survey line that we are viewing
     current_survey_line = Supports(ISurveyLine)
@@ -80,12 +84,19 @@ class SurveyTask(Task):
                     Action(name='Paste', accelerator='Ctrl+V'),
                     id='CopyGroup', name="Copy Group",
                 ),
+                SGroup(
+                    TaskAction(name='New Group', method='on_new_group', accelerator='Ctrl+N'),
+                    TaskAction(name='Delete Group', method='on_delete_group', accelerator='Ctrl+Delete'),
+                    id='LineGroupGroup', name="Line Group Group",
+                ),
                 id='Edit', name="&Edit",
             ),
             SMenu(
                 SGroup(
-                    TaskAction(name='Next Line', method='on_next_line', accelerator='Ctrl+Right'),
-                    TaskAction(name='Previous Line', method='on_previous_line', accelerator='Ctrl+Left'),
+                    TaskAction(name='Next Line', method='on_next_line',
+                                enabled_name='selected_survey_lines', accelerator='Ctrl+Right'),
+                    TaskAction(name='Previous Line', method='on_previous_line',
+                                enabled_name='selected_survey_lines', accelerator='Ctrl+Left'),
                     id='LineGroup', name='Line Group',
                 ),
                 DockPaneToggleGroup(),
@@ -140,6 +151,18 @@ class SurveyTask(Task):
     def on_previous_line(self):
         """ Move to the previous selected line """
         pass
+
+    def on_new_group(self):
+        from ..model.survey_line_group import SurveyLineGroup
+        from ..utils.commands import CallableCommand
+
+        group = SurveyLineGroup(lines=self.selected_lines)
+        command = CallableCommand(
+            do_callable=self.survey.survey_line_groups.append,
+            undo_callable=self.survey.survey_line_groups.remove,
+            args=((group,), {})
+        )
+        self.undo_manager.active_stack.push(command)
 
     def _command_stack_default(self):
         """ Return the default undo manager """

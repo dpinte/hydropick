@@ -29,6 +29,9 @@ class Survey(HasTraits):
     #: The name of the survey
     name = Str
 
+    #: Notes about the survey as a whole
+    comments = Str
+
     #: The lake being surveyed
     lake = Supports(ILake)
 
