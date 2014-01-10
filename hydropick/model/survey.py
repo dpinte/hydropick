@@ -7,15 +7,18 @@
 
 from __future__ import absolute_import
 
-from traits.api import Interface, Supports, List, Str
+from traits.api import HasTraits, List, Str, Supports, provides
 
+from .i_survey import ISurvey
 from .i_lake import ILake
 from .i_survey_line import ISurveyLine
 from .i_survey_line_group import ISurveyLineGroup
 from .i_core_sample import ICoreSample
+from .survey_line_group import SurveyLineGroup
 
-class ISurvey(Interface):
-    """ The abstract interface for a survey object.
+@provides(ISurvey)
+class Survey(HasTraits):
+    """ The a basic implementation of the ISurvey interface
 
     A survey has a lake, a set of survey lines, and a collection of
     user-assigned line groups.
@@ -44,12 +47,9 @@ class ISurvey(Interface):
 
     def new_line_group(self, group, lines=None):
         """ Create a new line group, optionally with a set of lines """
-        raise NotImplementedError
+        group = SurveyLineGroup(name='New Group', survey_lines=lines)
+        self.line_groups.append(group)
 
-    def add_lines_to_group(self, group, lines):
-        """ Add a set of lines to a group """
-        raise NotImplementedError
-
-    def remove_lines_from_group(self, group, lines):
-        """ Add a set of lines to a group """
-        raise NotImplementedError
+    def delete_line_group(self, group):
+        """ Delete a line group """
+        self.line_groups.remove(group)

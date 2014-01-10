@@ -7,11 +7,13 @@
 
 from __future__ import absolute_import
 
-from traits.api import Interface, Supports, List, Str
+from traits.api import HasTraits, Supports, List, Str, provides
 
 from .i_algorithm import IAlgorithm
+from .i_survey_line_group import ISurveyLineGroup
 
-class ISurveyLineGroup(Interface):
+@provides(ISurveyLineGroup)
+class SurveyLineGroup(HasTraits):
     """ An interface representing a group of survey lines """
 
     #: the user-defined name of the group

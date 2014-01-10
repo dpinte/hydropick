@@ -16,6 +16,8 @@ These should probably go into apptools rather than in this project.
 
 """
 
+from __future__ import absolute_import
+
 from traits.api import Property
 from .commands import AttributeSetCommand
 

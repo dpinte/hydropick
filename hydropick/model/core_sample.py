@@ -7,16 +7,19 @@
 
 from __future__ import absolute_import
 
-from traits.api import Interface, Float, Tuple, List, Str
+from traits.api import HasTraits, Float, Tuple, List, Str, provides
 
-class ICoreSample(Interface):
+from .i_core_sample import ICoreSample
+
+@provides(ICoreSample)
+class CoreSample(HasTraits):
     """ An interface representing a core sample """
 
     #: the core identifier
     core_id = Str
 
     #: the location of the core sample in easting/northing
-    location = Tuple(Float, Float)
+    location = Tuple #(Float, Float)
 
     #: the depths of the layer boundaries measured from lake bottom
     layer_boundaries = List # Array?

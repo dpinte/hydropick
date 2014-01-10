@@ -32,6 +32,9 @@ setup(
     maintainer='Dharhas Pothina',
     maintainer_email='dharhas.pothina@twdb.texas.gov',
     package_data={},
+    entry_points = {
+        'gui_scripts': ['hydropick = hydropick.app.main:main',],
+    },
     packages=find_packages(),
     platforms=["Windows", "Linux", "Mac OS-X", "Unix"],
     zip_safe=False,
