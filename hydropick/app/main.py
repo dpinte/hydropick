@@ -5,6 +5,12 @@
 # This code is open-source. See LICENSE file for details.
 #
 
+
+# ensure Qt backend so Tasks works
+from traits.etsconfig.etsconfig import ETSConfig
+ETSConfig.toolkit = 'qt4'
+
+
 import sys
 
 from pyface.api import GUI
