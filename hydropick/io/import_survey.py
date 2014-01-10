@@ -65,7 +65,7 @@ def import_sdi(directory):
                 group_lines.append(line)
         if group_lines:
             dirname = os.path.basename(root)
-            group = SurveyLineGroup(name=dirname, lines=group_lines)
+            group = SurveyLineGroup(name=dirname, survey_lines=group_lines)
             survey_lines += group_lines
             survey_line_groups.append(group)
     return survey_lines, survey_line_groups
