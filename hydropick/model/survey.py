@@ -39,7 +39,7 @@ class Survey(HasTraits):
     survey_lines = List(Supports(ISurveyLine))
 
     #: The groupings of survey lines
-    line_groups = List(Supports(ISurveyLineGroup))
+    survey_line_groups = List(Supports(ISurveyLineGroup))
 
     #: The core samples taken in the survey
     core_samples = List(Supports(ICoreSample))

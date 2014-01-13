@@ -7,9 +7,9 @@
 
 from __future__ import absolute_import
 
-from traits.api import Supports, List
+from traits.api import Supports, List, on_trait_change
 from pyface.action.api import Action
-from pyface.tasks.api import Task, TaskLayout, PaneItem
+from pyface.tasks.api import Task, TaskLayout, PaneItem, VSplitter
 from pyface.tasks.action.api import DockPaneToggleGroup, SMenuBar, SMenu, \
     SGroup, TaskAction
 from apptools.undo.i_undo_manager import IUndoManager
@@ -55,12 +55,17 @@ class SurveyTask(Task):
     ###########################################################################
 
     def _default_layout_default(self):
-        return TaskLayout(left=PaneItem('hydropick.survey_map'))
+        return TaskLayout(left=VSplitter(PaneItem('hydropick.survey_data'),
+                                        PaneItem('hydropick.survey_map')))
 
     def _menu_bar_default(self):
         from apptools.undo.action.api import UndoAction, RedoAction
         menu_bar = SMenuBar(
             SMenu(
+                SGroup(
+                    TaskAction(name="Import", method='on_import', accelerator='Ctrl+I'),
+                    id='New', name='New'
+                ),
                 SGroup(
                     TaskAction(name="Open", method='on_open', accelerator='Ctrl+O'),
                     id='Open', name='Open'
@@ -108,8 +113,7 @@ class SurveyTask(Task):
     def activated(self):
         """ Overriden to set the window's title.
         """
-        name = self.survey.name
-        self.window.title = name if name else 'Untitled'
+        self.window.title = self._window_title()
 
     def create_central_pane(self):
         """ Create the central pane: the editor pane.
@@ -124,9 +128,19 @@ class SurveyTask(Task):
     def create_dock_panes(self):
         """ Create the map pane and hook up listeners
         """
+        from .survey_data_pane import SurveyDataPane
         from .survey_map_pane import SurveyMapPane
+
+        data = SurveyDataPane(survey=self.survey)
+
+
         map = SurveyMapPane(survey=self.survey)
-        return [map]
+        return [data, map]
+
+    @on_trait_change('survey.name')
+    def update_title(self):
+        if self.window and self.window.active_task is self:
+            self.window.title = self._window_title()
 
     ###########################################################################
     # 'SurveyTask' interface.
@@ -175,3 +189,15 @@ class SurveyTask(Task):
         from apptools.undo.api import UndoManager
         undo_manager = UndoManager(active_stack=self.command_stack)
         return undo_manager
+
+    def _survey_default(self):
+        from ...model.survey import Survey
+        return Survey()
+
+    ###########################################################################
+    # private interface.
+    ###########################################################################
+
+    def _window_title(self):
+        name = self.survey.name
+        return name if name else 'Untitled'
