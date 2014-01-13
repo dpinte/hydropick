@@ -71,8 +71,8 @@ class SurveyTask(Task):
                     id='Open', name='Open'
                 ),
                 SGroup(
-                    TaskAction(name="Save", method='on_save', accelerator='Ctrl+S'),
-                    TaskAction(name="Save As...", method='on_save_as', accelerator='Ctrl+Shift+S'),
+                    TaskAction(name="Save", method='on_save', accelerator='Ctrl+S', enabled_name='survey'),
+                    TaskAction(name="Save As...", method='on_save_as', accelerator='Ctrl+Shift+S', enabled_name='survey'),
                     id='Save', name='Save'
                 ),
                 id='File', name="&File",
@@ -90,7 +90,7 @@ class SurveyTask(Task):
                     id='CopyGroup', name="Copy Group",
                 ),
                 SGroup(
-                    TaskAction(name='New Group', method='on_new_group', accelerator='Ctrl+N'),
+                    TaskAction(name='New Group', method='on_new_group', accelerator='Ctrl+N', enabled_name='survey'),
                     TaskAction(name='Delete Group', method='on_delete_group', accelerator='Ctrl+Delete'),
                     id='LineGroupGroup', name="Line Group Group",
                 ),
@@ -132,10 +132,15 @@ class SurveyTask(Task):
         from .survey_map_pane import SurveyMapPane
 
         data = SurveyDataPane(survey=self.survey)
-
+        self.on_trait_change(lambda new: setattr(data, 'survey', new), 'survey')
 
         map = SurveyMapPane(survey=self.survey)
+        self.on_trait_change(lambda new: setattr(map, 'survey', new), 'survey')
         return [data, map]
+
+    def _survey_changed(self):
+        self._current_survey_line = None
+        self._current_survey_line_group = None
 
     @on_trait_change('survey.name')
     def update_title(self):
@@ -146,9 +151,20 @@ class SurveyTask(Task):
     # 'SurveyTask' interface.
     ###########################################################################
 
+    def on_import(self):
+        """ Imports hydrological survey data """
+        from pyface.api import DirectoryDialog, OK
+        from ...io.import_survey import import_survey
+
+        survey_directory = DirectoryDialog(message="Select survey to import:",
+                                            new_directory=False)
+        if survey_directory.open() == OK:
+            survey = import_survey(survey_directory.path)
+            self.survey = survey
+
     def on_open(self):
         """ Opens a hydrological survey file """
-        pass
+        x = 1/0
 
     def on_save(self):
         """ Saves a hydrological survey file """

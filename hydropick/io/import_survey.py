@@ -14,6 +14,20 @@ logger = logging.getLogger(__name__)
 
 # XXX this is not fully implemented
 
+def get_name(directory):
+    # name defaults to parent and grandparent directory names
+    directory = os.path.abspath(directory)
+    parent, dirname = os.path.split(directory)
+    grandparent, parent_name = os.path.split(parent)
+    great_grandparent, grandparent_name = os.path.split(grandparent)
+    if parent_name and grandparent_name:
+        name = parent_name + ' ' + grandparent_name
+    elif parent_name:
+        name = parent_name
+    else:
+        name = "Untitled"
+    return name
+
 def import_cores(directory):
     from sdi import corestick
     from ..model.core_sample import CoreSample
@@ -74,6 +88,9 @@ def import_sdi(directory):
 def import_survey(directory):
     """ Read in a project from the current directory-based format """
     from ..model.survey import Survey
+
+    name = get_name(directory)
+
     # read in core samples
     core_samples = import_cores(os.path.join(directory, 'Coring'))
 
@@ -87,6 +104,7 @@ def import_survey(directory):
     # XXX not implemented
 
     survey = Survey(
+        name=name,
         lake=lake,
         survey_lines=survey_lines,
         survey_line_groups=survey_line_groups,
