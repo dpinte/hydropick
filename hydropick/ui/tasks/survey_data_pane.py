@@ -7,7 +7,7 @@
 
 from __future__ import absolute_import
 
-from traits.api import DelegatesTo, Supports, register_factory, adapt
+from traits.api import DelegatesTo, Supports, register_factory
 from traitsui.api import View, Group, Item, TreeEditor, ITreeNode, ITreeNodeAdapter
 from pyface.tasks.api import TraitsDockPane
 
@@ -32,6 +32,7 @@ class ISurveyTreeNodeAdapter(ITreeNodeAdapter):
         return self.adaptee.name
 
 class ISurveyLineGroupTreeNodeAdapter(ITreeNodeAdapter):
+    """ Adapter for ISurveyLineGroup objects to ITreeNodes in the UI """
 
     def allows_children(self):
         return True
@@ -48,6 +49,7 @@ class ISurveyLineGroupTreeNodeAdapter(ITreeNodeAdapter):
         return self.adaptee.name
 
 class ISurveyLineTreeNodeAdapter(ITreeNodeAdapter):
+    """ Adapter for ISurveyLine objects to ITreeNodes in the UI """
 
     def allows_children(self):
         return False
@@ -61,6 +63,8 @@ def register_adapters():
     register_factory(ISurveyLineGroupTreeNodeAdapter, ISurveyLineGroup, ITreeNode)
 
 register_adapters()
+
+# XXX unsure if we need all of the above - may be better to use TreeNodes instead
 
 survey_line_tree = TreeEditor(
     selection_mode='extended',
@@ -80,16 +84,17 @@ class SurveyDataPane(TraitsDockPane):
 
     undo_manager = DelegatesTo('task')
 
-    survey = Supports(ISurvey)
-
     current_survey_line = DelegatesTo('task')
 
     selected_survey_lines = DelegatesTo('task')
 
+    survey = Supports(ISurvey)
+
     view = View(
-        Item('name'),
+        Item('object.survey.name'),
         Group(
             Item('survey', editor=survey_line_tree, show_label=False),
+            label='Survey Lines',
         ),
         Group(
             Item('object.survey.comments', style='custom'),

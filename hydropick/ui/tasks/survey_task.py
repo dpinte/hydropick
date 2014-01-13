@@ -139,8 +139,12 @@ class SurveyTask(Task):
         return [data, map]
 
     def _survey_changed(self):
-        self._current_survey_line = None
-        self._current_survey_line_group = None
+        from apptools.undo.api import CommandStack
+        self.current_survey_line = None
+        self.current_survey_line_group = None
+        # reset undo stack
+        self.command_stack = CommandStack()
+        self.undo_manager.active_stack = self.command_stack
 
     @on_trait_change('survey.name')
     def update_title(self):
@@ -156,6 +160,9 @@ class SurveyTask(Task):
         from pyface.api import DirectoryDialog, OK
         from ...io.import_survey import import_survey
 
+        # ask the user for save if needed
+        self._prompt_for_save()
+
         survey_directory = DirectoryDialog(message="Select survey to import:",
                                             new_directory=False)
         if survey_directory.open() == OK:
@@ -164,23 +171,24 @@ class SurveyTask(Task):
 
     def on_open(self):
         """ Opens a hydrological survey file """
-        x = 1/0
+        self._prompt_for_save()
+        raise NotImplementedError
 
     def on_save(self):
         """ Saves a hydrological survey file """
-        pass
+        raise NotImplementedError
 
     def on_save_as(self):
         """ Saves a hydrological survey file in a different location """
-        pass
+        raise NotImplementedError
 
     def on_next_line(self):
         """ Move to the next selected line """
-        pass
+        raise NotImplementedError
 
     def on_previous_line(self):
         """ Move to the previous selected line """
-        pass
+        raise NotImplementedError
 
     def on_new_group(self):
         from ..model.survey_line_group import SurveyLineGroup
@@ -217,3 +225,22 @@ class SurveyTask(Task):
     def _window_title(self):
         name = self.survey.name
         return name if name else 'Untitled'
+
+    def _prompt_for_save(self):
+        from pyface.api import ConfirmationDialog, CANCEL, YES
+        if not self.command_stack.clean:
+            message = 'The current survey has unsaved changes. ' \
+                      'Do you want to save your changes?'
+            dialog = ConfirmationDialog(parent=self.window.control,
+                                        message=message, cancel=True,
+                                        default=CANCEL, title='Save Changes?')
+            result = dialog.open()
+            if result == CANCEL:
+                return False
+            elif result == YES:
+                if not self._save():
+                    return self._prompt_for_save()
+        return True
+
+    def _save(self):
+        raise NotImplementedError
