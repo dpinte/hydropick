@@ -39,18 +39,19 @@ class SurveyLineView(ModelView):
     # Traits Attributes
     #==========================================================================
 
-    # Data model is Survey class containing core data, SDI survey data, lake data,
-    # and links to algorithms.
+    # Data model is SurveyDataSession class which starts with SurveyLine object
+    # containing core data, SDI survey data, lake data.
     model = Instance(SurveyDataSession)
 
     # Defines view for all the plots.  Place beside control view
     plot_container = Instance(PlotContainer)
 
-    # Defines view for all the plots.  Place beside control view
+    # Defines view for all the plot controls and info. Sits by plot container.
     control_view = Instance(ControlView)
 
-    # Dictionary of plots kept for legend and for tools.  Will contain all depth lines at least.
-    # This contains components as opposed to the depth_dict{str:array} in the model.
+    # Dictionary of plots kept for legend and for tools.
+    # Will contain all depth lines at least.  This contains components as
+    # opposed to the depth_dict{str:array} in the model.
     plot_dict = Dict(Str, PlotComponent, value={})
 
     # Custom tool for editing depth lines
@@ -60,10 +61,10 @@ class SurveyLineView(ModelView):
     visible_lines = List([])
 
     # plotdata is the ArrayPlotData instance holding the plot data.
-    # for now it contains 1 image and multiple line plots for depths
+    # for now it contains available images and multiple line plots for depths.
     plotdata = Instance(ArrayPlotData)
 
-    # Pair of combined plots:  Main for editing; mini for scanning
+    # Pair of combined plots:  main for editing; mini for scanning
     mainplot = Instance(Plot)
     miniplot = Instance(Plot)
     mini_height = Int(100)
@@ -104,61 +105,36 @@ class SurveyLineView(ModelView):
         return contnr
 
     def _control_view_default(self):
+        ''' Creates ControlView object filled with associated traits'''
+
         cv = ControlView(target_choices=self.model.target_choices,
                          line_to_edit=self.model.selected_target,
                          visible_lines=self.visible_lines,
                          freq_choices=self.model.freq_choices,
                          image_freq=self.model.selected_freq
                          )
+        # set default values for widgets
         cv.visible_lines = self.model.target_choices
         cv.image_freq = self.model.selected_freq
 
+        # Add notifications
         cv.on_trait_change(self.select_line, name='visible_lines')
         cv.on_trait_change(self.change_target, name='line_to_edit')
         cv.on_trait_change(self.change_image, name='image_freq')
         return cv
 
-    # def _visible_lines_default(self):
-    #     ''' If lines present set all as visible'''
-    #     for line in self.model.depth_dict:
-            # self.visible_lines.append(line)
-
-
-    # def _plot_cont_default(self):
-    #     ''' Create plots and add to container
-    #     '''
-
-    #     plots = Plot(self.plotdata)
-    #     #import ipdb; ipdb.set_trace()
-
-    #     #plots.img_plot('No_data', colormap=jet, origin='top left')
-
-    #     # Add tools
-    #     plots.tools.append(PanTool(plots))
-    #     plots.tools.append(ZoomTool(plots))
-
-    #     return plots
-
     def _plotdata_default(self):
-        #return ArrayPlotData(No_data=np.zeros([2,2]))
+        ''' Provides initial plotdata object'''
         if self.model.x_array.any():
             return ArrayPlotData(x_array=self.model.x_array)
         else:
             return ArrayPlotData()
 
     def _trace_tool_default(self):
+        ''' Sets up trace tool for editing lines'''
         tool =  TraceTool(self.mainplot)
         self.mainplot.tools.append(tool)
         return tool
-    # def _plotview_default(self):
-    #pv = PlotView(plot=self.plot_cont)
-    #   return pv                         #
-    #
-    # def _controlview_default(self):
-    #     cv = ControlView(freqs=self.plotted_freqs, choices=self.freq_choices,
-    #                      survey_binary=self.model.survey_binary)
-    #     return cv
-
 
     #==========================================================================
     # Helper functions
@@ -177,7 +153,7 @@ class SurveyLineView(ModelView):
 
 
     def add_images(self,**kw):
-        '''
+        ''' Adds images same way as lines to plotdata and plots first one
         '''
         for key, array in kw.items():
             self.plotdata.set_data(key, array)
@@ -185,23 +161,11 @@ class SurveyLineView(ModelView):
         imagelist = [kw.keys()[0]]
         self.update_main_mini_image(imagelist)
 
-    def make_plot(self, height=None, plotdict=True):
+    def make_plot(self, height=None):
         ''' Creates one Plot instance with all depthlines and one image plot.
         Used for mainplot and miniplot to make identical plots apart from
-        height.  plotdict=True value tells it to create new plot_dict.
-        Takes linedict of {str:array} for line plots.
+        height. 
         '''
-
-        # if plotdict:
-        #     newdict = {}
-
-        # # add lines to plotdata -----------------------------------------------
-        # plotdata = ArrayPlotData(**linedict)
-        # for key in self.model.frequencies:
-        #     plotdata.set_data(key, self.model.frequencies[key])
-
-        # plot lines -----------------------------------------------------------
-        # set origin to top left to have positive depths go down.
 
         plot = Plot(self.plotdata,
                     border_visible=True,
@@ -213,18 +177,6 @@ class SurveyLineView(ModelView):
             plot.height=height
             plot.resizable='h'
 
-        # for key in linedict:
-        #     # may want to add rotating color generator
-        #     newline = plot.plot((key), color='blue', name=key)
-        #     if plotdict:
-        #         newdict[key] = newline[0]
-
-        # plot images -----------------------------------------------------------
-        #
-        # if self.freq_selected:
-
-        # if plotdict:
-        #     self.plot_dict = newdict
         return plot
 
     def update_main_mini_lines(self, keylist=[]):
@@ -246,7 +198,6 @@ class SurveyLineView(ModelView):
         main = self.mainplot
         mini = self.miniplot
         for key in keylist:
-            print 'plotting',key
             newplot = main.img_plot(key, colormap=Greys,
                                     xbounds=self.model.xbounds,
                                     ybounds=self.model.ybounds,
@@ -259,98 +210,15 @@ class SurveyLineView(ModelView):
         if remove:
             component1 = mini.plots.pop(remove)[0]
             component2 = main.plots.pop(remove)[0]
-        self.mainplot.invalidate_and_redraw()  
-
-        
-    def update_plots(self):
-        ''' Create plots and add to container. Run when new plot is added or
-        new survey is selected.
-        '''
-
-        print "updating plots"
-        # fills self.plotdata with ArrayPlotData instance
-        self.set_plotdata()
-        # plots = Plot(self.plotdata,origin='top left')
-        # #import ipdb; ipdb.set_trace()
-
-        # # Plot an arbitrary image in frequencies dict.
-        if self.model.frequencies:
-            self.freq_selected = self.model.frequencies.keys()[0]
-        else:
-            self.freq_selected = 'No_data'
-
-        self.ybounds=(0, 2*self.model.ymax)
-        # plots.img_plot(freq, colormap=Greys,# origin='top left',
-        #             ybounds=ybounds)
-
-
-        linedict = self.model.depth_dict
-        self.mainplot = self.make_plot(linedict)
-        self.miniplot = self.make_plot(linedict, height=100, plotdict=False)
-        # self.mainplot = mainplot
-        # self.miniplot = miniplot
-        # print self.mainplot
-        print self.miniplot
-        #import ipdb; ipdb.set_trace()
-        contnr = PlotContainer(mainplot= self.mainplot, miniplot= self.miniplot)
-        #contnr = PlotContainer(mainplot= self.mainplot, miniplot= self.miniplot)
-        #contnr = PlotContainer(mainplot=self.mainplot, miniplot=self.miniplot)
-
-        # for key, data in self.model.depth_dict.items():
-        #     print key
-        #     print data
-        #     a_plot = plots.plot((key), type='line',
-        #                         name=key,)
-        #     self.plot_dict[key] = a_plot[0]
-        self.trace_tool = TraceTool(self.mainplot, target_line=self.target_line)
-        self.mainplot.tools.append(self.trace_tool)
-
-        #self.plot_cont = plots
-        self.contnr = contnr
-        #import ipdb; ipdb.set_trace()
-
+        self.mainplot.invalidate_and_redraw()
 
     #==========================================================================
     # Get/Set methods
     #==========================================================================
-    def load_plotdata(self):
-        ''' Assemble the relevant starting data in ArrayPlotData array
-
-        '''
-        # First 2D arrays for all frequenciess to plotdata from frequencies dict
-        self.plotdata = ArrayPlotData(**self.model.frequencies)
-
-        # Then add any depth line data that may exist
-        for key,value in self.model.depth_dict.items():
-            self.plotdata.set_data(key,value)
-            self.xbounds = (0,len(value))
-            self.ybounds = (np.min(value),np.max(value))
-
-    def _get_target_line(self):
-        # returns actual line_plot opject currently selected
-        currentline = self.plot_dict.get(self.model.selected_target, None)
-        return currentline
-
-    # def _get_controlview(self):
-    #     t_choices = self.target_choices
-    #     print 'choices = ', t_choices,self.freq_choices
-    #     cv = ControlView(freqs=self.plotted_freqs, choices=self.freq_choices,
-    #                      current_target=self.current_target_name,
-    #                      target_choices=self.target_choices)
-    #     cv.on_trait_change(self.select_line, name='freqs')
-    #     cv.on_trait_change(self.change_target, name='current_target')
-    #     return cv
-    # #
+   
     #==========================================================================
     # Notifications
     #==========================================================================
-    # def _datafile_changed(self,new):
-    #     print 'datafile changed'
-    #     self.update_plots()
-
-    # def _current_target_name_changed(self,new):
-    #     # update trace tool target line attribute.
-    #     self.trace_tool.target_line = self.target_line
 
     def change_target(self, object, name, old, new):
         # update trace tool target line attribute.
