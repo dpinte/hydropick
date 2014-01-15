@@ -26,39 +26,47 @@ class AttributeSetCommand(AbstractCommand):
 
     """
 
-    #: the object we are modifying
-    target = Any
-
     #: the attribute that we are setting
     attribute = Str
+
+    #: the value we are setting
+    value = Any
 
     #: whether we should merge for the same object and attribute
     mergeable = Bool(False)
 
-    #: the previous value for undoing
-    _old_data = Any
+    #: was the value previously undefined?
+    _undefined = Bool(False)
+
+    #: the previous value, for undoing
+    _saved = Any
 
     def do(self):
         """ Set the value of the attribute """
-        self._old_data = getattr(self.target, self.attribute)
-        setattr(self.target, self.attribute, self.data)
+        self._undefined = not hasattr(self.data, self.attribute)
+        if not self._undefined:
+            self._saved = getattr(self.data, self.attribute)
+        setattr(self.data, self.attribute, self.value)
 
     def merge(self, other):
         """ Merge if mergeable and target and attribute match """
         if not self.mergeable:
             return False
-        if isinstance(other, AttributeSetCommand) and other.target == self.target \
+        if isinstance(other, AttributeSetCommand) and other.data == self.data \
                 and other.attribute == self.attribute and other.mergeable:
-            self.data = other.data
-            setattr(self.target, self.attribute, self.data)
+            self.value = other.value
+            setattr(self.data, self.attribute, self.value)
             return True
         return False
 
     def undo(self):
-        setattr(self.target, self.attribute, self._old_data)
+        if self._undefined:
+            delattr(self.data, self.attribute)
+        else:
+            setattr(self.data, self.attribute, self._saved)
 
     def redo(self):
-        setattr(self.target, self.attribute, self.data)
+        setattr(self.data, self.attribute, self.value)
 
     def _name_default(self):
         return "Set {0}".format(self.attribute)

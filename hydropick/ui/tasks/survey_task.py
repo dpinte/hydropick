@@ -7,7 +7,7 @@
 
 from __future__ import absolute_import
 
-from traits.api import Supports, List, on_trait_change
+from traits.api import Bool, Property, Supports, List, on_trait_change
 from pyface.action.api import Action
 from pyface.tasks.api import Task, TaskLayout, PaneItem, VSplitter
 from pyface.tasks.action.api import DockPaneToggleGroup, SMenuBar, SMenu, \
@@ -18,6 +18,8 @@ from apptools.undo.i_command_stack import ICommandStack
 from ...model.i_survey import ISurvey
 from ...model.i_survey_line import ISurveyLine
 from ...model.i_survey_line_group import ISurveyLineGroup
+
+from .task_command_action import TaskCommandAction
 
 class SurveyTask(Task):
     """ A task for viewing and editing hydrological survey data """
@@ -43,6 +45,9 @@ class SurveyTask(Task):
 
     #: the selected survey lines
     selected_survey_lines = List(Supports(ISurveyLine))
+
+    #: whether the undo stack is "clean"
+    dirty = Property(Bool, depends_on='command_stack.clean')
 
     #: the object that manages Undo/Redo stacks
     undo_manager = Supports(IUndoManager)
@@ -71,27 +76,32 @@ class SurveyTask(Task):
                     id='Open', name='Open'
                 ),
                 SGroup(
-                    TaskAction(name="Save", method='on_save', accelerator='Ctrl+S', enabled_name='survey'),
+                    TaskAction(name="Save", method='on_save', accelerator='Ctrl+S', enabled_name='dirty'),
                     TaskAction(name="Save As...", method='on_save_as', accelerator='Ctrl+Shift+S', enabled_name='survey'),
                     id='Save', name='Save'
                 ),
                 id='File', name="&File",
             ),
             SMenu(
+                # XXX can't integrate easily with TraitsUI editors :P
                 SGroup(
-                    UndoAction(undo_manager=self.undo_manager),
-                    RedoAction(undo_manager=self.undo_manager),
+                    UndoAction(undo_manager=self.undo_manager, accelerator='Ctrl+Z'),
+                    RedoAction(undo_manager=self.undo_manager, accelerator='Ctrl+Shift+Z'),
                     id='UndoGroup', name="Undo Group",
                 ),
+                #SGroup(
+                #    Action(name='Cut', accelerator='Ctrl+X'),
+                #    Action(name='Copy', accelerator='Ctrl+C'),
+                #    Action(name='Paste', accelerator='Ctrl+V'),
+                #    id='CopyGroup', name="Copy Group",
+                #),
                 SGroup(
-                    Action(name='Cut', accelerator='Ctrl+X'),
-                    Action(name='Copy', accelerator='Ctrl+C'),
-                    Action(name='Paste', accelerator='Ctrl+V'),
-                    id='CopyGroup', name="Copy Group",
-                ),
-                SGroup(
-                    TaskAction(name='New Group', method='on_new_group', accelerator='Ctrl+N', enabled_name='survey'),
-                    TaskAction(name='Delete Group', method='on_delete_group', accelerator='Ctrl+Delete'),
+                    TaskCommandAction(name='New Group', method='on_new_group',
+                                      accelerator='Ctrl+Shift+N',
+                                      enabled_name='selected_survey_lines'),
+                    TaskCommandAction(name='Delete Group',
+                                      method='on_delete_group',
+                                      accelerator='Ctrl+Delete'),
                     id='LineGroupGroup', name="Line Group Group",
                 ),
                 id='Edit', name="&Edit",
@@ -99,9 +109,9 @@ class SurveyTask(Task):
             SMenu(
                 SGroup(
                     TaskAction(name='Next Line', method='on_next_line',
-                                enabled_name='selected_survey_lines', accelerator='Ctrl+Right'),
+                                enabled_name='survey.survey_lines', accelerator='Ctrl+Right'),
                     TaskAction(name='Previous Line', method='on_previous_line',
-                                enabled_name='selected_survey_lines', accelerator='Ctrl+Left'),
+                                enabled_name='survey.survey_lines', accelerator='Ctrl+Left'),
                     id='LineGroup', name='Line Group',
                 ),
                 DockPaneToggleGroup(),
@@ -142,8 +152,9 @@ class SurveyTask(Task):
         from apptools.undo.api import CommandStack
         self.current_survey_line = None
         self.current_survey_line_group = None
+        self.selected_survey_lines = []
         # reset undo stack
-        self.command_stack = CommandStack()
+        self.command_stack = CommandStack(undo_manager=self.undo_manager)
         self.undo_manager.active_stack = self.command_stack
 
     @on_trait_change('survey.name')
@@ -191,16 +202,19 @@ class SurveyTask(Task):
         raise NotImplementedError
 
     def on_new_group(self):
-        from ..model.survey_line_group import SurveyLineGroup
-        from ..utils.commands import CallableCommand
+        from ...model.survey_line_group import SurveyLineGroup
+        from ...util.commands import CallableCommand
 
-        group = SurveyLineGroup(lines=self.selected_lines)
+        group = SurveyLineGroup(name='Untitled', lines=self.selected_survey_lines)
         command = CallableCommand(
             do_callable=self.survey.survey_line_groups.append,
             undo_callable=self.survey.survey_line_groups.remove,
-            args=((group,), {})
+            data=((group,), {})
         )
-        self.undo_manager.active_stack.push(command)
+        self.command_stack.push(command)
+
+    def _get_dirty(self):
+        return not self.command_stack.clean
 
     def _command_stack_default(self):
         """ Return the default undo manager """
@@ -212,6 +226,7 @@ class SurveyTask(Task):
         """ Return the default undo manager """
         from apptools.undo.api import UndoManager
         undo_manager = UndoManager(active_stack=self.command_stack)
+        self.command_stack.undo_manager = undo_manager
         return undo_manager
 
     def _survey_default(self):

@@ -7,13 +7,14 @@
 
 from __future__ import absolute_import
 
-from traits.api import DelegatesTo, Supports, register_factory
+from traits.api import DelegatesTo, Str, Supports, register_factory
 from traitsui.api import View, Group, Item, TreeEditor, ITreeNode, ITreeNodeAdapter
 from pyface.tasks.api import TraitsDockPane
 
 from ...model.i_survey import ISurvey
 from ...model.i_survey_line import ISurveyLine
 from ...model.i_survey_line_group import ISurveyLineGroup
+from ...util.command_traits import UndoingDelegate
 
 class ISurveyTreeNodeAdapter(ITreeNodeAdapter):
     """ Adapter for ISurvey objects to ITreeNodes in the UI """
@@ -27,6 +28,17 @@ class ISurveyTreeNodeAdapter(ITreeNodeAdapter):
     def get_children(self):
         children = self.adaptee.survey_line_groups + self.adaptee.survey_lines
         return children
+
+    def when_children_changed(self, listener, remove):
+        self.adaptee.on_trait_change(listener, 'survey_line_groups_items',
+                                     remove=remove)
+        self.adaptee.on_trait_change(listener, 'survey_lines_items',
+                                     remove=remove)
+
+    def when_children_replaced(self, listener, remove):
+        self.adaptee.on_trait_change(listener, 'survey_line_groups',
+                                     remove=remove)
+        self.adaptee.on_trait_change(listener, 'survey_lines', remove=remove)
 
     def get_label(self):
         return self.adaptee.name
@@ -82,22 +94,36 @@ class SurveyDataPane(TraitsDockPane):
     id = 'hydropick.survey_data'
     name = 'Survey'
 
+    #: reference to the task's undo manager
     undo_manager = DelegatesTo('task')
 
-    current_survey_line = DelegatesTo('task')
+    #: proxy for the task's current survey line
+    current_survey_line = UndoingDelegate('task', 'current_survey_line',
+                                          'undo_manager',
+                                          name='Select Survey Line')
 
+    #: reference to the task's selected survey lines
     selected_survey_lines = DelegatesTo('task')
 
+    #: reference to the survey lines
     survey = Supports(ISurvey)
 
+    #: proxy for the survey's name
+    survey_name = UndoingDelegate('survey', 'name', 'undo_manager', trait=Str,
+                                   name='Survey Name', mergeable=True)
+
+    #: proxy for the survey's comments field
+    survey_comments = UndoingDelegate('survey', 'comments', 'undo_manager', trait=Str,
+                                      name='Survey Comments', mergeable=True)
+
     view = View(
-        Item('object.survey.name'),
+        Item('survey_name'),
         Group(
             Item('survey', editor=survey_line_tree, show_label=False),
             label='Survey Lines',
         ),
         Group(
-            Item('object.survey.comments', style='custom'),
+            Item('survey_comments', style='custom'),
             label='Comments',
             show_labels=False,
         ),
