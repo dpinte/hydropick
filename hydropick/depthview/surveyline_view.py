@@ -257,23 +257,11 @@ class SurveyLineView(ModelView):
                           ybounds=self.model.ybounds,
                           name=key)
         if remove:
-            print 'in remove',remove
-            print main.plots
-            print main.components
             component1 = mini.plots.pop(remove)[0]
             component2 = main.plots.pop(remove)[0]
-            print main.plots
-            print main.components
-            print component1, component2
-            # main.remove(component1)
-            # mini.remove(component2)
-            # print main.plots
-            # print main.components
-        self.mainplot.invalidate_and_redraw()
+        self.mainplot.invalidate_and_redraw()  
 
-
-
-
+        
     def update_plots(self):
         ''' Create plots and add to container. Run when new plot is added or
         new survey is selected.

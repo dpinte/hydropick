@@ -95,8 +95,6 @@ class TraceTool(BaseTool):
             current_index = np.searchsorted(xdata,newx)
 
 
-            #import ipdb; ipdb.set_trace()
-
             if self.mouse_down:
                 ydata = target.value.get_data()
                 #           # ydata = data.get_data("impound_1_Y")
