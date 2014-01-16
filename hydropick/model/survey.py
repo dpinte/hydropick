@@ -7,6 +7,8 @@
 
 from __future__ import absolute_import
 
+import logging
+
 from traits.api import HasTraits, List, Str, Supports, provides
 
 from .i_survey import ISurvey
@@ -15,6 +17,8 @@ from .i_survey_line import ISurveyLine
 from .i_survey_line_group import ISurveyLineGroup
 from .i_core_sample import ICoreSample
 from .survey_line_group import SurveyLineGroup
+
+logger = logging.getLogger(__name__)
 
 @provides(ISurvey)
 class Survey(HasTraits):
@@ -45,11 +49,21 @@ class Survey(HasTraits):
     core_samples = List(Supports(ICoreSample))
 
 
-    def new_line_group(self, group, lines=None):
+    def add_survey_line_group(self, group):
         """ Create a new line group, optionally with a set of lines """
-        group = SurveyLineGroup(name='New Group', survey_lines=lines)
-        self.line_groups.append(group)
+        self.survey_line_groups.append(group)
+        logger.debug("Added survey line group '{}'".format(group.name))
 
-    def delete_line_group(self, group):
-        """ Delete a line group """
-        self.line_groups.remove(group)
+    def insert_survey_line_group(self, index, group):
+        """ Create a new line group, optionally with a set of lines """
+        self.survey_line_groups.insert(index, group)
+        logger.debug("Inserted survey line group '{}' at index {}".format(
+            group.name, index))
+
+    def delete_survey_line_group(self, group):
+        """ Delete a line group, returning its index """
+        index = self.survey_line_groups.index(group)
+        self.survey_line_groups.remove(group)
+        logger.debug("Removed survey line group '{}' from index {}".format(
+            group.name, index))
+        return index

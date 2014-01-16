@@ -20,6 +20,7 @@ from ...model.i_survey_line import ISurveyLine
 from ...model.i_survey_line_group import ISurveyLineGroup
 
 from .task_command_action import TaskCommandAction
+from .survey_task_commands import NextSurveyLine, PreviousSurveyLine
 
 class SurveyTask(Task):
     """ A task for viewing and editing hydrological survey data """
@@ -46,8 +47,17 @@ class SurveyTask(Task):
     #: the selected survey lines
     selected_survey_lines = List(Supports(ISurveyLine))
 
+    # traits for managing Action state
+
     #: whether the undo stack is "clean"
     dirty = Property(Bool, depends_on='command_stack.clean')
+
+    #: whether or not there are selected lines
+    have_selected_lines = Property(Bool, depends_on='selected_survey_lines')
+
+    #: whether or not there is a current group
+    have_current_group = Property(Bool, depends_on='current_survey_line_group')
+
 
     #: the object that manages Undo/Redo stacks
     undo_manager = Supports(IUndoManager)
@@ -98,20 +108,27 @@ class SurveyTask(Task):
                 SGroup(
                     TaskCommandAction(name='New Group', method='on_new_group',
                                       accelerator='Ctrl+Shift+N',
-                                      enabled_name='selected_survey_lines'),
+                                      command_stack_name='command_stack'),
                     TaskCommandAction(name='Delete Group',
                                       method='on_delete_group',
-                                      accelerator='Ctrl+Delete'),
+                                      accelerator='Ctrl+Delete',
+                                      enabled_name='have_current_group'),
                     id='LineGroupGroup', name="Line Group Group",
                 ),
                 id='Edit', name="&Edit",
             ),
             SMenu(
                 SGroup(
-                    TaskAction(name='Next Line', method='on_next_line',
-                                enabled_name='survey.survey_lines', accelerator='Ctrl+Right'),
-                    TaskAction(name='Previous Line', method='on_previous_line',
-                                enabled_name='survey.survey_lines', accelerator='Ctrl+Left'),
+                    TaskCommandAction(name='Next Line',
+                                      command=NextSurveyLine,
+                                      enabled_name='survey.survey_lines',
+                                      accelerator='Ctrl+Right',
+                                      command_stack_name='command_stack'),
+                    TaskCommandAction(name='Previous Line',
+                                      command=PreviousSurveyLine,
+                                      enabled_name='survey.survey_lines',
+                                      accelerator='Ctrl+Left',
+                                      command_stack_name='command_stack'),
                     id='LineGroup', name='Line Group',
                 ),
                 DockPaneToggleGroup(),
@@ -193,28 +210,23 @@ class SurveyTask(Task):
         """ Saves a hydrological survey file in a different location """
         raise NotImplementedError
 
-    def on_next_line(self):
-        """ Move to the next selected line """
-        raise NotImplementedError
-
-    def on_previous_line(self):
-        """ Move to the previous selected line """
-        raise NotImplementedError
-
     def on_new_group(self):
         from ...model.survey_line_group import SurveyLineGroup
-        from ...util.commands import CallableCommand
+        from ...model.survey_commands import AddSurveyLineGroup
 
-        group = SurveyLineGroup(name='Untitled', lines=self.selected_survey_lines)
-        command = CallableCommand(
-            do_callable=self.survey.survey_line_groups.append,
-            undo_callable=self.survey.survey_line_groups.remove,
-            data=((group,), {})
-        )
-        self.command_stack.push(command)
+        group = SurveyLineGroup(name='Untitled', survey_lines=self.selected_survey_lines)
+        command = AddSurveyLineGroup(data=self.survey, group=group)
+        print command
+        return command
 
     def _get_dirty(self):
         return not self.command_stack.clean
+
+    def _get_have_selected_lines(self):
+        return len(self.selected_survey_lines) != 0
+
+    def _get_have_current_group(self):
+        return self.current_survey_line_group is not None
 
     def _command_stack_default(self):
         """ Return the default undo manager """

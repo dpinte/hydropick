@@ -7,8 +7,8 @@
 
 from __future__ import absolute_import
 
-from traits.api import Supports
-from traitsui.api import View
+from traits.api import Property, Supports
+from traitsui.api import View, Item
 from pyface.tasks.api import TraitsTaskPane
 
 from ...model.i_survey_line import ISurveyLine
@@ -21,4 +21,14 @@ class SurveyLinePane(TraitsTaskPane):
 
     survey_line = Supports(ISurveyLine)
 
-    view = View()
+    line_name = Property(depends_on='survey_line.name')
+
+    def _get_line_name(self):
+        if self.survey_line:
+            return self.survey_line.name
+        else:
+            return 'None'
+
+    view = View(
+        Item('line_name', style='readonly')
+    )
