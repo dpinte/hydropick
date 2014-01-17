@@ -22,12 +22,14 @@ from traits.api import Property
 from .commands import AttributeSetCommand
 
 
-def UndoingDelegate(delegate, attribute, undo_manager, mergeable=False, trait=None, **metadata):
+def UndoingDelegate(delegate, attribute, undo_manager, name=None,
+                    mergeable=False, trait=None, command=AttributeSetCommand,
+                    **metadata):
     """ Delegate-style Property which mediates changes via an undo manager
 
     This trait is intended for use on ModelView-style classes, where changes to
-    the UndoingDelegate are turned into AttributeSetCommands targeted against
-    the underlying object and attribute and added to an undo manager's stack.
+    the UndoingDelegate are turned into commands targeted against the underlying
+    object and attribute and added to an undo manager's stack.
 
     Parameters
     ----------
@@ -40,27 +42,29 @@ def UndoingDelegate(delegate, attribute, undo_manager, mergeable=False, trait=No
         The name of the trait holding the undo manager to use.
     mergeable :
         Whether or not to merge consecutive sets into a single command.
+    name :
+        The display name for the command.
     trait :
         A trait to use for validation.
+    command :
+        A command factory, default is AttributeSetCommand
+
+    The command factory will be passed keyword arguments of `data` (the object
+    that the trait is on), `attribute`, `value`, `name` and `mergeable`.
 
     """
-    if trait is None and not isinstance(delegate, basestring):
-        # treat delegate as a trait type & shift args
-        trait = delegate
-        delegate, attribute, undo_manager = attribute, undo_manager, mergeable
-
     depends_on = delegate+'.'+attribute
 
     def fget(object):
-        target = getattr(object, delegate)
-        return getattr(target, attribute)
+        data = getattr(object, delegate)
+        return getattr(data, attribute)
 
     def fset(object, value):
-        target = getattr(object, delegate)
-        command = AttributeSetCommand(target=target, attribute=attribute,
-                                    data=value, mergeable=mergeable)
+        data = getattr(object, delegate)
+        cmd = command(data=data, attribute=attribute, value=value, name=name,
+                      mergeable=mergeable)
         manager = getattr(object, undo_manager)
-        manager.active_stack.push(command)
+        manager.active_stack.push(cmd)
 
     return Property(fget=fget, fset=fset, force=True, trait=trait,
                     depends_on=depends_on, **metadata)
@@ -94,7 +98,7 @@ def Undoable(undo_manager, mergeable=False, trait=None, **metadata):
         return getattr(object, name+'_')
 
     def fset(object, name, value):
-        command = AttributeSetCommand(target=object, attribute=name+'_', data=value,
+        command = AttributeSetCommand(data=object, attribute=name+'_', value=value,
                                     mergeable=mergeable)
         manager = getattr(object, undo_manager)
         manager.active_stack.push(command)

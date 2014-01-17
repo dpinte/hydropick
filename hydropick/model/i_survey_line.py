@@ -15,6 +15,9 @@ from .i_core_sample import ICoreSample
 class ISurveyLine(Interface):
     """ A class representing a single survey line """
 
+    #: the user-visible name for the line
+    name = Str
+
     #: sample locations, an Nx2 array of lat/long (or easting/northing?)
     locations = Array(shape=(None, 2))
 
