@@ -75,16 +75,12 @@ class SurveyLineView(ModelView):
     #==========================================================================
 
     traits_view = View(
-                      Item('_'),
-                      HSplit(
-                          InstanceUItem('control_view',
-                                        width=150),
-                          InstanceUItem('plot_container',
-                                        width=900, height=700),
-                          show_border=True
-                          ),
-                      resizable=True,
-                      )
+        HSplit(
+            InstanceUItem('plot_container'),
+            InstanceUItem('control_view', width=150),
+        ),
+        resizable=True,
+    )
 
     #==========================================================================
     # Defaults
