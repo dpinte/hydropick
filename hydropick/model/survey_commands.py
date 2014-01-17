@@ -15,11 +15,14 @@ from .i_survey_line import ISurveyLine
 from .i_survey_line_group import ISurveyLineGroup
 
 class AddSurveyLineGroup(AbstractCommand):
+    """ Add a new SurveyLineGroup to the Survey """
 
     name = "New Group"
 
+    #: the survey we are working with
     data = Instance(ISurvey)
 
+    #: the group we are adding
     group = Instance(ISurveyLineGroup)
 
     def do(self):
@@ -33,13 +36,17 @@ class AddSurveyLineGroup(AbstractCommand):
 
 
 class DeleteSurveyLineGroup(AbstractCommand):
+    """ Remove a SurveyLineGroup to the Survey """
 
     name = "Delete Group"
 
+    #: the survey we are working with
     data = Instance(ISurvey)
 
+    #: the group we are removing
     group = Instance(ISurveyLineGroup)
 
+    #: the index of the group we are removing in the list of groups
     _index = Int
 
     def do(self):
@@ -53,13 +60,17 @@ class DeleteSurveyLineGroup(AbstractCommand):
 
 
 class AddSurveyLinesToGroup(AbstractCommand):
+    """ Add a new SurveyLines to a SurveyLineGroup """
 
     name = "Add Lines to Group"
 
+    #: the survey line group we are working with
     data = Instance(ISurveyLineGroup)
 
+    #: the lines we are adding to the group
     lines = List(Instance(ISurveyLine))
 
+    #: the original set of lines in the group
     _old_state = List(Instance(ISurveyLine))
 
     def do(self):
@@ -74,13 +85,17 @@ class AddSurveyLinesToGroup(AbstractCommand):
 
 
 class RemoveSurveyLinesFromGroup(AbstractCommand):
+    """ Remove SurveyLines from a SurveyLineGroup """
 
     name = "Remove Lines from Group"
 
+    #: the survey line group we are working with
     data = Instance(ISurveyLineGroup)
 
+    #: the lines we are removing from the group
     lines = List(Instance(ISurveyLine))
 
+    #: the original set of lines in the group
     _old_state = List(Instance(ISurveyLine))
 
     def do(self):

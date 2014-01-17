@@ -9,7 +9,6 @@ from __future__ import absolute_import
 
 from traits.api import Bool, Property, Supports, List, on_trait_change
 from pyface.api import ImageResource
-from pyface.action.api import Action
 from pyface.tasks.api import Task, TaskLayout, PaneItem, VSplitter
 from pyface.tasks.action.api import DockPaneToggleGroup, SMenuBar, SMenu, \
     SGroup, SToolBar, TaskAction
@@ -21,7 +20,6 @@ from ...model.i_survey_line import ISurveyLine
 from ...model.i_survey_line_group import ISurveyLineGroup
 
 from .task_command_action import TaskCommandAction
-from .survey_task_commands import NextSurveyLine, PreviousSurveyLine
 
 class SurveyTask(Task):
     """ A task for viewing and editing hydrological survey data """
@@ -58,7 +56,6 @@ class SurveyTask(Task):
 
     #: whether or not there is a current group
     have_current_group = Property(Bool, depends_on='current_survey_line_group')
-
 
     #: the object that manages Undo/Redo stacks
     undo_manager = Supports(IUndoManager)
@@ -100,12 +97,6 @@ class SurveyTask(Task):
                     RedoAction(undo_manager=self.undo_manager, accelerator='Ctrl+Shift+Z'),
                     id='UndoGroup', name="Undo Group",
                 ),
-                #SGroup(
-                #    Action(name='Cut', accelerator='Ctrl+X'),
-                #    Action(name='Copy', accelerator='Ctrl+C'),
-                #    Action(name='Paste', accelerator='Ctrl+V'),
-                #    id='CopyGroup', name="Copy Group",
-                #),
                 SGroup(
                     TaskCommandAction(name='New Group', method='on_new_group',
                                       accelerator='Ctrl+Shift+N',
@@ -151,13 +142,13 @@ class SurveyTask(Task):
             ),
             SToolBar(
                 TaskCommandAction(name='New Group', method='on_new_group',
-                                    command_stack_name='command_stack',
-                                    image=ImageResource('new-group')),
+                                  command_stack_name='command_stack',
+                                  image=ImageResource('new-group')),
                 TaskCommandAction(name='Delete Group',
-                                    method='on_delete_group',
-                                    enabled_name='have_current_group',
-                                    command_stack_name='command_stack',
-                                    image=ImageResource('delete-group')),
+                                  method='on_delete_group',
+                                  enabled_name='have_current_group',
+                                  command_stack_name='command_stack',
+                                  image=ImageResource('delete-group')),
                 TaskAction(name='Previous Line',
                            method='on_previous_line',
                            enabled_name='survey.survey_lines',
@@ -258,6 +249,7 @@ class SurveyTask(Task):
         raise NotImplementedError
 
     def on_new_group(self):
+        """ Adds a new survey line group to a survey """
         from ...model.survey_line_group import SurveyLineGroup
         from ...model.survey_commands import AddSurveyLineGroup
 
@@ -266,6 +258,7 @@ class SurveyTask(Task):
         return command
 
     def on_delete_group(self):
+        """ Deletes a survey line group from a survey """
         from ...model.survey_line_group import SurveyLineGroup
         from ...model.survey_commands import DeleteSurveyLineGroup
 
@@ -274,9 +267,11 @@ class SurveyTask(Task):
         return command
 
     def on_next_line(self):
+        """ Move to the next selected line """
         self.current_survey_line = self._get_next_survey_line()
 
     def on_previous_line(self):
+        """ Move to the previous selected line """
         self.current_survey_line = self._get_previous_survey_line()
 
     def _get_dirty(self):
@@ -310,10 +305,12 @@ class SurveyTask(Task):
     ###########################################################################
 
     def _window_title(self):
+        """ Get the title of the window """
         name = self.survey.name
         return name if name else 'Untitled'
 
     def _prompt_for_save(self):
+        """ Check if the user wants to save changes """
         from pyface.api import ConfirmationDialog, CANCEL, YES
         if not self.command_stack.clean:
             message = 'The current survey has unsaved changes. ' \
@@ -330,9 +327,11 @@ class SurveyTask(Task):
         return True
 
     def _save(self):
+        """ Save changes to a survey file """
         raise NotImplementedError
 
     def _get_next_survey_line(self):
+        """ Get the next selected survey line, or the next line if nothing selected """
         survey_lines = self.selected_survey_lines[:]
         previous_survey_line = self.current_survey_line
 
@@ -353,6 +352,7 @@ class SurveyTask(Task):
             return survey_lines[0]
 
     def _get_previous_survey_line(self):
+        """ Get the previous selected survey line, or the previous line if nothing selected """
         survey_lines = self.selected_survey_lines[:]
         previous_survey_line = self.current_survey_line
 
