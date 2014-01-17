@@ -5,6 +5,8 @@
 # This code is open-source. See LICENSE file for details.
 #
 
+
+from __future__ import absolute_import
 # Std lib imports
 import sys
 import os
@@ -19,6 +21,7 @@ from traitsui.api import View, Item, ToolBar
 
 # Local imports
 from sdi import binary
+#from hydropick.model.survey_line import SurveyLine
 from ..model.survey_line import SurveyLine
 #from survey_line_sample_case import MySurveyLine
 
@@ -27,9 +30,13 @@ class SurveyDataSession(HasTraits):
     """ Model for SurveyLineView.
 
     Assumes reciept of SurveyLine instance
+    (Make sure surveyline has the traits delegated below from sdi dict )
     """
     # Source of survey line data to be edited
     surveyline = Instance(SurveyLine)
+
+    # Flag to be set when valid data is passed to surveyline
+    data_available = Bool(False)
 
     #: sample locations, an Nx2 array of lat/long (or easting/northing?)
     locations = DelegatesTo('surveyline', 'locations')
@@ -77,8 +84,8 @@ class SurveyDataSession(HasTraits):
                                                  'pixel_depth_scale',
                                                  'frequencies'])
 
-    pixel_depth_offset = DelegatesTo('surveyline', 'pixel_depth_offset')
-    pixel_depth_scale =DelegatesTo('surveyline', 'pixel_depth_scale')
+    pixel_depth_offset = DelegatesTo('surveyline', 'draft')
+    pixel_depth_scale =DelegatesTo('surveyline', 'pixel_resolution')
 
     # Array to be used for x axis.  Length corresponds to depth lines and
     # image horizontal sizes.  Default is index but may be changed to
@@ -95,7 +102,7 @@ class SurveyDataSession(HasTraits):
 
 
     def _surveyline_default(self):
-        return MySurveyLine()
+        return SurveyLine()
 
     def _selected_freq_default(self):
         return self.frequencies.keys()[0]
@@ -104,16 +111,30 @@ class SurveyDataSession(HasTraits):
     # Notifications
     #==========================================================================
 
+    def _surveyline_changed(self, new):
+        ''' Assumes any non-None value will be a valid SurveyLine object
+        In order to maintain valid delgates, when None is passed to surveyline
+        we change it to an empty SurveyLine object
+        '''
+        print 'survey line has changed to ', new
+        if new is None:
+            self.surveyline = SurveyLine()
+            self.data_available = False
+        else:
+            self.data_available = True
 
     #==========================================================================
     # Get/Set
     #==========================================================================
     def _get_freq_choices(self):
-        ''' Get list of available frequencies as strings from frequencies dic
-        limit resolution to 0.1 kHz.
+        ''' Get list of available frequencies as (value,string) pair from
+        frequencies dict for use in selector widget.
+        Limit label string resolution to 0.1 kHz.
         '''
-        #s = ['{:.1f}'.format(float(freq)) for freq in self.frequencies]
         s = [freq for freq in self.frequencies]
+        #s = ['{:.1f}'.format(float(freq)) for freq in self.frequencies]
+        #s = [ (str(freq), '{:.1f}'.format(float(freq))) for freq in self.frequencies]
+        print 'freq choices',s
         return s
 
     def _get_depth_dict(self):
@@ -133,14 +154,18 @@ class SurveyDataSession(HasTraits):
     def _get_x_array(self):
         ''' Initially set as horizontal pixel number of arbitrary image'''
         N = self.frequencies.values()[0].shape[1]
+        print 'N in xarray', N
         return np.arange(N)
 
     def _get_xbounds(self):
-        return (self.x_array.min(), self.x_array.max())
+        bounds = (self.x_array.min(), self.x_array.max())
+        print 'bounds ',bounds , bounds[1]-bounds[0]
+        return bounds
 
     def _get_ybounds(self):
         N = self.frequencies.values()[0].shape[0]
-        min = self.pixel_depth_offset
+        print '***** N',N
+        min = np.mean(self.pixel_depth_offset)
         max = min + N * self.pixel_depth_scale
         return (min, max)
 

@@ -7,6 +7,8 @@
 
 from __future__ import absolute_import
 
+import sys
+import os
 import numpy as np
 
 from traits.api import HasTraits, Array, Dict, Event, List, Supports, Str, \
@@ -16,14 +18,22 @@ from hydropick.model.i_core_sample import ICoreSample
 from hydropick.model.i_survey_line import ISurveyLine
 
 from sdi import binary
-from hydropick.model.survey_line import SurveyLine
+from ..model.survey_line import SurveyLine
 
+print 'this sdi', binary 
+#rel to this file
 EXAMPLE_SDI_FILE = 'sdi/06081001.bin'
 
 def load_sdi_dict(filepath):
     ''' read in data file the sdi read().
+    if file path given, assume its absolute or given relative to caller (cwd)
+    Otherwise assume EXAMPLE_SDI_FILE exists relative to this path
     '''
-    path = filepath or EXAMPLE_SDI_FILE
+    if filepath:
+        path = filepath
+    else:
+        this_dir = os.path.dirname(__file__)
+        path = os.path.join(this_dir, EXAMPLE_SDI_FILE)
     survey_dict = binary.read(path)
     print 'loaded default sample data :', path
     return survey_dict
@@ -95,9 +105,12 @@ class MySurveyLine(SurveyLine):
         lines.
         '''
         return {}
-    
+
 
 if __name__ == '__main__':
+    for p in sys.path:
+        print p
+    print binary
     surveyline = MySurveyLine()
     print 'read file0'
     print surveyline._sdi_dict

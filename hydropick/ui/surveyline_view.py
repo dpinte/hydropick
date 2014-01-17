@@ -26,7 +26,7 @@ from pyface.api import ImageResource
 # Local imports
 from .surveydatasession import SurveyDataSession
 from .surveytools import TraceTool
-from .surveyviews import ControlView, PlotView, BigView, InstanceUItem, PlotContainer
+from .surveyviews import ControlView, BigView, InstanceUItem, PlotContainer
 
 class SurveyLineView(ModelView):
     """ View Class for working with survey line data to find depth profile.
@@ -34,7 +34,7 @@ class SurveyLineView(ModelView):
     Uses a Survey class as a model and allows for viewing of various depth
     picking algorithms and manual editing of depth profiles.
     """
-    
+
 
     #==========================================================================
     # Traits Attributes
@@ -157,6 +157,7 @@ class SurveyLineView(ModelView):
         ''' Adds images same way as lines to plotdata and plots first one
         '''
         for key, array in kw.items():
+            print 'adding image',key
             self.plotdata.set_data(key, array)
         self.model.frequencies.update(kw)
         imagelist = [kw.keys()[0]]
@@ -199,6 +200,7 @@ class SurveyLineView(ModelView):
         main = self.mainplot
         mini = self.miniplot
         for key in keylist:
+            print 'key is ',key,
             newplot = main.img_plot(key, colormap=Greys,
                                     xbounds=self.model.xbounds,
                                     ybounds=self.model.ybounds,
@@ -248,6 +250,7 @@ class SurveyLineView(ModelView):
             else:
                 this_plot.visible=False
         self.mainplot.invalidate_and_redraw()
+
 
 
 if __name__ == "__main__":

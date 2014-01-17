@@ -196,7 +196,7 @@ class ControlView(HasTraits):
     visible_lines = List(Str)
 
     # frequency choices for images
-    freq_choices = List(Str)
+    freq_choices = List()
 
     # selected freq for which image to view
     image_freq = Str
