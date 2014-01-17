@@ -17,6 +17,9 @@ from .i_survey_line import ISurveyLine
 class SurveyLine(HasTraits):
     """ A class representing a single survey line """
 
+    #: the user-visible name for the line
+    name = Str
+
     #: sample locations, an Nx2 array of lat/long (or easting/northing?)
     locations = Array(shape=(None, 2))
 

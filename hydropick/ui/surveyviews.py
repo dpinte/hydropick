@@ -202,22 +202,16 @@ class ControlView(HasTraits):
     image_freq = Str
 
     traits_view = View(
-                       VGroup(
-                            Item('image_freq', editor=EnumEditor(
-                                        name='freq_choices')),
-                            Item('line_to_edit',
-                                 editor=EnumEditor(name='target_choices'),
-                                 tooltip='Edit red line with rt mouse button'),
-                            Item('_'),
-                            Item('visible_lines',
-                                 editor=CheckListEditor(name='target_choices'),
-                                 style='custom'),
-
-                            Item('_'),
-                            show_border=True,
-                            ),
-                       resizable=True
-             		   )
+        Item('image_freq', editor=EnumEditor(name='freq_choices')),
+        Item('line_to_edit',
+            editor=EnumEditor(name='target_choices'),
+            tooltip='Edit red line with right mouse button'
+        ),
+        Item('visible_lines',
+            editor=CheckListEditor(name='target_choices'),
+            style='custom'),
+        resizable=True
+    )
 
 class BigView(HasTraits):
     ''' Used to demo layout '''
@@ -225,15 +219,13 @@ class BigView(HasTraits):
     controlview = Instance(ControlView)
     plotview = Instance(PlotContainer)
     traits_view = View(
-                      Item('_'),
-                      Item('datafile',padding=15),
-                      HSplit(
-                          InstanceUItem('controlview', width=150),
-                          InstanceUItem('plotview', width=700),
-                          show_border=True
-                          ),
-                      resizable=True,
-                      )
+        HSplit(
+            InstanceUItem('plotview', width=700),
+            InstanceUItem('controlview', width=150),
+            show_border=True
+        ),
+        resizable=True,
+    )
 
 #==========================================================================
 # create individual views to check independently

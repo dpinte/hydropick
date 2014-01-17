@@ -31,9 +31,13 @@ setup(
     license='BSD',
     maintainer='Dharhas Pothina',
     maintainer_email='dharhas.pothina@twdb.texas.gov',
-    package_data={},
+    package_data={
+        'hydropick': [
+            'hydropick/ui/tasks/images/24x24/*.png',
+        ]
+    },
     entry_points = {
-        'gui_scripts': ['hydropick = hydropick.app.main:main',],
+        'gui_scripts': ['hydropick = hydropick.__main__:main',],
     },
     packages=find_packages(),
     platforms=["Windows", "Linux", "Mac OS-X", "Unix"],
