@@ -16,7 +16,6 @@ from .i_lake import ILake
 from .i_survey_line import ISurveyLine
 from .i_survey_line_group import ISurveyLineGroup
 from .i_core_sample import ICoreSample
-from .survey_line_group import SurveyLineGroup
 
 logger = logging.getLogger(__name__)
 

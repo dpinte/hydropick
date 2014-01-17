@@ -8,10 +8,11 @@
 from __future__ import absolute_import
 
 from traits.api import Bool, Property, Supports, List, on_trait_change
+from pyface.api import ImageResource
 from pyface.action.api import Action
 from pyface.tasks.api import Task, TaskLayout, PaneItem, VSplitter
 from pyface.tasks.action.api import DockPaneToggleGroup, SMenuBar, SMenu, \
-    SGroup, TaskAction
+    SGroup, SToolBar, TaskAction
 from apptools.undo.i_undo_manager import IUndoManager
 from apptools.undo.i_command_stack import ICommandStack
 
@@ -112,23 +113,22 @@ class SurveyTask(Task):
                     TaskCommandAction(name='Delete Group',
                                       method='on_delete_group',
                                       accelerator='Ctrl+Delete',
-                                      enabled_name='have_current_group'),
+                                      enabled_name='have_current_group',
+                                      command_stack_name='command_stack'),
                     id='LineGroupGroup', name="Line Group Group",
                 ),
                 id='Edit', name="&Edit",
             ),
             SMenu(
                 SGroup(
-                    TaskCommandAction(name='Next Line',
-                                      command=NextSurveyLine,
-                                      enabled_name='survey.survey_lines',
-                                      accelerator='Ctrl+Right',
-                                      command_stack_name='command_stack'),
+                    TaskAction(name='Next Line',
+                               method='on_next_line',
+                               enabled_name='survey.survey_lines',
+                               accelerator='Ctrl+Right'),
                     TaskCommandAction(name='Previous Line',
-                                      command=PreviousSurveyLine,
-                                      enabled_name='survey.survey_lines',
-                                      accelerator='Ctrl+Left',
-                                      command_stack_name='command_stack'),
+                               method='on_previous_line',
+                               enabled_name='survey.survey_lines',
+                               accelerator='Ctrl+Left'),
                     id='LineGroup', name='Line Group',
                 ),
                 DockPaneToggleGroup(),
@@ -136,6 +136,40 @@ class SurveyTask(Task):
             ),
         )
         return menu_bar
+
+    def _tool_bars_default(self):
+        toolbars = [
+            SToolBar(
+                TaskAction(name="Import", method='on_import',
+                            image=ImageResource('import')),
+                TaskAction(name="Open", method='on_open',
+                            image=ImageResource('survey')),
+                TaskAction(name="Save", method='on_save',
+                            enabled_name='dirty',
+                            image=ImageResource('save')),
+                id='File', name="File", show_tool_names=False, image_size=(24,24)
+            ),
+            SToolBar(
+                TaskCommandAction(name='New Group', method='on_new_group',
+                                    command_stack_name='command_stack',
+                                    image=ImageResource('new-group')),
+                TaskCommandAction(name='Delete Group',
+                                    method='on_delete_group',
+                                    enabled_name='have_current_group',
+                                    command_stack_name='command_stack',
+                                    image=ImageResource('delete-group')),
+                TaskAction(name='Previous Line',
+                           method='on_previous_line',
+                           enabled_name='survey.survey_lines',
+                           image=ImageResource("arrow-left")),
+                TaskAction(name='Next Line',
+                           method='on_next_line',
+                           enabled_name='survey.survey_lines',
+                           image=ImageResource("arrow-right")),
+                id='Survey', name="Survey", show_tool_names=False, image_size=(24,24)
+            ),
+        ]
+        return toolbars
 
     def activated(self):
         """ Overriden to set the window's title.
@@ -179,6 +213,19 @@ class SurveyTask(Task):
         if self.window and self.window.active_task is self:
             self.window.title = self._window_title()
 
+    @on_trait_change('survey.survey_lines')
+    def survey_lines_updated(self):
+        if self.current_survey_line not in self.survey.survey_lines:
+            self.current_survey_line = None
+        self.selected_survey_lines[:] = [line for line in self.selected_survey_lines
+                                         if line in self.survey_lines]
+
+
+    @on_trait_change('survey.survey_line_groups')
+    def survey_line_groups_updated(self):
+        if self.current_survey_line_group not in self.survey.survey_line_groups:
+            self.current_survey_line_group = None
+
     ###########################################################################
     # 'SurveyTask' interface.
     ###########################################################################
@@ -216,8 +263,21 @@ class SurveyTask(Task):
 
         group = SurveyLineGroup(name='Untitled', survey_lines=self.selected_survey_lines)
         command = AddSurveyLineGroup(data=self.survey, group=group)
-        print command
         return command
+
+    def on_delete_group(self):
+        from ...model.survey_line_group import SurveyLineGroup
+        from ...model.survey_commands import DeleteSurveyLineGroup
+
+        group = self.current_survey_line_group
+        command = DeleteSurveyLineGroup(data=self.survey, group=group)
+        return command
+
+    def on_next_line(self):
+        self.current_survey_line = self._get_next_survey_line()
+
+    def on_previous_line(self):
+        self.current_survey_line = self._get_previous_survey_line()
 
     def _get_dirty(self):
         return not self.command_stack.clean
@@ -243,7 +303,7 @@ class SurveyTask(Task):
 
     def _survey_default(self):
         from ...model.survey import Survey
-        return Survey()
+        return Survey(name='New Survey')
 
     ###########################################################################
     # private interface.
@@ -271,3 +331,43 @@ class SurveyTask(Task):
 
     def _save(self):
         raise NotImplementedError
+
+    def _get_next_survey_line(self):
+        survey_lines = self.selected_survey_lines[:]
+        previous_survey_line = self.current_survey_line
+
+        # if nothing selected, use all survey lines
+        if len(survey_lines) == 0:
+            survey_lines = self.survey.survey_lines[:]
+
+        # if still nothing, can't do anything reasonable, but we shouldn't
+        # have been called
+        if len(survey_lines) == 0:
+            return None
+
+        if previous_survey_line in survey_lines:
+            index = (survey_lines.index(previous_survey_line)+1) % \
+                    len(survey_lines)
+            return survey_lines[index]
+        else:
+            return survey_lines[0]
+
+    def _get_previous_survey_line(self):
+        survey_lines = self.selected_survey_lines[:]
+        previous_survey_line = self.current_survey_line
+
+        # if nothing selected, use all survey lines
+        if len(survey_lines) == 0:
+            survey_lines = self.survey.survey_lines[:]
+
+        # if still nothing, can't do anything reasonable, but we shouldn't
+        # have been called
+        if len(survey_lines) == 0:
+            return None
+
+        if previous_survey_line in survey_lines:
+            index = (survey_lines.index(previous_survey_line)-1) % \
+                    len(survey_lines)
+            return survey_lines[index]
+        else:
+            return survey_lines[-1]

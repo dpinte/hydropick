@@ -31,3 +31,12 @@ class SurveyLineGroup(HasTraits):
     # XXX may want to add some analysis data here that is applied to the lines
     # in this group (eg. contrast settings, data view, etc.) so users can have
     # consistent settings for viewing a collection of lines
+
+    def add_survey_lines(self, lines):
+        lines_added = [line for line in lines if line not in self.survey_lines]
+        self.survey_lines += lines_added
+
+    def remove_survey_lines(self, lines):
+        lines_removed = [line for line in lines if line in self.survey_lines]
+        self.survey_lines[:] = [line for line in self.survey_lines
+                                if line not in lines_removed]
