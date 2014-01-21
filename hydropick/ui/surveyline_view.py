@@ -17,6 +17,7 @@ from .surveydatasession import SurveyDataSession
 from .surveytools import TraceTool, LocationTool
 from .surveyviews import ControlView, InstanceUItem, PlotContainer
 
+
 class SurveyLineView(ModelView):
     """ View Class for working with survey line data to find depth profile.
 
@@ -78,12 +79,13 @@ class SurveyLineView(ModelView):
     #==========================================================================
 
     def _plot_container_default(self):
-        linedict = self.model.depth_dict
+        ''' Creat initial plot container'''
         self.mainplot = self.make_plot()
         self.mainplot.y_axis.title = 'Depth (m)'
         self.miniplot = self.make_plot(height=self.mini_height)
         self.miniplot.x_axis.title = 'Distance (m)'
-        container = PlotContainer(mainplot= self.mainplot, miniplot= self.miniplot)
+        container = PlotContainer(mainplot=self.mainplot,
+                                  miniplot=self.miniplot)
         if self.model.depth_dict:
             self.add_lines(**self.model.depth_dict)
         if self.model.frequencies:
@@ -95,14 +97,14 @@ class SurveyLineView(ModelView):
 
         cv = ControlView(target_choices=self.model.target_choices,
                          line_to_edit=self.model.selected_target,
-                         visible_lines= [],        ###self.visible_lines,
+                         visible_lines=[],
                          freq_choices=self.model.freq_choices,
                          image_freq=self.model.selected_freq,
-                         latitude = self.model.E_N_positions[50][0],
-                         longitude = self.model.E_N_positions[50][1]
+                         latitude=self.model.E_N_positions[50][0],
+                         longitude=self.model.E_N_positions[50][1]
                          )
         # set default values for widgets
-        cv.visible_lines = self.model.target_choices###
+        cv.visible_lines = self.model.target_choices
         cv.image_freq = self.model.selected_freq
 
         # Add notifications
@@ -120,7 +122,7 @@ class SurveyLineView(ModelView):
 
     def _trace_tool_default(self):
         ''' Sets up trace tool for editing lines'''
-        tool =  TraceTool(self.mainplot)
+        tool = TraceTool(self.mainplot)
         tool.on_trait_change(self.update_depth, 'depth')
         self.mainplot.tools.append(tool)
         return tool
@@ -129,7 +131,7 @@ class SurveyLineView(ModelView):
     # Helper functions
     #==========================================================================
 
-    def add_lines(self,**kw):
+    def add_lines(self, **kw):
         ''' Take arbitrary number of key=array pairs.
         Adds them to
         self.plotdata then self.depth_dict,
@@ -139,8 +141,7 @@ class SurveyLineView(ModelView):
         self.model.depth_dict.update(kw)
         self.update_main_mini_lines(kw.keys())
 
-
-    def add_images(self,**kw):
+    def add_images(self, **kw):
         ''' Adds images same way as lines to plotdata and plots first one
         '''
         self.plotdata.update_data(kw)
@@ -153,16 +154,15 @@ class SurveyLineView(ModelView):
         Used for mainplot and miniplot to make identical plots apart from
         height.
         '''
-
         plot = Plot(self.plotdata,
                     border_visible=True,
                     bgcolor="white",
                     padding=0,
-                    origin ='top left'
+                    origin='top left'
                     )
         if height:
-            plot.height=height
-            plot.resizable='h'
+            plot.height = height
+            plot.resizable = 'h'
 
         return plot
 
@@ -173,10 +173,9 @@ class SurveyLineView(ModelView):
         main = self.mainplot
         mini = self.miniplot
         for key in keylist:
-            newplot = main.plot(('x_array',key), color='blue', name=key)
+            newplot = main.plot(('x_array', key), color='blue', name=key)
             self.plot_dict[key] = newplot[0]
-            mini.plot(('x_array',key), color='blue', name=key)
-
+            mini.plot(('x_array', key), color='blue', name=key)
 
     def update_main_mini_image(self, keylist=[], remove=None):
         ''' Add specified image plots from self.plotdata to both plots.
@@ -201,8 +200,9 @@ class SurveyLineView(ModelView):
                           ybounds=self.model.ybounds,
                           name=key)
         if remove:
-            component1 = mini.plots.pop(remove)[0]
-            component2 = main.plots.pop(remove)[0]
+            mini.plots.pop(remove)[0]
+            main.plots.pop(remove)[0]
+
         self.mainplot.invalidate_and_redraw()
 
     #==========================================================================
@@ -217,7 +217,7 @@ class SurveyLineView(ModelView):
         cv = self.control_view
         lat, long = self.model.locations[image_index]
         east, north = self.model.E_N_positions[image_index]
-        cv.latitude =lat
+        cv.latitude = lat
         cv.longitude = long
         cv.easting = east
         cv.northing = north
@@ -233,20 +233,21 @@ class SurveyLineView(ModelView):
         if old_target_line:
             old_target_line.color = 'blue'
         # make selected plot visible
-        if new_target not in self.control_view.visible_lines:
-            newset = set(self.control_view.visible_lines).union(set([new_target]))
-            self.control_view.visible_lines=list(newset)
+        cv = self.control_view
+        if new_target not in cv.visible_lines:
+            newset = set(cv.visible_lines).union(set([new_target]))
+            cv.visible_lines = list(newset)
         self.mainplot.invalidate_and_redraw()
         self.trace_tool.target_line = new_target_line
 
     def change_image(self, object, name, old, new):
         # update trace tool target line attribute.
         if old in self.plot_dict:
-            self.update_main_mini_image([new],remove=old)
+            self.update_main_mini_image([new], remove=old)
         else:
             self.update_main_mini_image([new])
 
-    def select_line(self,object, name, old, visible_lines):
+    def select_line(self, object, name, old, visible_lines):
         ''' Called when controlview.visible_lines changes in order to actually
         change the visibility of the lines.  Need to make sure the new list
         includes the selected lines which means if someone unchecks it we have
@@ -260,7 +261,8 @@ class SurveyLineView(ModelView):
             # If there is line to edit, make sure its in visible lines list.
             # Temporarily disable notification so we don't re-call this method.
             fullset = newset.union(set([cv.line_to_edit]))
-            cv.on_trait_change(self.select_line, name='visible_lines', remove=True)
+            cv.on_trait_change(self.select_line, name='visible_lines',
+                               remove=True)
             cv.visible_lines = list(fullset)
             cv.on_trait_change(self.select_line, name='visible_lines')
 
@@ -275,7 +277,6 @@ class SurveyLineView(ModelView):
             else:
                 this_plot.visible = False
         self.mainplot.invalidate_and_redraw()
-
 
 
 if __name__ == "__main__":
