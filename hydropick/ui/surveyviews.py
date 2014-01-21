@@ -16,7 +16,7 @@ import numpy as np
 
 # ETS imports
 from enable.api import ComponentEditor
-from traits.api import Instance, Enum, DelegatesTo, Str, Property, Dict, List, HasTraits, File
+from traits.api import Instance, Enum, DelegatesTo, Str, Property, Dict, List, HasTraits, File,Set,Float
 from traitsui.api import ModelView, View, Item, ToolBar, EnumEditor, Group, HGroup,UItem,InstanceEditor, VGroup, CheckListEditor, HSplit
 from traitsui.menu import Action, OKCancelButtons, StandardMenuBar
 from chaco.api import Plot, ArrayPlotData, jet, PlotAxis, create_scatter_plot,\
@@ -193,10 +193,14 @@ class ControlView(HasTraits):
     line_to_edit = Str
 
     # list of chosen lines to view in plots
-    visible_lines = List(Str)
+    visible_lines = List([])
 
     # frequency choices for images
     freq_choices = List()
+
+    # latitude, longitude for current cursor
+    latitude = Float(0)
+    longitude = Float(0)
 
     # selected freq for which image to view
     image_freq = Str
@@ -210,6 +214,8 @@ class ControlView(HasTraits):
         Item('visible_lines',
             editor=CheckListEditor(name='target_choices'),
             style='custom'),
+        Item('latitude'),
+        Item('longitude'),
         resizable=True
     )
 

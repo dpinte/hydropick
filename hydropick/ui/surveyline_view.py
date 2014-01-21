@@ -7,13 +7,13 @@
 
 from __future__ import absolute_import
 # Std lib imports
-
+import sys
 # other imports
 import numpy as np
 
 # ETS imports
 from enable.api import ComponentEditor
-from traits.api import Instance, Enum, DelegatesTo, Str, Property, Dict, List, Tuple, Int
+from traits.api import Instance, Enum, DelegatesTo, Str, Property, Dict, List, Tuple, Int, Set
 
 from traitsui.api import ModelView, View, Item, ToolBar, EnumEditor, Group, HGroup,HGroup,UItem,InstanceEditor, VGroup, CheckListEditor, HSplit
 from traitsui.menu import Action, OKCancelButtons, StandardMenuBar
@@ -106,12 +106,14 @@ class SurveyLineView(ModelView):
 
         cv = ControlView(target_choices=self.model.target_choices,
                          line_to_edit=self.model.selected_target,
-                         visible_lines=self.visible_lines,
+                         visible_lines= [],        ###self.visible_lines,
                          freq_choices=self.model.freq_choices,
-                         image_freq=self.model.selected_freq
+                         image_freq=self.model.selected_freq,
+                         latitude = self.model.E_N_positions[50][0],
+                         longitude = self.model.E_N_positions[50][1]
                          )
         # set default values for widgets
-        cv.visible_lines = self.model.target_choices
+        cv.visible_lines = self.model.target_choices###
         cv.image_freq = self.model.selected_freq
 
         # Add notifications
@@ -219,14 +221,19 @@ class SurveyLineView(ModelView):
     # Notifications
     #==========================================================================
 
-    def change_target(self, object, name, old, new):
+    def change_target(self, object, name, old, new_target):
         # update trace tool target line attribute.
-        print 'new target name is ', new
-        new_target_line = self.plot_dict[new]
+        print 'new target name is ', new_target
+        new_target_line = self.plot_dict[new_target]
         new_target_line.color = 'red'
         old_target_line = self.plot_dict.get(old, None)
         if old_target_line:
             old_target_line.color = 'blue'
+        # make selected plot visible
+        if new_target not in self.control_view.visible_lines:
+            newset = set(self.control_view.visible_lines).union(set([new_target]))
+            self.control_view.visible_lines=list(newset)
+        self.mainplot.invalidate_and_redraw()
         self.trace_tool.target_line = new_target_line
 
     def change_image(self, object, name, old, new):
@@ -237,14 +244,35 @@ class SurveyLineView(ModelView):
         else:
             self.update_main_mini_image([new])
 
-    def select_line(self,object, name, old, new):
-        print 'visible depthlines changed'
+    def select_line(self,object, name, old, visible_lines):
+        ''' Called when controlview.visible_lines changes in order to actually
+        change the visibility of the lines.  Need to make sure the new list
+        includes the selected lines which means if someone unchecks it we have
+        to not only make it visible but add it to visible lines which will
+        re-call this method'''
+
+        print 'visible depthlines changed ************* '
+        newset = set(visible_lines)
+        cv = self.control_view
+
+        if cv.line_to_edit:
+            # If there is line to edit, make sure its in visible lines list.
+            # Temporarily disable notification so we don't re-call this method.
+            fullset = newset.union(set([cv.line_to_edit]))
+            cv.on_trait_change(self.select_line, name='visible_lines', remove=True)
+            cv.visible_lines = list(fullset)
+            cv.on_trait_change(self.select_line, name='visible_lines')
+
+        else:
+            fullset = newset
+
+        # now set correct visibilties
         for name in self.model.depth_dict:
             this_plot = self.mainplot.plots[name][0]
-            if name in new:
-                this_plot.visible=True
+            if name in fullset:
+                this_plot.visible = True
             else:
-                this_plot.visible=False
+                this_plot.visible = False
         self.mainplot.invalidate_and_redraw()
 
 

@@ -25,13 +25,15 @@ from hydropick.ui.surveyviews import get_bigview
 # Update these path constants appropriately for users data directory
 
 REL_PATH = '../../..'
+REL_PATH = '/Users/bklappauf/mySoftware/projects/EnthoughtProjects/TWDB/code/'
 FILE_DIR = 'DataForEnthought/CorpusChristi/2012/SurveyData/SDI_data/030112a'
 FILE_NAME = '12030101.bin'
 
 LOCAL_DATA_PATH = os.path.join(REL_PATH, FILE_DIR, FILE_NAME)
 
 ATTR_LIST = ['intensity', 'num_pnts', 'pixel_resolution', 'depth_r1',
-             'draft', 'heave','units','latitude','longitude']
+             'draft', 'heave','units','latitude','longitude',
+             'interpolated_northing', 'interpolated_easting']
 
 def create_surveyline():
     ''' Create survey line for testing views

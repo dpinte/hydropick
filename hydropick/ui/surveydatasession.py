@@ -41,6 +41,11 @@ class SurveyDataSession(HasTraits):
     #: sample locations, an Nx2 array of lat/long (or easting/northing?)
     locations = DelegatesTo('surveyline', 'locations')
 
+    # Easting/Northing (x,y on map-plane in meters? ). Should probably be
+    # incorporated into locations attribute which could be a dictionary of
+    # types of coordinates mapped to pixel values.
+    E_N_positions = Property()
+
     #: a dictionary mapping frequencies to intensity arrays
     # NOTE:  assume arrays are transposed so that img_plot(array)
     # displays them correctly and array.shape gives (xsize,ysize)
@@ -107,6 +112,7 @@ class SurveyDataSession(HasTraits):
     def _selected_freq_default(self):
         return self.frequencies.keys()[0]
 
+
     #==========================================================================
     # Notifications
     #==========================================================================
@@ -136,6 +142,9 @@ class SurveyDataSession(HasTraits):
         #s = [ (str(freq), '{:.1f}'.format(float(freq))) for freq in self.frequencies]
         print 'freq choices',s
         return s
+
+    def _get_E_N_positions(self):
+        return np.array([self.surveyline.interpolated_easting, self.surveyline.interpolated_northing]).T 
 
     def _get_depth_dict(self):
         ''' Combine lake depths and preimpoundment in to one dict.
