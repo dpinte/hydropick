@@ -5,18 +5,15 @@
 # This code is open-source. See LICENSE file for details.
 #
 
-
 from __future__ import absolute_import
-# Std lib imports
-import sys
-import os
+
 # other imports
 import numpy as np
 
 # ETS imports
 from traits.api import Instance, HasTraits, Array, Property, Float,\
-                        List, Str, Bool,Tuple, Dict,\
-                        DelegatesTo, Event
+                       List, Str, Bool,Tuple, Dict,\
+                       DelegatesTo, Event
 
 # Local imports
 from ..model.survey_line import SurveyLine
@@ -85,11 +82,11 @@ class SurveyDataSession(HasTraits):
     # Y bounds should be set based on depth per pixel value of image data.
     # Y axis of depth lines should be set to match this value.
     ybounds = Property(Tuple, depends_on=['pixel_depth_offset',
-                                                 'pixel_depth_scale',
-                                                 'frequencies'])
+                                          'pixel_depth_scale',
+                                          'frequencies'])
 
     pixel_depth_offset = DelegatesTo('surveyline', 'draft')
-    pixel_depth_scale =DelegatesTo('surveyline', 'pixel_resolution')
+    pixel_depth_scale = DelegatesTo('surveyline', 'pixel_resolution')
 
     # Array to be used for x axis.  Length corresponds to depth lines and
     # image horizontal sizes.  Default is index but may be changed to
@@ -104,13 +101,11 @@ class SurveyDataSession(HasTraits):
     # Defaults
     #==========================================================================
 
-
     def _surveyline_default(self):
         return SurveyLine()
 
     def _selected_freq_default(self):
         return self.frequencies.keys()[0]
-
 
     #==========================================================================
     # Notifications
@@ -139,12 +134,13 @@ class SurveyDataSession(HasTraits):
         return s
 
     def _get_E_N_positions(self):
-        return np.array([self.surveyline.interpolated_easting, self.surveyline.interpolated_northing]).T
+        return np.array([self.surveyline.interpolated_easting,
+                         self.surveyline.interpolated_northing]).T
 
     def _get_depth_dict(self):
         ''' Combine lake depths and preimpoundment in to one dict.
         '''
-        depth_dict={}
+        depth_dict = {}
         depth_dict.update(self.lake_depths)
         depth_dict.update(self.preimpoundment_depths)
         return depth_dict
