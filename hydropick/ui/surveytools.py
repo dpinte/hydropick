@@ -23,6 +23,7 @@ class LocationTool(BaseTool):
 
     def normal_mouse_move(self,event):
         index = self.component.map_index((event.x, event.y))
+
         
 class TraceTool(BaseTool):
     """ Allows mouse update of impoundment boundary trace
