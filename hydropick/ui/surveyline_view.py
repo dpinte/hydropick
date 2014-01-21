@@ -25,7 +25,7 @@ from pyface.api import ImageResource
 
 # Local imports
 from .surveydatasession import SurveyDataSession
-from .surveytools import TraceTool
+from .surveytools import TraceTool, LocationTool
 from .surveyviews import ControlView, BigView, InstanceUItem, PlotContainer
 
 class SurveyLineView(ModelView):
@@ -57,6 +57,8 @@ class SurveyLineView(ModelView):
 
     # Custom tool for editing depth lines
     trace_tool = Instance(TraceTool)
+
+    location_tool = Instance(LocationTool)
 
     # List of which lines are visible in plots
     visible_lines = List([])
@@ -93,7 +95,9 @@ class SurveyLineView(ModelView):
     def _plot_container_default(self):
         linedict = self.model.depth_dict
         self.mainplot = self.make_plot()
+        self.mainplot.y_axis.title = 'Depth (m)'
         self.miniplot = self.make_plot(height=self.mini_height)
+        self.miniplot.x_axis.title = 'Distance (m)'
         contnr = PlotContainer(mainplot= self.mainplot, miniplot= self.miniplot)
         if self.model.depth_dict:
             self.add_lines(**self.model.depth_dict)
@@ -132,6 +136,7 @@ class SurveyLineView(ModelView):
     def _trace_tool_default(self):
         ''' Sets up trace tool for editing lines'''
         tool =  TraceTool(self.mainplot)
+        tool.on_trait_change(self.update_depth, 'depth')
         self.mainplot.tools.append(tool)
         return tool
 
@@ -203,6 +208,14 @@ class SurveyLineView(ModelView):
                                     xbounds=self.model.xbounds,
                                     ybounds=self.model.ybounds,
                                     name=key)
+            # self.location_tool = LocationTool(newplot[0])
+            # newplot[0].tools.append(self.location_tool)
+            self.trace_tool.image = newplot[0]
+            self.location_tool = LocationTool(newplot[0])
+            self.location_tool.on_trait_change(self.update_locations,
+                                               'image_index')
+            newplot[0].tools.append(self.location_tool)
+
             self.plot_dict[key] = newplot[0]
             mini.img_plot(key, colormap=Greys,
                           xbounds=self.model.xbounds,
@@ -220,6 +233,18 @@ class SurveyLineView(ModelView):
     #==========================================================================
     # Notifications
     #==========================================================================
+
+    def update_locations(self, image_index):
+        cv = self.control_view
+        lat, long = self.model.locations[image_index]
+        east, north = self.model.E_N_positions[image_index]
+        cv.latitude =lat
+        cv.longitude = long
+        cv.easting = east
+        cv.northing = north
+
+    def update_depth(self, depth):
+        self.control_view.depth = depth
 
     def change_target(self, object, name, old, new_target):
         # update trace tool target line attribute.

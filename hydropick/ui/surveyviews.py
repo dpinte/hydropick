@@ -202,6 +202,13 @@ class ControlView(HasTraits):
     latitude = Float(0)
     longitude = Float(0)
 
+    # latitude, longitude for current cursor
+    easting = Float(0)
+    northing = Float(0)
+
+    # depth of current mouse position
+    depth = Float(0)
+    
     # selected freq for which image to view
     image_freq = Str
 
@@ -214,8 +221,14 @@ class ControlView(HasTraits):
         Item('visible_lines',
             editor=CheckListEditor(name='target_choices'),
             style='custom'),
+        Item('_'),
         Item('latitude'),
         Item('longitude'),
+        Item('_'),
+        Item('easting'),
+        Item('northing'),
+        Item('_'),
+        Item('depth'),
         resizable=True
     )
 

@@ -9,22 +9,17 @@ import numpy as np
 
 # ETS imports
 from enable.api import BaseTool
-from traits.api import Float, Enum, Int, Bool, Instance
-from chaco.api import  LinePlot
+from traits.api import Float, Enum, Int, Bool, Instance, TraitError, Any
+from chaco.api import  LinePlot, CMapImagePlot
 #==============================================================================
 # Custom Tools
 #==============================================================================
 class LocationTool(BaseTool):
-    ''' Attach to image plot to get index position from mouse position.
-
-    '''
-    current_index = Int
-
-
+    image_index = Int
     def normal_mouse_move(self,event):
-        index = self.component.map_index((event.x, event.y))
+        self.image_index = self.component.map_index((event.x, event.y))[0]
+        event.handled = False
 
-        
 class TraceTool(BaseTool):
     """ Allows mouse update of impoundment boundary trace
 
@@ -39,13 +34,12 @@ class TraceTool(BaseTool):
     # missing points -- i.e. delta_index should be 1
     last_index = Int(np.nan)
     last_y = Float(np.nan)
+
+    depth = Float
     # when set, subsequent points will be processed for data updating.
     mouse_down = Bool(False)
 
     target_line = Instance(LinePlot)
-
-    # def _target_line_default(self):
-    #     return LinePlot()
 
     def normal_right_down(self,event):
         self.event_state = 'edit'
@@ -85,6 +79,10 @@ class TraceTool(BaseTool):
             ys = [newy]
         return np.array(indices), np.array(ys)
 
+    def normal_mouse_move(self, event):
+        newx, newy = self.component.map_data( (event.x, event.y))
+        self.depth = newy
+        
     def edit_mouse_move(self,event):
         ''' Continuously change the impound line value to the current mouse pos.
 
@@ -122,6 +120,7 @@ class TraceTool(BaseTool):
                 self.mouse_down = True
                 self.last_index = current_index
                 self.last_y = newy
+
 
 def build_histogram_plot2(xs, ys, range_selection_tool=True):
     """ Generic BarPlot maker, with a range selection tool attached.
