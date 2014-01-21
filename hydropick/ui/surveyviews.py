@@ -17,16 +17,21 @@ import numpy as np
 # ETS imports
 from enable.api import ComponentEditor
 from traits.api import Instance, Str, List, HasTraits, File, Float
-from traitsui.api import View, Item, EnumEditor, UItem,InstanceEditor, CheckListEditor, HSplit
-from chaco.api import Plot, ArrayPlotData, LinePlot, VPlotContainer, CMapImagePlot, ScatterPlot, ColorBar, LinearMapper, HPlotContainer
-from chaco.tools.api import PanTool, ZoomTool, RangeSelection, \
+from traitsui.api import View, Item, EnumEditor, UItem, InstanceEditor,\
+                         CheckListEditor, HSplit
+from chaco.api import Plot, ArrayPlotData, LinePlot, VPlotContainer,\
+                      CMapImagePlot, ScatterPlot, ColorBar, LinearMapper,\
+                      HPlotContainer
+from chaco.tools.api import PanTool, ZoomTool, RangeSelection,\
                             RangeSelectionOverlay
+
 
 class InstanceUItem(UItem):
     '''Convenience class for inluding instance in view as Item'''
 
     style = Str('custom')
-    editor = Instance(InstanceEditor,())
+    editor = Instance(InstanceEditor, ())
+
 
 class PlotContainer(HasTraits):
     ''' miniplot must have at least one plot with an index.
@@ -63,11 +68,10 @@ class PlotContainer(HasTraits):
         # Provides initial line plot to satisfy range tool.  Subsequent plots
         # should have at least one line plot
         y = np.arange(10)
-        data = ArrayPlotData(x=x)
+        data = ArrayPlotData(y=y)
         plot = Plot(data)
         plot.plot(('y'))
         return plot
-
 
     # Add a range overlay to the miniplot that is hooked up to the range
     # of the main plot.
@@ -75,24 +79,27 @@ class PlotContainer(HasTraits):
     def _plotcontainer_default(self):
         ''' Define plot container tools and look.
         '''
-        self.mainplot.tools.append(PanTool(self.mainplot))#
+        self.mainplot.tools.append(PanTool(self.mainplot))
         self.mainplot.tools.append(ZoomTool(self.mainplot,
                                             tool_mode='range',
                                             axis='value')
-                                    )
+                                   )
         has_img = False
         if 'image plot' in self.mainplot.plots:
             has_img = True
             imgplot = self.mainplot.plots['image plot'][0]
             self.img_data = imgplot.value
             colormap = imgplot.color_mapper
-            colorbar = ColorBar(index_mapper=LinearMapper(range=colormap.range),
-                            color_mapper=colormap,
-                            plot=imgplot,
-                            orientation='v',
-                            resizable='v',
-                            width=30,
-                            padding=20)
+            lin_mapper = LinearMapper(range=colormap.range)
+            colorbar = ColorBar(
+                                index_mapper=lin_mapper,
+                                color_mapper=colormap,
+                                plot=imgplot,
+                                orientation='v',
+                                resizable='v',
+                                width=30,
+                                padding=20
+                                )
 
             colorbar.padding_top = self.mainplot.padding_top
             colorbar.padding_bottom = self.mainplot.padding_bottom
@@ -100,43 +107,45 @@ class PlotContainer(HasTraits):
             # create a range selection for the colorbar
             range_selection = RangeSelection(component=colorbar)
             colorbar.tools.append(range_selection)
-            colorbar.overlays.append(RangeSelectionOverlay(component=colorbar,
-                                                           border_color="white",
-                                                           alpha=0.8,
-                                                           fill_color="lightgray"))
+            overlay = RangeSelectionOverlay(component=colorbar,
+                                            border_color="white",
+                                            alpha=0.8,
+                                            fill_color="lightgray")
+            colorbar.overlays.append(overlay)
 
             # we also want to the range selection to inform the cmap plot of
             # the selection, so set that up as well
             range_selection.listeners.append(imgplot)
             #range_selection.on_trait_change(self.adjust_img, 'selection')
 
-            # Create a container to position the plot and the colorbar side-by-side
-            container = HPlotContainer(use_backbuffer = True)
+            # Create a container to position the plot and the colorbar
+            # side-by-side
+            container = HPlotContainer(use_backbuffer=True)
             container.add(self.mainplot)
             container.add(colorbar)
             container.bgcolor = "lightgray"
-
-
 
         firstplot = self.a_plot_with_index()
         # connect plots with range tools
         if firstplot:
             range_tool = RangeSelection(firstplot)
             firstplot.tools.append(range_tool)
-            range_overlay = RangeSelectionOverlay(firstplot, metadata_name="selections")
+            range_overlay = RangeSelectionOverlay(firstplot,
+                                                  metadata_name="selections")
             firstplot.overlays.append(range_overlay)
-            range_tool.on_trait_change(self._range_selection_handler, "selection")
+            range_tool.on_trait_change(self._range_selection_handler,
+                                       "selection")
 
         # add to container and fine tune spacing
         spacing = 25
         padding = 50
-        width, height = (1000,600)
-        plotcontainer = VPlotContainer(bgcolor = "lightgray",
-                                     spacing = spacing,
-                                     padding = padding,
-                                     fill_padding=False,
-                                     width=width, height=height,
-                                     )
+        width, height = (1000, 600)
+        plotcontainer = VPlotContainer(bgcolor="lightgray",
+                                       spacing=spacing,
+                                       padding=padding,
+                                       fill_padding=False,
+                                       width=width, height=height,
+                                       )
         if has_img:
             plotcontainer.add(self.miniplot, container)
         else:
@@ -156,17 +165,18 @@ class PlotContainer(HasTraits):
 
             elif isinstance(plot, CMapImagePlot):
                 imgplot = plot
-            if indexplot: break
+            if indexplot:
+                break
 
         if not indexplot:
             if imgplot:
-                Nxvalues = imgplot.value.get_data().shape[1]
-                xvalues = np.arange(N)
+                array_width = imgplot.value.get_data().shape[1]
+                xvalues = np.arange(array_width)
                 data = self.miniplot.data
                 data.set_data('default plot', xvalues)
                 plot = self.miniplot.plot(('default plot'))
             else:
-                pass # 'NO SUITABLE PLOTS'
+                pass  # 'NO SUITABLE PLOTS'
 
         return indexplot
 
@@ -178,6 +188,7 @@ class PlotContainer(HasTraits):
             self.mainplot.index_range.high = high
         else:
             self.mainplot.index_range.set_bounds("auto", "auto")
+
 
 class ControlView(HasTraits):
     ''' Define controls and info subview with size control'''
@@ -211,12 +222,12 @@ class ControlView(HasTraits):
     traits_view = View(
         Item('image_freq', editor=EnumEditor(name='freq_choices')),
         Item('line_to_edit',
-            editor=EnumEditor(name='target_choices'),
-            tooltip='Edit red line with right mouse button'
-        ),
+             editor=EnumEditor(name='target_choices'),
+             tooltip='Edit red line with right mouse button'
+             ),
         Item('visible_lines',
-            editor=CheckListEditor(name='target_choices'),
-            style='custom'),
+             editor=CheckListEditor(name='target_choices'),
+             style='custom'),
         Item('_'),
         Item('latitude'),
         Item('longitude'),
@@ -226,7 +237,8 @@ class ControlView(HasTraits):
         Item('_'),
         Item('depth'),
         resizable=True
-    )
+        )
+
 
 class BigView(HasTraits):
     ''' Used to demo layout '''
@@ -245,24 +257,29 @@ class BigView(HasTraits):
 #==========================================================================
 # create individual views to check independently
 #==========================================================================
+
+
 def get_plotview():
-    data = ArrayPlotData(x=np.arange(10),y=np.arange(10)**2)
+    data = ArrayPlotData(x=np.arange(10), y=np.arange(10)**2)
     mini = Plot(data)
     main = Plot(data)
-    mini.plot(('x','y'))
-    main.plot(('x','y'))
+    mini.plot(('x', 'y'))
+    main.plot(('x', 'y'))
     view = PlotContainer(miniplot=mini, mainplot=main)
     return view
 
+
 def get_controlview():
-    view = ControlView(freqs=[], choices=['a','b','c'], survey_binary='file')
+    view = ControlView(freqs=[], choices=['a', 'b', 'c'])
     return view
+
 
 def get_bigview():
     pv = get_plotview()
     cv = get_controlview()
     view = BigView(datafile='file', plotview=pv, controlview=cv)
     return view
+
 
 if __name__ == '__main__':
     view = get_bigview()
