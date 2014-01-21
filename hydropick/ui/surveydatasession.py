@@ -44,7 +44,7 @@ class SurveyDataSession(HasTraits):
     # Easting/Northing (x,y on map-plane in meters? ). Should probably be
     # incorporated into locations attribute which could be a dictionary of
     # types of coordinates mapped to pixel values.
-    E_N_positions = Property()
+    E_N_positions = Property(depends_on='surveyline')
 
     #: a dictionary mapping frequencies to intensity arrays
     # NOTE:  assume arrays are transposed so that img_plot(array)
@@ -68,8 +68,11 @@ class SurveyDataSession(HasTraits):
     preimpoundment_depths_updated = Event
 
     #: Dictionary of all depth lines. Allows editor easy access to all lines.
-    depth_dict = Property(depends_on=['lake_depths', 'preimpoundment_depths'],
-                          trait=Instance(Dict))
+    depth_dict = Property(Dict,
+                          depends_on=['lake_depths', 'preimpoundment_depths',
+                                      'lake_depths_items',
+                                      'preimpoundment_depths_items']
+                          )
 
     # Keys of depth_dict provides list of target choices for line editor
     target_choices = Property(depends_on='depth_dict')
@@ -95,10 +98,10 @@ class SurveyDataSession(HasTraits):
     # Array to be used for x axis.  Length corresponds to depth lines and
     # image horizontal sizes.  Default is index but may be changed to
     # various actual distances.  Defines xbounds.
-    x_array = Property(trait=Array)
+    x_array = Property(Array)
 
     # xbounds used for image display (arguably could be in view class)
-    xbounds = Property(trait=Tuple, depends_on='frequencies')
+    xbounds = Property(Tuple, depends_on=['frequencies', 'frequencies_items'])
 
     ymax = Float(0)
     #==========================================================================
@@ -122,7 +125,6 @@ class SurveyDataSession(HasTraits):
         In order to maintain valid delgates, when None is passed to surveyline
         we change it to an empty SurveyLine object
         '''
-        print 'survey line has changed to ', new
         if new is None:
             self.surveyline = SurveyLine()
             self.data_available = False
@@ -138,13 +140,10 @@ class SurveyDataSession(HasTraits):
         Limit label string resolution to 0.1 kHz.
         '''
         s = [freq for freq in self.frequencies]
-        #s = ['{:.1f}'.format(float(freq)) for freq in self.frequencies]
-        #s = [ (str(freq), '{:.1f}'.format(float(freq))) for freq in self.frequencies]
-        print 'freq choices',s
         return s
 
     def _get_E_N_positions(self):
-        return np.array([self.surveyline.interpolated_easting, self.surveyline.interpolated_northing]).T 
+        return np.array([self.surveyline.interpolated_easting, self.surveyline.interpolated_northing]).T
 
     def _get_depth_dict(self):
         ''' Combine lake depths and preimpoundment in to one dict.
@@ -163,22 +162,17 @@ class SurveyDataSession(HasTraits):
     def _get_x_array(self):
         ''' Initially set as horizontal pixel number of arbitrary image'''
         N = self.frequencies.values()[0].shape[1]
-        print 'N in xarray', N
         return np.arange(N)
 
     def _get_xbounds(self):
         bounds = (self.x_array.min(), self.x_array.max())
-        print 'bounds ',bounds , bounds[1]-bounds[0]
         return bounds
 
     def _get_ybounds(self):
         N = self.frequencies.values()[0].shape[0]
-        print '***** N',N
         min = np.mean(self.pixel_depth_offset)
         max = min + N * self.pixel_depth_scale
         return (min, max)
 
 if __name__ == '__main__':
-    import unittest
-    suite = unittest.TestLoader().discover('./tests')
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    pass

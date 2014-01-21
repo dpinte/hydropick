@@ -44,13 +44,6 @@ class TraceTool(BaseTool):
     def normal_right_down(self,event):
         self.event_state = 'edit'
 
-    def normal_right_up(self,event):
-        self.event_state = 'normal'
-        self.mouse_down = False
-
-    def edit_right_down(self,event):
-        self.event_state = 'edit'
-
     def edit_right_up(self,event):
         self.event_state = 'normal'
         self.mouse_down = False
@@ -97,7 +90,6 @@ class TraceTool(BaseTool):
 
             data = self.component.data
             newx, newy = self.component.map_data( (event.x, event.y))
-            print newx, newy,(event.x, event.y)
             target = self.target_line
             xdata = target.index.get_data()
             current_index = np.searchsorted(xdata,newx)
@@ -105,11 +97,9 @@ class TraceTool(BaseTool):
 
             if self.mouse_down:
                 ydata = target.value.get_data()
-                #           # ydata = data.get_data("impound_1_Y")
                 indices, ys = self.fill_in_missing_pts(current_index, newy, ydata)
                 ydata[indices] = ys
                 target.value.set_data(ydata)
-                #           # data.set_data("impound_1_Y", ydata)
                 self.last_index = indices[-1]
                 self.last_y = ys[-1]
 
@@ -121,57 +111,3 @@ class TraceTool(BaseTool):
                 self.last_index = current_index
                 self.last_y = newy
 
-
-def build_histogram_plot2(xs, ys, range_selection_tool=True):
-    """ Generic BarPlot maker, with a range selection tool attached.
-    """
-    plot = OverlayPlotContainer(bgcolor = "white", auto_size=True)
-    x_source = ArrayDataSource(xs)
-    y_source = ArrayDataSource(ys)
-
-    # Create the index range
-    index_range = DataRange1D(x_source)
-    index_range.tight_bounds = False
-    x_mapper = LinearMapper(range=index_range)
-
-    # Create the value range
-    value_range = DataRange1D(y_source)
-    value_range.tight_bounds = False
-    y_mapper = LinearMapper(range=value_range)
-
-    delta = xs[1] - xs[0]
-    x_mapper.range.low = xs[0] - delta / 2.
-    x_mapper.range.high = xs[-1] + delta / 2.
-
-    y_mapper.range.high *= 1.05
-
-    plot = BarPlot(
-            index = x_source,
-            value = y_source,
-            index_mapper = x_mapper,
-            value_mapper = y_mapper,
-            fill_color = 'blue',
-            bar_width = delta,
-            padding_right = 1,
-            padding_left = 45,
-            padding_top = 0,
-            padding_bottom = 20,
-        )
-    add_axes(plot)
-    plot.tools.append(RangeSelection(plot))
-    plot.overlays.append(RangeSelectionOverlay(component=plot))
-    return plot, x_source, y_source
-
-def compute_hist_data(self, field_name):
-    """ Compute the histogram data for any field (threshold or selected field.).
-
-    FIXME: This should reuse get_field_data.
-    """
-    data = self.model.get_data_for_field(field_name)
-    if data is None:
-        raise ValueError("%s isn't a known variable" % field_name)
-    if data.ndim == 2:
-        data = data[self.time_slice, :]
-    ys, bin_edges = np.histogram(data, bins=self.n_hist_bin)
-    xs = (bin_edges[:-1] + bin_edges[1:]) / 2.0
-    return xs, ys

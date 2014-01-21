@@ -88,22 +88,18 @@ class SurveyLineView(ModelView):
     # Defaults
     #==========================================================================
 
-    def _plot_dict_default(self):
-        ''' To be filled by plot methods'''
-        return {}
-
     def _plot_container_default(self):
         linedict = self.model.depth_dict
         self.mainplot = self.make_plot()
         self.mainplot.y_axis.title = 'Depth (m)'
         self.miniplot = self.make_plot(height=self.mini_height)
         self.miniplot.x_axis.title = 'Distance (m)'
-        contnr = PlotContainer(mainplot= self.mainplot, miniplot= self.miniplot)
+        container = PlotContainer(mainplot= self.mainplot, miniplot= self.miniplot)
         if self.model.depth_dict:
             self.add_lines(**self.model.depth_dict)
         if self.model.frequencies:
             self.add_images(**self.model.frequencies)
-        return contnr
+        return container
 
     def _control_view_default(self):
         ''' Creates ControlView object filled with associated traits'''
@@ -150,8 +146,7 @@ class SurveyLineView(ModelView):
         self.plotdata then self.depth_dict,
         adds them to mainplot and miniplot,
         adds the comonents to self.plot_dict'''
-        for key, array in kw.items():
-            self.plotdata.set_data(key, array)
+        self.plotdata.update_data(kw)
         self.model.depth_dict.update(kw)
         self.update_main_mini_lines(kw.keys())
 
@@ -159,9 +154,7 @@ class SurveyLineView(ModelView):
     def add_images(self,**kw):
         ''' Adds images same way as lines to plotdata and plots first one
         '''
-        for key, array in kw.items():
-            print 'adding image',key
-            self.plotdata.set_data(key, array)
+        self.plotdata.update_data(kw)
         self.model.frequencies.update(kw)
         imagelist = [kw.keys()[0]]
         self.update_main_mini_image(imagelist)
@@ -203,13 +196,10 @@ class SurveyLineView(ModelView):
         main = self.mainplot
         mini = self.miniplot
         for key in keylist:
-            print 'key is ',key,
             newplot = main.img_plot(key, colormap=Greys,
                                     xbounds=self.model.xbounds,
                                     ybounds=self.model.ybounds,
                                     name=key)
-            # self.location_tool = LocationTool(newplot[0])
-            # newplot[0].tools.append(self.location_tool)
             self.trace_tool.image = newplot[0]
             self.location_tool = LocationTool(newplot[0])
             self.location_tool.on_trait_change(self.update_locations,
@@ -248,7 +238,6 @@ class SurveyLineView(ModelView):
 
     def change_target(self, object, name, old, new_target):
         # update trace tool target line attribute.
-        print 'new target name is ', new_target
         new_target_line = self.plot_dict[new_target]
         new_target_line.color = 'red'
         old_target_line = self.plot_dict.get(old, None)
@@ -263,7 +252,6 @@ class SurveyLineView(ModelView):
 
     def change_image(self, object, name, old, new):
         # update trace tool target line attribute.
-        print 'new image name is ', new
         if old in self.plot_dict:
             self.update_main_mini_image([new],remove=old)
         else:
@@ -276,7 +264,6 @@ class SurveyLineView(ModelView):
         to not only make it visible but add it to visible lines which will
         re-call this method'''
 
-        print 'visible depthlines changed ************* '
         newset = set(visible_lines)
         cv = self.control_view
 
@@ -304,9 +291,6 @@ class SurveyLineView(ModelView):
 
 if __name__ == "__main__":
     datasession = SurveyDataSession()
-    print 'datasession object=',datasession
-    print 'starting GUI'
     window = SurveyLineView(model=datasession)
     window.configure_traits()
-
     #import ipdb; ipdb.set_trace()

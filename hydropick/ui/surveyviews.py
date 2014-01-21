@@ -171,7 +171,8 @@ class PlotContainer(HasTraits):
                 data.set_data('default plot', xvalues)
                 plot = self.miniplot.plot(('default plot'))
             else:
-                print 'NO SUITABLE PLOTS'
+                pass # 'NO SUITABLE PLOTS'
+            
         return indexplot
 
     def _range_selection_handler(self, event):
@@ -208,7 +209,7 @@ class ControlView(HasTraits):
 
     # depth of current mouse position
     depth = Float(0)
-    
+
     # selected freq for which image to view
     image_freq = Str
 
@@ -269,7 +270,5 @@ def get_bigview():
     return view
 
 if __name__ == '__main__':
-    #view = get_plotview()
-    #view = get_controlview()
     view = get_bigview()
     view.configure_traits()
