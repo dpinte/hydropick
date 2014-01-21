@@ -84,7 +84,7 @@ class SurveyDataSession(HasTraits):
 
     # Y bounds should be set based on depth per pixel value of image data.
     # Y axis of depth lines should be set to match this value.
-    ybounds = Property(trait=Tuple, depends_on=['pixel_depth_offset',
+    ybounds = Property(Tuple, depends_on=['pixel_depth_offset',
                                                  'pixel_depth_scale',
                                                  'frequencies'])
 
