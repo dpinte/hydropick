@@ -18,7 +18,6 @@ from sdi import binary
 from hydropick.model.survey_line import SurveyLine
 from hydropick.ui.surveydatasession import SurveyDataSession
 from hydropick.ui.surveyline_view import SurveyLineView
-from hydropick.ui.surveyviews import get_bigview
 
 
 # choose a sample file

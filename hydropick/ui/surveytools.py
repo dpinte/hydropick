@@ -9,11 +9,13 @@ import numpy as np
 
 # ETS imports
 from enable.api import BaseTool
-from traits.api import Float, Enum, Int, Bool, Instance, TraitError, Any
-from chaco.api import  LinePlot, CMapImagePlot
+from traits.api import Float, Enum, Int, Bool, Instance
+from chaco.api import  LinePlot
+
 #==============================================================================
 # Custom Tools
 #==============================================================================
+
 class LocationTool(BaseTool):
     image_index = Int
     def normal_mouse_move(self,event):
@@ -75,7 +77,7 @@ class TraceTool(BaseTool):
     def normal_mouse_move(self, event):
         newx, newy = self.component.map_data( (event.x, event.y))
         self.depth = newy
-        
+
     def edit_mouse_move(self,event):
         ''' Continuously change the impound line value to the current mouse pos.
 
@@ -110,4 +112,3 @@ class TraceTool(BaseTool):
                 self.mouse_down = True
                 self.last_index = current_index
                 self.last_y = newy
-

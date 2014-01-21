@@ -6,27 +6,16 @@
 #
 
 from __future__ import absolute_import
-# Std lib imports
-import sys
-# other imports
-import numpy as np
 
 # ETS imports
-from enable.api import ComponentEditor
-from traits.api import Instance, Enum, DelegatesTo, Str, Property, Dict, List, Tuple, Int, Set
-
-from traitsui.api import ModelView, View, Item, ToolBar, EnumEditor, Group, HGroup,HGroup,UItem,InstanceEditor, VGroup, CheckListEditor, HSplit
-from traitsui.menu import Action, OKCancelButtons, StandardMenuBar
-from chaco.api import Plot, ArrayPlotData, jet, PlotAxis, create_scatter_plot,\
-                        create_line_plot, LinePlot, Legend, PlotComponent, Greys
-
-from chaco.tools.api import PanTool, ZoomTool, LegendTool
-from pyface.api import ImageResource
+from traits.api import Instance, Str, Dict, List, Int
+from traitsui.api import ModelView, View, HSplit
+from chaco.api import Plot, ArrayPlotData, PlotComponent, Greys
 
 # Local imports
 from .surveydatasession import SurveyDataSession
 from .surveytools import TraceTool, LocationTool
-from .surveyviews import ControlView, BigView, InstanceUItem, PlotContainer
+from .surveyviews import ControlView, InstanceUItem, PlotContainer
 
 class SurveyLineView(ModelView):
     """ View Class for working with survey line data to find depth profile.

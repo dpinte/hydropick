@@ -14,16 +14,12 @@ import os
 import numpy as np
 
 # ETS imports
-from traits.api import Instance, HasTraits, Array, Property, Float, Enum, Dict,\
-                        List, Str, Int, Bool,Tuple, Dict, File, on_trait_change,\
+from traits.api import Instance, HasTraits, Array, Property, Float,\
+                        List, Str, Bool,Tuple, Dict,\
                         DelegatesTo, Event
-from traitsui.api import View, Item, ToolBar
 
 # Local imports
-from sdi import binary
-#from hydropick.model.survey_line import SurveyLine
 from ..model.survey_line import SurveyLine
-#from survey_line_sample_case import MySurveyLine
 
 
 class SurveyDataSession(HasTraits):

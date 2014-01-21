@@ -2,8 +2,8 @@
 
 Views are:
 *BigView:
-    Sets overall layout with Controls on left and Plots on right and
-    datafile selector on top.
+    Example of use for  overall layout with Controls on left and Plots on
+    right.
 *PlotView:
     Sets plot view which may be just the plot component and legend.
 *ControlView:
@@ -16,16 +16,11 @@ import numpy as np
 
 # ETS imports
 from enable.api import ComponentEditor
-from traits.api import Instance, Enum, DelegatesTo, Str, Property, Dict, List, HasTraits, File,Set,Float
-from traitsui.api import ModelView, View, Item, ToolBar, EnumEditor, Group, HGroup,UItem,InstanceEditor, VGroup, CheckListEditor, HSplit
-from traitsui.menu import Action, OKCancelButtons, StandardMenuBar
-from chaco.api import Plot, ArrayPlotData, jet, PlotAxis, create_scatter_plot,\
-     create_line_plot, LinePlot, Legend, PlotComponent, VPlotContainer, CMapImagePlot, ScatterPlot, ColorBar, LinearMapper, HPlotContainer
-from chaco.tools.api import PanTool, ZoomTool, LegendTool, RangeSelection, \
+from traits.api import Instance, Str, List, HasTraits, File, Float
+from traitsui.api import View, Item, EnumEditor, UItem,InstanceEditor, CheckListEditor, HSplit
+from chaco.api import Plot, ArrayPlotData, LinePlot, VPlotContainer, CMapImagePlot, ScatterPlot, ColorBar, LinearMapper, HPlotContainer
+from chaco.tools.api import PanTool, ZoomTool, RangeSelection, \
                             RangeSelectionOverlay
-from pyface.api import ImageResource
-
-# Local imports
 
 class InstanceUItem(UItem):
     '''Convenience class for inluding instance in view as Item'''
@@ -172,7 +167,7 @@ class PlotContainer(HasTraits):
                 plot = self.miniplot.plot(('default plot'))
             else:
                 pass # 'NO SUITABLE PLOTS'
-            
+
         return indexplot
 
     def _range_selection_handler(self, event):
