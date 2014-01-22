@@ -7,7 +7,12 @@
 
 from __future__ import absolute_import
 
-from traits.api import HasTraits, Array, Dict, Event, List, Supports, Str, provides
+import numpy as np
+
+from traits.api import (HasTraits, Array, Dict, Event, List, Supports, Str,
+                        provides, Float)
+
+from sdi import binary
 
 from .i_core_sample import ICoreSample
 from .i_survey_line import ISurveyLine
@@ -42,3 +47,48 @@ class SurveyLine(HasTraits):
     preimpoundment_depths_updated = Event
 
     # XXX probably other metadata should be here
+
+    ### -----------------------------------------------------------------------
+    ### Additional data provided by reader ###
+
+    # file location for this surveyline.  Used to load data when needed.
+    data_file_path = Str
+
+    #: array of associated lat/long available for display
+    lat_long = Array(shape=(None, 2))
+
+    #: Depth corrections:
+    #:  depth = (pixel_number_from_top * pixel_resolution) + draft - heave
+    #: distance from sensor to water. Constant offset added to depth
+    draft = Float
+
+    #: array of depth corrections.  Changes vertical offset of each column.
+    heave = Array
+
+    #: pixel resolution, depth/pixel
+    pixel_resolution = Float
+
+    def load_data(self):
+        ''' Called by editor to load data for this survey line when its
+        needed. '''
+        # read in sdi dictionary.  Only use 'frequencies' item.
+        sdi_dict = binary.read(self.data_file_path)
+        freq_dict_list = sdi_dict['frequencies']
+
+        # fill frequncies and lake depths dictionaries with freqs as keys.
+        for freq_dict in freq_dict_list:
+            key = freq_dict['kHz']
+            # transpose array to go into image plot correctly oriented
+            self.frequencies[str(key)] = freq_dict['intensity'].T
+            lake_key = 'Lakedepth_{:.1f}'.format(key)
+            self.lake_depths[lake_key] = freq_dict['depth_r1']
+
+        # for all other traits, take from first freq, assuming identical
+        freq_dict = freq_dict_list[0]
+        self.locations = np.vstack([freq_dict['interpolated_easting'],
+                                   freq_dict['interpolated_northing']]).T
+        self.lat_long = np.vstack([freq_dict['latitude'],
+                                  freq_dict['longitude']]).T
+        self.draft = np.mean(freq_dict['draft'])
+        self.heave = freq_dict['heave']
+        self.pixel_resolution = np.mean(freq_dict['pixel_resolution'])

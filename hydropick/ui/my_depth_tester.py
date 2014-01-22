@@ -70,9 +70,13 @@ def create_surveyline():
 
 if __name__ == '__main__':
 
-    surveyline = create_surveyline()
+    #surveyline = create_surveyline()
 
-    datasession = SurveyDataSession()
-    datasession.surveyline = surveyline
-    surveylineview = SurveyLineView(model=datasession)
-    surveylineview.configure_traits()
+    #datasession = SurveyDataSession()
+    #datasession.surveyline = surveyline
+    #surveylineview = SurveyLineView(model=datasession)
+    #surveylineview.configure_traits()
+    sv = SurveyLine()
+    sv.data_file_path = LOCAL_DATA_PATH
+    sv.load_data()
+    print sv.__dict__
