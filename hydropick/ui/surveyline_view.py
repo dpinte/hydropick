@@ -7,6 +7,8 @@
 
 from __future__ import absolute_import
 
+import numpy as np
+
 # ETS imports
 from traits.api import Instance, Str, Dict, List, Int
 from traitsui.api import ModelView, View, HSplit
@@ -56,6 +58,9 @@ class SurveyLineView(ModelView):
     # plotdata is the ArrayPlotData instance holding the plot data.
     # for now it contains available images and multiple line plots for depths.
     plotdata = Instance(ArrayPlotData)
+
+    # dict to remember image control (b&c) settings for each freq
+    image_settings = Dict
 
     # Pair of combined plots:  main for editing; mini for scanning
     mainplot = Instance(Plot)
@@ -111,6 +116,7 @@ class SurveyLineView(ModelView):
         cv.on_trait_change(self.select_line, name='visible_lines')
         cv.on_trait_change(self.change_target, name='line_to_edit')
         cv.on_trait_change(self.change_image, name='image_freq')
+        cv.on_trait_change(self.adjust_image, name='contrast_brightness')
         return cv
 
     def _plotdata_default(self):
@@ -222,6 +228,19 @@ class SurveyLineView(ModelView):
         cv.easting = east
         cv.northing = north
 
+    def adjust_image(self, new_contrast_brightness):
+        ''' Given a tuple (contrast, brightness) with values
+        from 0 to 10, -1 to 1'''
+        c, b = new_contrast_brightness
+        n = 2**16 - 1
+        data = self.model.frequencies[self.model.selected_freq]
+        data = c * data
+        mn, mx = data.min(), data.max()
+        offset = b * (2 - mx + mn - n) + n - mn - 1
+        data = data + offset
+        self.plotdata.set_data(self.model.selected_freq,
+                               np.clip(data, 0, n))
+
     def update_depth(self, depth):
         self.control_view.depth = depth
 
@@ -242,6 +261,11 @@ class SurveyLineView(ModelView):
 
     def change_image(self, object, name, old, new):
         # update trace tool target line attribute.
+        cv = self.control_view
+        if old:
+            self.image_settings[old] = [cv.contrast, cv.brightness]
+        self.model.selected_freq = new
+        cv.contrast, cv.brightness = self.image_settings.get(new,[1,0])
         if old in self.plot_dict:
             self.update_main_mini_image([new], remove=old)
         else:

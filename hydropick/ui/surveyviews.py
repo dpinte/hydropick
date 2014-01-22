@@ -16,9 +16,9 @@ import numpy as np
 
 # ETS imports
 from enable.api import ComponentEditor
-from traits.api import Instance, Str, List, HasTraits, File, Float
+from traits.api import Instance, Str, List, HasTraits, File, Float, Property
 from traitsui.api import View, Item, EnumEditor, UItem, InstanceEditor,\
-                         CheckListEditor, HSplit
+                         CheckListEditor, HSplit, RangeEditor, Label
 from chaco.api import Plot, ArrayPlotData, LinePlot, VPlotContainer,\
                       CMapImagePlot, ScatterPlot, ColorBar, LinearMapper,\
                       HPlotContainer
@@ -219,6 +219,11 @@ class ControlView(HasTraits):
     # selected freq for which image to view
     image_freq = Str
 
+    # brightness contrast controls
+    brightness = Float(0)
+    contrast = Float(1)
+    contrast_brightness = Property(depends_on=['brightness', 'contrast'])
+
     traits_view = View(
         Item('image_freq', editor=EnumEditor(name='freq_choices')),
         Item('line_to_edit',
@@ -236,9 +241,15 @@ class ControlView(HasTraits):
         Item('northing'),
         Item('_'),
         Item('depth'),
+        Item('_'),
+        Label('Brightness and Contrast'),
+        Item('brightness', editor=RangeEditor(low=0.0, high=1.0), label='B'),
+        Item('contrast', editor=RangeEditor(low=0.0, high=10.0), label='C'),
         resizable=True
         )
 
+    def _get_contrast_brightness(self):
+        return (self.contrast, self.brightness)
 
 class BigView(HasTraits):
     ''' Used to demo layout '''

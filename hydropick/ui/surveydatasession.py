@@ -7,6 +7,9 @@
 
 from __future__ import absolute_import
 
+# std library
+from copy import deepcopy
+
 # other imports
 import numpy as np
 
@@ -37,13 +40,14 @@ class SurveyDataSession(HasTraits):
     # Easting/Northing (x,y on map-plane in meters? ). Should probably be
     # incorporated into locations attribute which could be a dictionary of
     # types of coordinates mapped to pixel values.
-    E_N_positions = Property(depends_on='surveyline')
+    E_N_positions = Property(depends_on=['surveyline.interpolated_northing',
+                                         'surveyline.interpolated_easting'])
 
     #: a dictionary mapping frequencies to intensity arrays
     # NOTE:  assume arrays are transposed so that img_plot(array)
     # displays them correctly and array.shape gives (xsize,ysize)
 
-    frequencies = DelegatesTo('surveyline', 'frequencies')
+    frequencies = Property(Dict, depends_on='surveyline.frequencies')
 
     #: relevant core samples
     core_samples = DelegatesTo('surveyline', 'core_samples')
@@ -136,6 +140,10 @@ class SurveyDataSession(HasTraits):
     def _get_E_N_positions(self):
         return np.array([self.surveyline.interpolated_easting,
                          self.surveyline.interpolated_northing]).T
+
+    def _get_frequencies(self):
+        new_dict = deepcopy(self.surveyline.frequencies)
+        return new_dict
 
     def _get_depth_dict(self):
         ''' Combine lake depths and preimpoundment in to one dict.
