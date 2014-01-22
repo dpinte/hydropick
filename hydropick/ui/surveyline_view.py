@@ -220,6 +220,8 @@ class SurveyLineView(ModelView):
     #==========================================================================
 
     def update_locations(self, image_index):
+        ''' Called by location_tool to update display readouts as mouse moves
+        '''
         cv = self.control_view
         lat, long = self.model.locations[image_index]
         east, north = self.model.E_N_positions[image_index]
@@ -242,10 +244,11 @@ class SurveyLineView(ModelView):
                                np.clip(data, 0, n))
 
     def update_depth(self, depth):
+        ''' Called by trace tool to update depth readout display'''
         self.control_view.depth = depth
 
     def change_target(self, object, name, old, new_target):
-        # update trace tool target line attribute.
+        '''update trace tool target line attribute.'''
         new_target_line = self.plot_dict[new_target]
         new_target_line.color = 'red'
         old_target_line = self.plot_dict.get(old, None)
@@ -260,7 +263,8 @@ class SurveyLineView(ModelView):
         self.trace_tool.target_line = new_target_line
 
     def change_image(self, object, name, old, new):
-        # update trace tool target line attribute.
+        ''' Called by changing selected freq.
+        Loads new image and recalls saved B&C '''
         cv = self.control_view
         if old:
             self.image_settings[old] = [cv.contrast, cv.brightness]
