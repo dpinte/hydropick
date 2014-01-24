@@ -10,6 +10,9 @@ from __future__ import absolute_import
 import os
 import logging
 
+import numpy as np
+from shapely.geometry import LineString
+
 logger = logging.getLogger(__name__)
 
 # XXX this is not fully implemented
@@ -58,7 +61,8 @@ def import_lake(directory):
     pass
 
 
-def import_sdi(directory):
+def import_sdi(directory, h5file):
+    import tables
     from sdi import binary
     from ..model.survey_line import SurveyLine
     from ..model.survey_line_group import SurveyLineGroup
@@ -69,12 +73,29 @@ def import_sdi(directory):
         group_lines = []
         for filename in files:
             if os.path.splitext(filename)[1] == '.bin':
-                # XXX read in the file with sdi and create a SurveyLine object
-                logger.info("Reading sdi file '%s'", filename)
-                #data = binary.read(os.path.join(root, filename))
+                linename = os.path.splitext(filename)[0]
+                print 'Reading line', linename
+                try:
+                    with tables.openFile(h5file, 'r') as f:
+                        coords = f.getNode('/l' + linename + '/navigation_line').read()
+                except (IOError, tables.exceptions.NoSuchNodeError):
+                    logger.info("Reading sdi file '%s'", filename)
+                    try:
+                        data = binary.read(os.path.join(root, filename))
+                    except:
+                        # XXX: blind except to read all the lines that we can for now
+                        print 'Failed!'
+                        break
+                    x = data['frequencies'][-1]['easting']
+                    y = data['frequencies'][-1]['northing']
+                    coords = np.vstack((x, y)).T
+                    with tables.openFile(h5file, 'a') as f:
+                        node = f.createGroup(f.root, 'l' + linename)
+                        f.createArray('/l' + linename, 'navigation_line', coords)
+                        # TODO: write frequency arrays to datastore
                 line = SurveyLine(
-                    name=os.path.splitext(filename)[0],
-                    data_file_path = os.path.join(root, filename)
+                    name=linename,
+                    navigation_line=LineString(coords),
                     #frequencies=data['frequencies'],
                 )
                 group_lines.append(line)
@@ -98,8 +119,13 @@ def import_survey(directory):
     # read in lake
     lake = import_lake(os.path.join(directory, 'ForSurvey'))
 
+    # HDF5 datastore file for survey
+    hdf5file = os.path.join(directory, name + '.h5')
+    print hdf5file
+
     # read in sdi data
-    survey_lines, survey_line_groups = import_sdi(os.path.join(directory, 'SDI_Data'))
+    survey_lines, survey_line_groups = import_sdi(os.path.join(directory, 'SDI_Data'),
+                                                  hdf5file)
 
     # read in edits to sdi data
     # XXX not implemented
