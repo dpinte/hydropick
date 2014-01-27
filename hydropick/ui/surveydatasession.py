@@ -94,6 +94,8 @@ class SurveyDataSession(HasTraits):
 
     # xbounds used for image display (arguably could be in view class)
     xbounds = Property(Tuple, depends_on=['frequencies', 'frequencies_items'])
+
+    # cumulative distance along path based on locations array. 
     distance_array = Property(depends_on='locations')
 
     ymax = Float(0)
@@ -110,17 +112,6 @@ class SurveyDataSession(HasTraits):
     #==========================================================================
     # Notifications
     #==========================================================================
-
-    # def _surveyline_changed(self, new):
-    #     ''' Assumes any non-None value will be a valid SurveyLine object
-    #     In order to maintain valid delgates, when None is passed to surveyline
-    #     we change it to an empty SurveyLine object
-    #     '''
-    #     if new is None:
-    #         self.surveyline = SurveyLine()
-    #         self.data_available = False
-    #     else:
-    #         self.data_available = True
 
     #==========================================================================
     # Get/Set

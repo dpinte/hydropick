@@ -24,7 +24,9 @@ class LocationTool(BaseTool):
     image_index = Int
 
     def normal_mouse_move(self, event):
-        self.image_index = self.component.map_index((event.x, event.y))[0]
+        index = self.component.map_index((event.x, event.y))[0]
+        if index:
+            self.image_index = index
         event.handled = False
 
 

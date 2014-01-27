@@ -33,7 +33,7 @@ class SurveyLinePane(TraitsTaskPane):
 
     # instance of survey_line view which displays selected surveyline
     survey_line_view = Instance(SurveyLineView)
-        
+
     # once a valid survey line is selected a datasession will
     # created and stored for quick retrieval on line changes
     datasession_dict = Dict(Str, Instance(SurveyDataSession))
