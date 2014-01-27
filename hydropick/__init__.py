@@ -7,6 +7,6 @@ __requires__ = [
     "chaco>=4.4",
     "fiona>=1.0.2",
     "shapely>=1.2.17",
-    "pytables>=2.4.0",
+    "tables>=2.4.0",
     "sdi",
 ]
