@@ -30,7 +30,7 @@ class SurveyMapPane(TraitsDockPane):
 
     def _survey_map_view_default(self):
         lines = [line.navigation_line for line in self.survey.survey_lines]
-        return SurveyMapView(model=self.survey, lines=lines)
+        return SurveyMapView(model=self.survey)
 
     plot = Instance(Plot)
 
