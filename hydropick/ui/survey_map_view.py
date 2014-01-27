@@ -20,7 +20,6 @@ from traitsui.api import View, Item, ModelView, InstanceEditor, HSplit
 # local imports
 from hydropick.model.lake import Lake
 from hydropick.ui.line_select_tool import LineSelectTool
-from .surveyviews import InstanceUItem
 
 
 class SurveyMapView(ModelView):
@@ -82,9 +81,3 @@ class SurveyMapView(ModelView):
         plot.tools.append(LineSelectTool(plot, line_plots=self.line_plots))
         return plot
 
-    traits_view = View(
-        HSplit(
-            InstanceUItem('plot', width=150),
-        ),
-        resizable=True,
-        )
