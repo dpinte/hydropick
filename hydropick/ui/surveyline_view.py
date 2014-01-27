@@ -10,8 +10,8 @@ from __future__ import absolute_import
 import numpy as np
 
 # ETS imports
-from traits.api import Instance, Str, Dict, List, Int
-from traitsui.api import ModelView, View, HSplit
+from traits.api import Instance, Str, Dict, List, Int, HasTraits
+from traitsui.api import ModelView, View, HSplit, Item
 from chaco.api import Plot, ArrayPlotData, PlotComponent, Greys
 
 # Local imports
@@ -19,6 +19,8 @@ from .surveydatasession import SurveyDataSession
 from .surveytools import TraceTool, LocationTool
 from .surveyviews import ControlView, InstanceUItem, PlotContainer
 
+class EmptyView(HasTraits):
+    traits_view = View(Item('_'))
 
 class SurveyLineView(ModelView):
     """ View Class for working with survey line data to find depth profile.

@@ -114,16 +114,16 @@ class SurveyDataSession(HasTraits):
     # Notifications
     #==========================================================================
 
-    def _surveyline_changed(self, new):
-        ''' Assumes any non-None value will be a valid SurveyLine object
-        In order to maintain valid delgates, when None is passed to surveyline
-        we change it to an empty SurveyLine object
-        '''
-        if new is None:
-            self.surveyline = SurveyLine()
-            self.data_available = False
-        else:
-            self.data_available = True
+    # def _surveyline_changed(self, new):
+    #     ''' Assumes any non-None value will be a valid SurveyLine object
+    #     In order to maintain valid delgates, when None is passed to surveyline
+    #     we change it to an empty SurveyLine object
+    #     '''
+    #     if new is None:
+    #         self.surveyline = SurveyLine()
+    #         self.data_available = False
+    #     else:
+    #         self.data_available = True
 
     #==========================================================================
     # Get/Set
