@@ -25,27 +25,23 @@ from ..model.survey_line import SurveyLine
 class SurveyDataSession(HasTraits):
     """ Model for SurveyLineView.
 
-    Assumes reciept of SurveyLine instance
+    Assumes reciept of valid SurveyLine instance, and will remain bound
+    to that instance until editing session is finished
     (Make sure surveyline has the traits delegated below from sdi dict )
     """
     # Source of survey line data to be edited
     surveyline = Instance(SurveyLine)
 
-    # Flag to be set when valid data is passed to surveyline
-    data_available = Bool(False)
-
-    #: sample locations, an Nx2 array of lat/long (or easting/northing?)
+    #: sample locations, an Nx2 array (typically easting/northing?)
     locations = DelegatesTo('surveyline', 'locations')
 
-    # Easting/Northing (x,y on map-plane in meters? ). Should probably be
-    # incorporated into locations attribute which could be a dictionary of
-    # types of coordinates mapped to pixel values.
-    E_N_positions = Property(depends_on=['surveyline', 'lat_long'])
+    # lat/long for each pixel in line data arrays
+    lat_long =  DelegatesTo('surveyline', 'lat_long')
+         ##Property(depends_on=['surveyline', 'lat_long'])
 
     #: a dictionary mapping frequencies to intensity arrays
     # NOTE:  assume arrays are transposed so that img_plot(array)
     # displays them correctly and array.shape gives (xsize,ysize)
-
     frequencies = Property(Dict, depends_on='surveyline.frequencies')
 
     #: relevant core samples

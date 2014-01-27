@@ -104,8 +104,8 @@ class SurveyLineView(ModelView):
                          visible_lines=[],
                          freq_choices=self.model.freq_choices,
                          image_freq=self.model.selected_freq,
-                         latitude=self.model.E_N_positions[50][0],
-                         longitude=self.model.E_N_positions[50][1]
+                         latitude=0,
+                         longitude=0
                          )
         # set default values for widgets
         cv.visible_lines = self.model.target_choices
@@ -222,8 +222,8 @@ class SurveyLineView(ModelView):
         ''' Called by location_tool to update display readouts as mouse moves
         '''
         cv = self.control_view
-        lat, long = self.model.locations[image_index]
-        east, north = self.model.E_N_positions[image_index]
+        lat, long = self.model.lat_long[image_index]
+        east, north = self.model.locations[image_index]
         cv.latitude = lat
         cv.longitude = long
         cv.easting = east
