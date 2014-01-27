@@ -34,6 +34,13 @@ ATTR_LIST = ['intensity', 'num_pnts', 'pixel_resolution', 'depth_r1',
              'draft', 'heave','units','latitude','longitude',
              'interpolated_northing', 'interpolated_easting']
 
+
+def get_survey_line():
+    sv = SurveyLine()
+    sv.data_file_path = LOCAL_DATA_PATH
+    sv.load_data()
+    return sv
+
 def create_surveyline():
     ''' Create survey line for testing views
     Fill just whichever attributes are needed for editing pane.

@@ -40,8 +40,7 @@ class SurveyDataSession(HasTraits):
     # Easting/Northing (x,y on map-plane in meters? ). Should probably be
     # incorporated into locations attribute which could be a dictionary of
     # types of coordinates mapped to pixel values.
-    E_N_positions = Property(depends_on=['surveyline.interpolated_northing',
-                                         'surveyline.interpolated_easting'])
+    E_N_positions = Property(depends_on=['surveyline', 'lat_long'])
 
     #: a dictionary mapping frequencies to intensity arrays
     # NOTE:  assume arrays are transposed so that img_plot(array)
@@ -138,8 +137,7 @@ class SurveyDataSession(HasTraits):
         return s
 
     def _get_E_N_positions(self):
-        return np.array([self.surveyline.interpolated_easting,
-                         self.surveyline.interpolated_northing]).T
+        return self.surveyline.lat_long
 
     def _get_frequencies(self):
         new_dict = deepcopy(self.surveyline.frequencies)

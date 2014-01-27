@@ -39,8 +39,8 @@ class SurveyLinePane(TraitsTaskPane):
 
     def _survey_line_default(self):
         # XXX temporary hack!
-        from ..my_depth_tester import create_surveyline
-        return create_surveyline()
+        from ..my_depth_tester import get_survey_line
+        return get_survey_line()
 
     def _survey_data_session_default(self):
         return SurveyDataSession(surveyline=self.survey_line)
@@ -51,3 +51,5 @@ class SurveyLinePane(TraitsTaskPane):
     view = View(
         Item('survey_line_view', style='custom', show_label=False)
     )
+
+    

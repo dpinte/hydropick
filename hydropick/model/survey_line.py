@@ -85,10 +85,12 @@ class SurveyLine(HasTraits):
 
         # for all other traits, take from first freq, assuming identical
         freq_dict = freq_dict_list[0]
+        print freq_dict
         self.locations = np.vstack([freq_dict['interpolated_easting'],
                                    freq_dict['interpolated_northing']]).T
         self.lat_long = np.vstack([freq_dict['latitude'],
                                   freq_dict['longitude']]).T
-        self.draft = np.mean(freq_dict['draft'])
+        self.draft = float(np.mean(freq_dict['draft']))
+
         self.heave = freq_dict['heave']
-        self.pixel_resolution = np.mean(freq_dict['pixel_resolution'])
+        self.pixel_resolution = float(np.mean(freq_dict['pixel_resolution']))
