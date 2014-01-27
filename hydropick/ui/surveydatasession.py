@@ -94,6 +94,7 @@ class SurveyDataSession(HasTraits):
 
     # xbounds used for image display (arguably could be in view class)
     xbounds = Property(Tuple, depends_on=['frequencies', 'frequencies_items'])
+    distance_array = Property(depends_on='locations')
 
     ymax = Float(0)
     #==========================================================================
@@ -155,11 +156,14 @@ class SurveyDataSession(HasTraits):
 
     def _get_x_array(self):
         ''' Initially set as horizontal pixel number of arbitrary image'''
-        N = self.frequencies.values()[0].shape[1]
-        return np.arange(N)
+        #N = self.frequencies.values()[0].shape[1]
+        # xs =  np.arange(N)
+        xarray = self.distance_array
+        return xarray
 
     def _get_xbounds(self):
-        bounds = (self.x_array.min(), self.x_array.max())
+        #bounds = (self.x_array.min(), self.x_array.max())
+        bounds = (self.distance_array.min(), self.distance_array.max())
         return bounds
 
     def _get_ybounds(self):
@@ -167,6 +171,24 @@ class SurveyDataSession(HasTraits):
         min = np.mean(self.pixel_depth_offset)
         max = min + N * self.pixel_depth_scale
         return (min, max)
+
+    def _get_distance_array(self):
+        ''' discretely sum up distance along curve given by pts=[(x,y)...].
+        ds = dx**2 + dy**2 ,  do this in parallel on the arrays:
+        assume shape is (N,2)
+
+        Returns (N,1) array of cumulative distance pts.
+
+        Could also return (N-1,1) array of ds points =
+                              distance between each pt.
+        '''
+        # diff array is last N-1 pts - first N-1 pts
+        pts = self.locations
+        diff_array = pts[1:] - pts[:-1]
+        # now get sqr(dx**2 + dy**2)
+        ds = np.sqrt(np.sum(diff_array**2, axis=1))
+        s = np.concatenate(([0],np.cumsum(ds)))
+        return s
 
 if __name__ == '__main__':
     pass
