@@ -74,6 +74,7 @@ def import_sdi(directory):
                 #data = binary.read(os.path.join(root, filename))
                 line = SurveyLine(
                     name=os.path.splitext(filename)[0],
+                    data_file_path = os.path.join(root, filename)
                     #frequencies=data['frequencies'],
                 )
                 group_lines.append(line)
