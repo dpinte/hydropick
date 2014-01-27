@@ -14,7 +14,7 @@ import numpy as np
 from chaco.api import Plot, ArrayPlotData
 from chaco.tools.api import PanTool, ZoomTool
 from enable.component_editor import ComponentEditor
-from traits.api import Float, Instance, List, Str
+from traits.api import Float, Instance, List, Property, Str
 from traitsui.api import View, Item, ModelView, InstanceEditor, HSplit
 
 # local imports
@@ -33,7 +33,10 @@ class SurveyMapView(ModelView):
 
     # TODO: this will be a list of surveys instead of geometries
     #: Survey lines
-    lines = List
+    lines = Property(List)
+
+    def _get_lines(self):
+        return [line.navigation_line for line in self.model.survey_lines]
 
     #: the plot objects for each survey line
     line_plots = List
