@@ -11,7 +11,7 @@ import numpy as np
 
 # ETS imports
 from traits.api import Instance, Str, Dict, List, Int
-from traitsui.api import ModelView, View, HSplit, Item
+from traitsui.api import ModelView, View, HSplit
 from chaco.api import Plot, ArrayPlotData, PlotComponent, Greys
 
 # Local imports
@@ -304,10 +304,3 @@ class SurveyLineView(ModelView):
             else:
                 this_plot.visible = False
         self.mainplot.invalidate_and_redraw()
-
-
-if __name__ == "__main__":
-    datasession = SurveyDataSession()
-    window = SurveyLineView(model=datasession)
-    window.configure_traits()
-    #import ipdb; ipdb.set_trace()
