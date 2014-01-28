@@ -117,3 +117,5 @@ class TraceTool(BaseTool):
                 self.mouse_down = True
                 self.last_index = current_index
                 self.last_y = newy
+
+                
