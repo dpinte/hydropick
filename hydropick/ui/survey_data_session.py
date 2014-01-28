@@ -25,7 +25,7 @@ from ..model.survey_line import SurveyLine
 class SurveyDataSession(HasTraits):
     """ Model for SurveyLineView.
 
-    Assumes reciept of valid SurveyLine instance, and will remain bound
+    Assumes receipt of valid SurveyLine instance, and will remain bound
     to that instance until editing session is finished
     (Make sure surveyline has the traits delegated below from sdi dict )
     """
@@ -95,7 +95,7 @@ class SurveyDataSession(HasTraits):
     # xbounds used for image display (arguably could be in view class)
     xbounds = Property(Tuple, depends_on=['frequencies', 'frequencies_items'])
 
-    # cumulative distance along path based on locations array. 
+    # cumulative distance along path based on locations array.
     distance_array = Property(depends_on='locations')
 
     ymax = Float(0)
