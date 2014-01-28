@@ -124,9 +124,6 @@ class SurveyDataSession(HasTraits):
         s = [freq for freq in self.frequencies]
         return s
 
-    def _get_E_N_positions(self):
-        return self.survey_line.lat_long
-
     def _get_frequencies(self):
         new_dict = deepcopy(self.survey_line.frequencies)
         return new_dict
@@ -164,7 +161,9 @@ class SurveyDataSession(HasTraits):
         return (min, max)
 
     def _get_distance_array(self):
-        ''' discretely sum up distance along curve given by pts=[(x,y)...].
+        ''' discretely sum up distance along location points.
+
+        Locations array given as pts=[(x,y)...].
         ds = dx**2 + dy**2 ,  do this in parallel on the arrays:
         assume shape is (N,2)
 
