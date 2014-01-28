@@ -8,7 +8,7 @@
 from __future__ import absolute_import
 
 from chaco.api import Plot
-from traits.api import Instance, Supports, Any
+from traits.api import Instance, Property, Supports, Any
 from traitsui.api import View, Item
 from enable.component_editor import ComponentEditor
 from pyface.tasks.api import TraitsDockPane
@@ -26,15 +26,15 @@ class SurveyMapPane(TraitsDockPane):
 
     survey = Supports(ISurvey)
 
-    survey_map_view = Any
+    survey_map_view = Property(depends_on='survey')
 
-    def _survey_map_view_default(self):
+    def _get_survey_map_view(self):
         lines = [line.navigation_line for line in self.survey.survey_lines]
         return SurveyMapView(model=self.survey)
 
-    plot = Instance(Plot)
+    plot = Property(Instance(Plot), depends_on='survey')
 
-    def _plot_default(self):
+    def _get_plot(self):
         return self.survey_map_view.plot
 
     view = View(Item('plot', editor=ComponentEditor(),

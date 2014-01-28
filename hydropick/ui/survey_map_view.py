@@ -52,22 +52,23 @@ class SurveyMapView(ModelView):
     line_color = Str('blue')
 
     #: The Chaco plot object
-    plot = Instance(Plot)
+    plot = Property(Instance(Plot), depends_on='model')
 
-    def _plot_default(self):
+    def _get_plot(self):
         plotdata = ArrayPlotData()
         plot = Plot(plotdata, auto_grid=False)
         # XXX: want to fix the pixel aspect ratio, not the window aspect ratio
         #plot.aspect_ratio = self.aspect_ratio
-        for num, l in enumerate(self.model.lake.shoreline):
-            line = np.array(l.coords)
-            x = line[:,0]
-            y = line[:,1]
-            x_key = 'x' + str(num)
-            y_key = 'y' + str(num)
-            plotdata.set_data(x_key, x)
-            plotdata.set_data(y_key, y)
-            plot.plot((x_key, y_key), color=self.shore_color, width=2.0)
+        if self.model.lake is not None:
+            for num, l in enumerate(self.model.lake.shoreline):
+                line = np.array(l.coords)
+                x = line[:,0]
+                y = line[:,1]
+                x_key = 'x' + str(num)
+                y_key = 'y' + str(num)
+                plotdata.set_data(x_key, x)
+                plotdata.set_data(y_key, y)
+                plot.plot((x_key, y_key), color=self.shore_color, width=2.0)
         for num, l in enumerate(self.lines):
             line = np.array(l.coords)
             x = line[:,0]
@@ -78,7 +79,7 @@ class SurveyMapView(ModelView):
             plotdata.set_data(y_key, y)
             self.line_plots.append(plot.plot((x_key, y_key),
                                              color=self.line_color))
-        plot.title = self.model.lake.name
+        plot.title = self.model.name
         plot.tools.append(PanTool(plot))
         plot.tools.append(ZoomTool(plot))
         plot.tools.append(LineSelectTool(plot, line_plots=self.line_plots))
