@@ -95,6 +95,7 @@ def import_sdi(directory, h5file):
                         # TODO: write frequency arrays to datastore
                 line = SurveyLine(
                     name=linename,
+                    data_file_path=os.path.join(root, filename),
                     navigation_line=LineString(coords),
                     #frequencies=data['frequencies'],
                 )
