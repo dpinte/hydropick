@@ -11,7 +11,7 @@ import numpy as np
 from shapely.geometry import LineString
 
 from traits.api import (HasTraits, Array, Dict, Event, List, Supports, Str,
-                        provides, Float)
+                        provides, CFloat)
 
 from sdi import binary
 
@@ -28,8 +28,17 @@ class SurveyLine(HasTraits):
     #: the user-visible name for the line
     name = Str
 
-    #: sample locations, an Nx2 array of lat/long (or easting/northing?)
+    #: file location for this surveyline.  Used to load data when needed.
+    data_file_path = Str
+
+    #: sample locations, an Nx2 array (example: easting/northing?)
     locations = Array(shape=(None, 2))
+
+    #: specifies unit for values in locations array
+    locations_unit = Str('feet')
+
+    #: array of associated lat/long available for display
+    lat_long = Array(shape=(None, 2))
 
     #: a dictionary mapping frequencies to intensity arrays
     frequencies = Dict
@@ -52,31 +61,24 @@ class SurveyLine(HasTraits):
     # and event fired when the lake depth is updated
     preimpoundment_depths_updated = Event
 
-    # XXX probably other metadata should be here
-
-    ### -----------------------------------------------------------------------
-    ### Additional data provided by reader ###
-
-    # file location for this surveyline.  Used to load data when needed.
-    data_file_path = Str
-
-    #: array of associated lat/long available for display
-    lat_long = Array(shape=(None, 2))
-
     #: Depth corrections:
     #:  depth = (pixel_number_from_top * pixel_resolution) + draft - heave
     #: distance from sensor to water. Constant offset added to depth
-    draft = Float
+    draft = CFloat
 
     #: array of depth corrections.  Changes vertical offset of each column.
     heave = Array
 
     #: pixel resolution, depth/pixel
-    pixel_resolution = Float
+    pixel_resolution = CFloat
+
+    # XXX probably other metadata should be here
 
     def load_data(self):
-        ''' Called by editor to load data for this survey line when its
-        needed. '''
+        ''' Called by UI to load this survey line when selected to edit
+
+        TODO : call load from HDF5 source when available
+        '''
         # read in sdi dictionary.  Only use 'frequencies' item.
         sdi_dict = binary.read(self.data_file_path)
         freq_dict_list = sdi_dict['frequencies']
@@ -95,7 +97,6 @@ class SurveyLine(HasTraits):
                                    freq_dict['interpolated_northing']]).T
         self.lat_long = np.vstack([freq_dict['latitude'],
                                   freq_dict['longitude']]).T
-        self.draft = float(np.mean(freq_dict['draft']))
-
+        self.draft = (np.mean(freq_dict['draft']))
         self.heave = freq_dict['heave']
-        self.pixel_resolution = float(np.mean(freq_dict['pixel_resolution']))
+        self.pixel_resolution = (np.mean(freq_dict['pixel_resolution']))

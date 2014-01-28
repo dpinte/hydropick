@@ -84,10 +84,11 @@ class SurveyLineView(ModelView):
 
     def _plot_container_default(self):
         ''' Creat initial plot container'''
+        dist_unit = self.model.survey_line.locations_unit
         self.mainplot = self.make_plot()
         self.mainplot.y_axis.title = 'Depth (m)'
         self.miniplot = self.make_plot(height=self.mini_height)
-        self.miniplot.x_axis.title = 'Distance (m)'
+        self.miniplot.x_axis.title = 'Distance ({})'.format(dist_unit)
         container = PlotContainer(mainplot=self.mainplot,
                                   miniplot=self.miniplot)
         if self.model.depth_dict:
