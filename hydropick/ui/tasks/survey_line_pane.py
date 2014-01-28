@@ -12,8 +12,8 @@ from traitsui.api import View, Item
 from pyface.tasks.api import TraitsTaskPane
 
 from ...model.i_survey_line import ISurveyLine
-from ..surveydatasession import SurveyDataSession
-from ..surveyline_view import SurveyLineView
+from ..survey_data_session import SurveyDataSession
+from ..survey_line_view import SurveyLineView
 
 class SurveyLinePane(TraitsTaskPane):
     """ The dock pane holding the map view of the survey """
@@ -36,7 +36,7 @@ class SurveyLinePane(TraitsTaskPane):
 
     # once a valid survey line is selected a datasession will
     # created and stored for quick retrieval on line changes
-    datasession_dict = Dict(Str, Instance(SurveyDataSession))
+    data_session_dict = Dict(Str, Instance(SurveyDataSession))
 
     # set when survey_line is none to prevent showing invalid view.
     show_view = Bool(False)
@@ -49,13 +49,13 @@ class SurveyLinePane(TraitsTaskPane):
             self.show_view = False
             self.survey_line_view = None
         else:
-            datasession = self.datasession_dict.get(self.line_name, None)
-            if datasession is None:
+            data_session = self.data_session_dict.get(self.line_name, None)
+            if data_session is None:
                 # create new datasession object and entry for this surveyline.
                 self.survey_line.load_data()
-                datasession = SurveyDataSession(surveyline=self.survey_line)
-                self.datasession_dict[self.line_name]=datasession
-            self.survey_line_view = SurveyLineView(model=datasession)
+                data_session = SurveyDataSession(survey_line=self.survey_line)
+                self.data_session_dict[self.line_name]=data_session
+            self.survey_line_view = SurveyLineView(model=data_session)
             self.show_view = True
 
     view = View(

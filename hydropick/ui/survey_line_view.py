@@ -15,9 +15,9 @@ from traitsui.api import ModelView, View, HSplit, Item
 from chaco.api import Plot, ArrayPlotData, PlotComponent, Greys
 
 # Local imports
-from .surveydatasession import SurveyDataSession
-from .surveytools import TraceTool, LocationTool
-from .surveyviews import ControlView, InstanceUItem, PlotContainer
+from .survey_data_session import SurveyDataSession
+from .survey_tools import TraceTool, LocationTool
+from .survey_views import ControlView, InstanceUItem, PlotContainer
 
 class SurveyLineView(ModelView):
     """ View Class for working with survey line data to find depth profile.
