@@ -13,8 +13,9 @@ import logging
 import numpy as np
 from shapely.geometry import LineString
 
-from hydropick.io.survey import (read_survey_line_from_file, read_survey_line_from_hdf,
-                          write_survey_line_to_hdf)
+from hydropick.io.survey import (read_survey_line_from_file,
+                                 read_survey_line_from_hdf,
+                                 write_survey_line_to_hdf)
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +82,7 @@ def import_sdi(directory, h5file):
                 try:
                     line = read_survey_line_from_hdf(h5file, linename)
                     # TODO: move image storage to HDF5 as well
-                    line.data_file_path=os.path.join(root, filename)
+                    line.data_file_path = os.path.join(root, filename)
                 except (IOError, tables.exceptions.NoSuchNodeError):
                     logger.info("Reading sdi file '%s'", filename)
                     try:
