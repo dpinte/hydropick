@@ -50,8 +50,12 @@ class SurveyMapPane(TraitsDockPane):
         self.survey_map_view = self._get_survey_map_view()
 
     def _get_survey_map_view(self):
+        if self.task is None:
+            selected_survey_lines = []
+        else:
+            selected_survey_lines = self.selected_survey_lines
         return SurveyMapView(model=self.survey,
-                             selected_survey_lines=self.selected_survey_lines)
+                             selected_survey_lines=selected_survey_lines)
 
     plot = Property(Instance(Plot), depends_on='survey_map_view')
 
