@@ -256,8 +256,6 @@ class ControlView(HasTraits):
         Label('Brightness and Contrast'),
         Item('brightness', editor=RangeEditor(low=0.0, high=1.0), label='B'),
         Item('contrast', editor=RangeEditor(low=0.0, high=10.0), label='C'),
-        Item('_'),
-        'add_plot_button',
         resizable=True
         )
 

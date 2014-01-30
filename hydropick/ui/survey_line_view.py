@@ -84,7 +84,7 @@ class SurveyLineView(ModelView):
     apply_button = Button('Apply')
 
     #==========================================================================
-    # Define View
+    # Define Views
     #==========================================================================
 
     traits_view = View(
@@ -106,21 +106,6 @@ class SurveyLineView(ModelView):
     #==========================================================================
     # Defaults
     #==========================================================================
-    def _get_algorithm_list(self):
-        ''' provides list of choice for available algorithms to UI'''
-        return tuple(self.algorithms.keys())
-
-    def new_algorithm_line_dialog(self):
-        ''' called from UI button to bring up add line dialog'''
-        self.configure_traits(view='add_line_view')
-
-    @on_trait_change('apply_button')
-    def add_algorithm_line(self):
-        ''' result of applying selected algorithm.  Makes new depth line'''
-        algorithm = self.algorithms[self.algorithm_name]() # add args?
-        new_line_data = algorithm.process_line(self.model.survey_line)
-        new_line_dict = {str(self.new_line_name) : new_line_data}
-        self.add_lines(**new_line_dict)
 
     def _plot_container_default(self):
         ''' Creat initial plot container'''
@@ -157,7 +142,6 @@ class SurveyLineView(ModelView):
         cv.on_trait_change(self.change_target, name='line_to_edit')
         cv.on_trait_change(self.change_image, name='image_freq')
         cv.on_trait_change(self.adjust_image, name='contrast_brightness')
-        cv.on_trait_event(self.new_algorithm_line_dialog, name='add_plot_button')
         return cv
 
     def _plotdata_default(self):
@@ -190,8 +174,8 @@ class SurveyLineView(ModelView):
         adds the comonents to self.plot_dict'''
         self.plotdata.update_data(kw)
         self.model.preimpoundment_depths.update(kw)
-        self.update_control_view()
         self.update_main_mini_lines(kw.keys())
+        self.update_control_view()
 
     def add_images(self, **kw):
         ''' Adds images same way as lines to plotdata and plots first one
@@ -224,7 +208,6 @@ class SurveyLineView(ModelView):
         '''
         main = self.mainplot
         mini = self.miniplot
-        print 'depthd', self.model.depth_dict
         for key in keylist:
             newplot = main.plot(('x_array', key), color='blue', name=key)
             self.plot_dict[key] = newplot[0]
@@ -264,10 +247,25 @@ class SurveyLineView(ModelView):
     # Get/Set methods
     #==========================================================================
 
+    def _get_algorithm_list(self):
+        ''' provides list of choice for available algorithms to UI'''
+        return tuple(self.algorithms.keys())
     #==========================================================================
-    # Notifications
+    # Notifications or Callbacks
     #==========================================================================
 
+    def new_algorithm_line_dialog(self):
+        ''' called from UI button to bring up add line dialog'''
+        self.configure_traits(view='add_line_view')
+
+    @on_trait_change('apply_button')
+    def add_algorithm_line(self):
+        ''' result of applying selected algorithm.  Makes new depth line'''
+        algorithm = self.algorithms[self.algorithm_name]() # add args?
+        new_line_data = algorithm.process_line(self.model.survey_line)
+        new_line_dict = {str(self.new_line_name) : new_line_data}
+        self.add_lines(**new_line_dict)
+        
     def update_locations(self, image_index):
         ''' Called by location_tool to update display readouts as mouse moves
         '''
