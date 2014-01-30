@@ -86,7 +86,7 @@ def import_sdi(directory, h5file):
                                                           linename)
                     except Exception as e:
                         # XXX: blind except to read all the lines that we can for now
-                        msg = 'Reading file {} failed with error {}'.format(filename, e)
+                        msg = 'Reading file {} failed with error "{}"'.format(filename, e)
                         warnings.warn(msg)
                         logger.warning(msg)
                         break
