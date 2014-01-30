@@ -34,11 +34,10 @@ class SurveyMapView(ModelView):
     #: The current survey
     model = Instance(ISurvey)
 
-    # TODO: this will be a list of surveys instead of geometries
     #: Survey lines
-    lines = Property(List)
+    survey_lines = Property(List)
 
-    def _get_lines(self):
+    def _get_survey_lines(self):
         return self.model.survey_lines
 
     #: the plot objects for each survey line
@@ -99,7 +98,7 @@ class SurveyMapView(ModelView):
                 plotdata.set_data(x_key, x)
                 plotdata.set_data(y_key, y)
                 plot.plot((x_key, y_key), color=self.shore_color, width=2.0)
-        for num, line in enumerate(self.lines):
+        for num, line in enumerate(self.survey_lines):
             coords = np.array(line.navigation_line.coords)
             x = coords[:,0]
             y = coords[:,1]
