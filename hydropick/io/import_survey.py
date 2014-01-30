@@ -9,6 +9,7 @@ from __future__ import absolute_import
 
 import os
 import logging
+import warnings
 
 import numpy as np
 from shapely.geometry import LineString
@@ -88,9 +89,11 @@ def import_sdi(directory, h5file):
                     try:
                         line = read_survey_line_from_file(os.path.join(root, filename),
                                                           linename)
-                    except KeyError:
+                    except Exception as e:
                         # XXX: blind except to read all the lines that we can for now
-                        print 'Failed!'
+                        msg = 'Reading file {} failed with error {}'.format(filename, e)
+                        warnings.warn(msg)
+                        logger.warning(msg)
                         break
                     else:
                         write_survey_line_to_hdf(h5file, line)
