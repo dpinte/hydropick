@@ -112,6 +112,7 @@ class SurveyMapView(ModelView):
             self.line_plots[line.name] = plot.plot((x_key, y_key),
                                                    color=self.line_color)
         plot.title = self.model.name
+        self._set_line_colors()
         plot.tools.append(PanTool(plot))
         plot.tools.append(ZoomTool(plot))
         self.line_select_tool = LineSelectTool(plot, line_plots=self.line_plots)
