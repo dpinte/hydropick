@@ -8,12 +8,11 @@
 from __future__ import absolute_import
 
 from chaco.api import Plot
-from traits.api import DelegatesTo, Instance, on_trait_change, Property, Supports, Any
+from traits.api import DelegatesTo, Instance, on_trait_change, Property, Supports
 from traitsui.api import View, Item, ModelView
 from enable.component_editor import ComponentEditor
 from pyface.tasks.api import TraitsDockPane
 
-from hydropick.model.lake import Lake
 from hydropick.ui.survey_map_view import SurveyMapView
 from hydropick.model.i_survey import ISurvey
 
