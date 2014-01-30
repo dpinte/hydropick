@@ -10,7 +10,7 @@ import numpy as np
 
 # ETS imports
 from enable.api import BaseTool
-from traits.api import Float, List, Str
+from traits.api import Dict, Float, List, Str
 
 
 class LineSelectTool(BaseTool):
@@ -24,7 +24,7 @@ class LineSelectTool(BaseTool):
     tol = Float(100.0)
 
     # ughly
-    line_plots = List
+    line_plots = Dict
 
     def _select(self, token, append=True):
         pass
@@ -38,7 +38,12 @@ class LineSelectTool(BaseTool):
         plot = self.component
         x = plot.index_mapper.map_data(event.x)
         y = plot.value_mapper.map_data(event.y)
-        for lp, in self.line_plots:
+        self._select_point(x, y)
+
+    def _select_point(self, x, y):
+        pass
+        """
+        for lp in self.line_plots.values():
             x_line = lp.index.get_data()
             y_line = lp.value.get_data()
             dist = np.min((x_line - x)**2 + (y_line - y)**2)
@@ -51,3 +56,4 @@ class LineSelectTool(BaseTool):
                 else:
                     lp.color = 'blue'
                     self._deselect(lp)
+        """

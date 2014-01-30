@@ -8,8 +8,8 @@
 from __future__ import absolute_import
 
 from chaco.api import Plot
-from traits.api import Instance, Property, Supports, Any
-from traitsui.api import View, Item
+from traits.api import DelegatesTo, Instance, on_trait_change, Property, Supports, Any
+from traitsui.api import View, Item, ModelView
 from enable.component_editor import ComponentEditor
 from pyface.tasks.api import TraitsDockPane
 
@@ -26,13 +26,35 @@ class SurveyMapPane(TraitsDockPane):
 
     survey = Supports(ISurvey)
 
-    survey_map_view = Property(depends_on='survey')
+    #: proxy for the task's current survey line
+    current_survey_line = DelegatesTo('task')
+
+    def _current_survey_line_changed(self):
+        self.survey_map_view.current_survey_line = self.current_survey_line
+
+    #: proxy for the task's current survey line
+    current_survey_line_group = DelegatesTo('task')
+
+    #: reference to the task's selected survey lines
+    selected_survey_lines = DelegatesTo('task')
+
+    def _selected_survey_lines_changed(self):
+        self.survey_map_view.selected_survey_lines = self.selected_survey_lines
+
+    survey_map_view = Instance(ModelView)  #Property(depends_on='survey')
+
+    def _survey_map_view_default(self):
+        return self._get_survey_map_view()
+
+    @on_trait_change('survey')
+    def _set_survey_map_view(self):
+        self.survey_map_view = self._get_survey_map_view()
 
     def _get_survey_map_view(self):
-        lines = [line.navigation_line for line in self.survey.survey_lines]
-        return SurveyMapView(model=self.survey)
+        return SurveyMapView(model=self.survey,
+                             selected_survey_lines=self.selected_survey_lines)
 
-    plot = Property(Instance(Plot), depends_on='survey')
+    plot = Property(Instance(Plot), depends_on='survey_map_view')
 
     def _get_plot(self):
         return self.survey_map_view.plot
