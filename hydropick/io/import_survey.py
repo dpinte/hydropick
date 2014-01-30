@@ -11,9 +11,9 @@ import os
 import logging
 import warnings
 
-from hydropick.io.survey import (read_survey_line_from_file,
-                                 read_survey_line_from_hdf,
-                                 write_survey_line_to_hdf)
+from hydropick.io.survey_io import (read_survey_line_from_file,
+                                    read_survey_line_from_hdf,
+                                    write_survey_line_to_hdf)
 
 logger = logging.getLogger(__name__)
 
