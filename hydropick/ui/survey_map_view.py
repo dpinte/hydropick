@@ -131,6 +131,8 @@ class SurveyMapView(ModelView):
         for line in self.survey_lines:
             if line.navigation_line.distance(p) < self.tol:
                 self._current_line(line)
+                # never want to set more than one line to current
+                break
 
     def _select_line(self, line):
         print 'select', line.name
