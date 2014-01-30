@@ -11,9 +11,6 @@ import os
 import logging
 import warnings
 
-import numpy as np
-from shapely.geometry import LineString
-
 from hydropick.io.survey import (read_survey_line_from_file,
                                  read_survey_line_from_hdf,
                                  write_survey_line_to_hdf)
@@ -68,9 +65,7 @@ def import_lake(directory):
 
 def import_sdi(directory, h5file):
     import tables
-    from sdi import binary
-    from ..model.survey_line import SurveyLine
-    from ..model.survey_line_group import SurveyLineGroup
+    from hydropick.model.survey_line_group import SurveyLineGroup
 
     survey_lines = []
     survey_line_groups = []
