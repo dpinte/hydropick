@@ -9,15 +9,15 @@ from __future__ import absolute_import
 
 # 3rd party imports
 import numpy as np
+from shapely.geometry import Point
 
 # ETS imports
 from chaco.api import Plot, ArrayPlotData
 from chaco.tools.api import PanTool, ZoomTool
 from enable.api import BaseTool
-from enable.component_editor import ComponentEditor
-from traits.api import DelegatesTo, Dict, Float, Instance, List, Property, Str, Supports, on_trait_change
-from traitsui.api import View, Item, ModelView, InstanceEditor, HSplit
-from pyface.tasks.api import Task, TraitsDockPane
+from traits.api import Dict, Float, Instance, List, on_trait_change, Property, Str
+from traitsui.api import ModelView
+from pyface.tasks.api import TraitsDockPane
 
 # local imports
 from hydropick.model.i_survey import ISurvey
@@ -46,7 +46,10 @@ class SurveyMapView(ModelView):
     map_pane = Instance(TraitsDockPane)
 
     line_select_tool = Instance(BaseTool)
-    
+
+    #: distance tolerance in data units on map (feet by default)
+    tol = Float(100)
+
     #: proxy for the task's current survey line
     current_survey_line = Instance(ISurveyLine)
 
@@ -118,8 +121,19 @@ class SurveyMapView(ModelView):
         return plot
 
     def select_point(self, event):
-        pass
+        p = Point(event)
+        for line in self.survey_lines:
+            if line.navigation_line.distance(p) < self.tol:
+                self._select_line(line)
 
     def current_point(self, event):
-        pass
+        p = Point(event)
+        for line in self.survey_lines:
+            if line.navigation_line.distance(p) < self.tol:
+                self._current_line(line)
 
+    def _select_line(self, line):
+        print 'select', line.name
+
+    def _current_line(self, line):
+        print 'set current to', line.name
