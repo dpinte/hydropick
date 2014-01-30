@@ -63,7 +63,12 @@ class SurveyMapView(ModelView):
 
     def _get_plot(self):
         plotdata = ArrayPlotData()
-        plot = Plot(plotdata, auto_grid=False, bgcolor=self.land_color)
+        plot = Plot(plotdata,
+                    auto_grid=False,
+                    bgcolor=self.land_color)
+        plot.x_axis.visible = False
+        plot.y_axis.visible = False
+        plot.padding = (0, 0, 0, 0)
         index_mapper = LinearMapper(range=plot.index_range)
         value_mapper = LinearMapper(range=plot.value_range)
         # XXX: want to fix the pixel aspect ratio, not the window aspect ratio
