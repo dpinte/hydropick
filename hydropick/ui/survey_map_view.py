@@ -144,3 +144,4 @@ class SurveyMapView(ModelView):
 
     def _current_line(self, line):
         print 'set current to', line.name
+        self.current_survey_line = line
