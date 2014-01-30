@@ -136,6 +136,10 @@ class SurveyMapView(ModelView):
 
     def _select_line(self, line):
         print 'select', line.name
+        if line in self.selected_survey_lines:
+            self.selected_survey_lines.remove(line)
+        else:
+            self.selected_survey_lines.append(line)
 
     def _current_line(self, line):
         print 'set current to', line.name
