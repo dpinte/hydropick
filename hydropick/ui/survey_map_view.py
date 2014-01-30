@@ -101,6 +101,7 @@ class SurveyMapView(ModelView):
         plot.x_axis.visible = False
         plot.y_axis.visible = False
         plot.padding = (0, 0, 0, 0)
+        plot.border_visible = False
         index_mapper = LinearMapper(range=plot.index_range)
         value_mapper = LinearMapper(range=plot.value_range)
         # XXX: want to fix the pixel aspect ratio, not the window aspect ratio
