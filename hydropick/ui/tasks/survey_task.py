@@ -8,11 +8,11 @@
 from __future__ import absolute_import
 
 from traits.api import (Bool, Property, Supports, List, on_trait_change, Dict)
-                       
+
 from pyface.api import ImageResource
 from pyface.tasks.api import Task, TaskLayout, PaneItem, VSplitter
 from pyface.tasks.action.api import DockPaneToggleGroup, SMenuBar, SMenu, \
-    SGroup, SToolBar, TaskAction
+    SGroup, SToolBar, TaskAction, CentralPaneAction
 from apptools.undo.i_undo_manager import IUndoManager
 from apptools.undo.i_command_stack import ICommandStack
 
@@ -130,6 +130,16 @@ class SurveyTask(Task):
                 ),
                 DockPaneToggleGroup(),
                 id='View', name="&View",
+            ),
+            SMenu(
+                SGroup(
+                    CentralPaneAction(name='New Depth Line',
+                               method='on_new_depth_line',
+                               enabled_name='show_view',
+                               accelerator='Ctrl+Shift+='),
+                    id='ToolGroup', name='Tool Group',
+                ),
+                id='Tools', name="&Tools",
             ),
         )
         return menu_bar
