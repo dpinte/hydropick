@@ -12,7 +12,8 @@ import numpy as np
 from shapely.geometry import Point
 
 # ETS imports
-from chaco.api import Plot, ArrayPlotData
+from chaco.api import (ArrayPlotData, ArrayDataSource, LinearMapper,
+                       Plot, PolygonPlot)
 from chaco.tools.api import PanTool, ZoomTool
 from enable.api import BaseTool
 from traits.api import Dict, Float, Instance, List, on_trait_change, Property, Str
@@ -71,6 +72,12 @@ class SurveyMapView(ModelView):
     #: (not yet implemented)
     aspect_ratio = Float(1.0)
 
+    #: Color to draw the lake
+    lake_color = Str('lightblue')
+
+    #: Color to draw the land
+    land_color = Str('khaki')
+
     #: Color to draw the shoreline
     shore_color = Str('black')
 
@@ -88,7 +95,9 @@ class SurveyMapView(ModelView):
 
     def _get_plot(self):
         plotdata = ArrayPlotData()
-        plot = Plot(plotdata, auto_grid=False)
+        plot = Plot(plotdata, auto_grid=False, bgcolor=self.land_color)
+        index_mapper = LinearMapper(range=plot.index_range)
+        value_mapper = LinearMapper(range=plot.value_range)
         # XXX: want to fix the pixel aspect ratio, not the window aspect ratio
         #plot.aspect_ratio = self.aspect_ratio
         if self.model.lake is not None:
@@ -96,15 +105,17 @@ class SurveyMapView(ModelView):
                 line = np.array(l.coords)
                 x = line[:,0]
                 y = line[:,1]
-                x_key = 'x' + str(num)
-                y_key = 'y' + str(num)
-                plotdata.set_data(x_key, x)
-                plotdata.set_data(y_key, y)
-                plot.plot((x_key, y_key), color=self.shore_color, width=2.0)
-        for num, line in enumerate(self.survey_lines):
-            coords = np.array(line.navigation_line.coords)
-            x = coords[:,0]
-            y = coords[:,1]
+                polyplot = PolygonPlot(index=ArrayDataSource(x),
+                                       value=ArrayDataSource(y),
+                                       edge_color=self.shore_color,
+                                       face_color=self.lake_color,
+                                       index_mapper=index_mapper,
+                                       value_mapper=value_mapper)
+                plot.add(polyplot)
+        for num, l in enumerate(self.lines):
+            line = np.array(l.coords)
+            x = line[:,0]
+            y = line[:,1]
             x_key = 'x-line' + str(num)
             y_key = 'y-line' + str(num)
             plotdata.set_data(x_key, x)
