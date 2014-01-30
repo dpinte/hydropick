@@ -15,7 +15,8 @@ from traits.api import (HasTraits, Array, Dict, Event, List, Supports, Str,
 
 from sdi import binary
 
-from traits.api import HasTraits, Array, Dict, Event, Instance, List, Supports, Str, provides
+from traits.api import (HasTraits, Array, Dict, Event, Instance, List,
+                        Supports, Str, provides, Tuple)
 
 from .i_core_sample import ICoreSample
 from .i_survey_line import ISurveyLine
@@ -42,6 +43,9 @@ class SurveyLine(HasTraits):
 
     #: a dictionary mapping frequencies to intensity arrays
     frequencies = Dict
+
+    #: intensity array shape for convenience (num_depth_pts, num_distance_pts)
+    shape = Tuple
 
     #: relevant core samples
     core_samples = List(Supports(ICoreSample))
@@ -87,7 +91,9 @@ class SurveyLine(HasTraits):
         for freq_dict in freq_dict_list:
             key = freq_dict['kHz']
             # transpose array to go into image plot correctly oriented
-            self.frequencies[str(key)] = freq_dict['intensity'].T
+            intensity = freq_dict['intensity'].T
+            self.frequencies[str(key)] = intensity
+            self.shape = intensity.shape
             lake_key = 'Lakedepth_{:.1f}'.format(key)
             self.lake_depths[lake_key] = freq_dict['depth_r1']
 

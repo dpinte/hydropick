@@ -7,7 +7,8 @@
 
 from __future__ import absolute_import
 
-from traits.api import Bool, Property, Supports, List, on_trait_change
+from traits.api import (Bool, Property, Supports, List, on_trait_change, Dict)
+                       
 from pyface.api import ImageResource
 from pyface.tasks.api import Task, TaskLayout, PaneItem, VSplitter
 from pyface.tasks.action.api import DockPaneToggleGroup, SMenuBar, SMenu, \
@@ -18,6 +19,7 @@ from apptools.undo.i_command_stack import ICommandStack
 from ...model.i_survey import ISurvey
 from ...model.i_survey_line import ISurveyLine
 from ...model.i_survey_line_group import ISurveyLineGroup
+from ...model import algorithms
 
 from .task_command_action import TaskCommandAction
 
@@ -62,6 +64,10 @@ class SurveyTask(Task):
 
     #: the object that holds the Task's commands
     command_stack = Supports(ICommandStack)
+
+    #: reference to dictionary of available depth pic algorithms
+    #(IAlgorithm Classes)
+    algorithms = Dict
 
     ###########################################################################
     # 'Task' interface.
@@ -299,6 +305,13 @@ class SurveyTask(Task):
     def _survey_default(self):
         from ...model.survey import Survey
         return Survey(name='New Survey')
+
+    def _algorithms_default(self):
+        name_list = algorithms.ALGORITHM_LIST
+        classes = [getattr(algorithms, cls_name) for cls_name in name_list]
+        names = [cls().name for cls in classes]
+        return dict(zip(names, classes))
+
 
     ###########################################################################
     # private interface.

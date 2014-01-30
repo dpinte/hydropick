@@ -23,7 +23,8 @@ import numpy as np
 
 # ETS imports
 from enable.api import ComponentEditor
-from traits.api import Instance, Str, List, HasTraits, File, Float, Property
+from traits.api import (Instance, Str, List, HasTraits, File, Float, Property,
+                        Button)
 from traitsui.api import View, Item, EnumEditor, UItem, InstanceEditor,\
                          CheckListEditor, HSplit, RangeEditor, Label
 from chaco.api import Plot, ArrayPlotData, LinePlot, VPlotContainer,\
@@ -231,6 +232,9 @@ class ControlView(HasTraits):
     contrast = Float(1)
     contrast_brightness = Property(depends_on=['brightness', 'contrast'])
 
+    # button to bring up an add_plot dialog
+    add_plot_button = Button('Add Plot')
+
     traits_view = View(
         Item('image_freq', editor=EnumEditor(name='freq_choices')),
         Item('line_to_edit',
@@ -252,6 +256,8 @@ class ControlView(HasTraits):
         Label('Brightness and Contrast'),
         Item('brightness', editor=RangeEditor(low=0.0, high=1.0), label='B'),
         Item('contrast', editor=RangeEditor(low=0.0, high=10.0), label='C'),
+        Item('_'),
+        'add_plot_button',
         resizable=True
         )
 
