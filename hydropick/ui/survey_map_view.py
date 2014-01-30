@@ -13,6 +13,7 @@ import numpy as np
 # ETS imports
 from chaco.api import Plot, ArrayPlotData
 from chaco.tools.api import PanTool, ZoomTool
+from enable.api import BaseTool
 from enable.component_editor import ComponentEditor
 from traits.api import DelegatesTo, Dict, Float, Instance, List, Property, Str, Supports, on_trait_change
 from traitsui.api import View, Item, ModelView, InstanceEditor, HSplit
@@ -45,6 +46,8 @@ class SurveyMapView(ModelView):
 
     map_pane = Instance(TraitsDockPane)
 
+    line_select_tool = Instance(BaseTool)
+    
     #: proxy for the task's current survey line
     current_survey_line = Instance(ISurveyLine)
 
@@ -109,6 +112,15 @@ class SurveyMapView(ModelView):
         plot.title = self.model.name
         plot.tools.append(PanTool(plot))
         plot.tools.append(ZoomTool(plot))
-        plot.tools.append(LineSelectTool(plot, line_plots=self.line_plots))
+        self.line_select_tool = LineSelectTool(plot, line_plots=self.line_plots)
+        self.line_select_tool.on_trait_event(self.select_point, 'select_point')
+        self.line_select_tool.on_trait_event(self.current_point, 'current_point')
+        plot.tools.append(self.line_select_tool)
         return plot
+
+    def select_point(self, event):
+        pass
+
+    def current_point(self, event):
+        pass
 

@@ -10,7 +10,7 @@ import numpy as np
 
 # ETS imports
 from enable.api import BaseTool
-from traits.api import Dict, Float, List, Str
+from traits.api import Dict, Event, Float, List, Str
 
 
 class LineSelectTool(BaseTool):
@@ -22,6 +22,12 @@ class LineSelectTool(BaseTool):
 
     #: distance tolerance in data units on map (feet by default)
     tol = Float(100.0)
+
+    #: select a new line
+    select_point = Event
+
+    #: make a new line the current one
+    current_point = Event
 
     # ughly
     line_plots = Dict
@@ -38,7 +44,15 @@ class LineSelectTool(BaseTool):
         plot = self.component
         x = plot.index_mapper.map_data(event.x)
         y = plot.value_mapper.map_data(event.y)
-        self._select_point(x, y)
+        self.select_point = (x, y)
+
+    def normal_left_dclick(self, event):
+        """ Select a line if it is within 100 ft """
+        tol2 = self.tol ** 2
+        plot = self.component
+        x = plot.index_mapper.map_data(event.x)
+        y = plot.value_mapper.map_data(event.y)
+        self.current_point = (x, y)
 
     def _select_point(self, x, y):
         pass
