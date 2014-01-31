@@ -42,14 +42,14 @@ class ISurvey(Interface):
     core_samples = List(Supports(ICoreSample))
 
 
-    def new_line_group(self, group, lines=None):
+    def add_survey_line_group(self, group):
         """ Create a new line group, optionally with a set of lines """
         raise NotImplementedError
 
-    def add_lines_to_group(self, group, lines):
-        """ Add a set of lines to a group """
+    def insert_survey_line_group(self, index, group):
+        """ Create a new line group, optionally with a set of lines """
         raise NotImplementedError
 
-    def remove_lines_from_group(self, group, lines):
-        """ Add a set of lines to a group """
+    def delete_survey_line_group(self, group):
+        """ Delete a line group, returning its index """
         raise NotImplementedError
