@@ -16,7 +16,7 @@ from chaco.api import (ArrayPlotData, ArrayDataSource, LinearMapper,
                        Plot, PolygonPlot)
 from chaco.tools.api import PanTool, ZoomTool
 from enable.api import BaseTool, ColorTrait
-from traits.api import Dict, Float, Instance, List, on_trait_change, Property
+from traits.api import Bool, Dict, Float, Instance, List, on_trait_change, Property
 from traitsui.api import ModelView
 from pyface.tasks.api import TraitsDockPane
 
@@ -25,6 +25,49 @@ from hydropick.model.i_survey import ISurvey
 from hydropick.model.i_survey_line import ISurveyLine
 from hydropick.ui.line_select_tool import LineSelectTool
 
+
+class MapPlot(Plot):
+    """ A subclass of Plot to allow setting of x- and y- scale to be constant.
+
+    A bit of a kludge to make it is run only once for a plot.
+    Ideally this would change the aspect ratio on resize events as well,
+    but that will take more work to make sure it isn't called recursively.
+    """
+
+    #: only do this once for a given plot
+    aspect_ratio_set = Bool(False)
+
+    def _update_mappers(self):
+        super(MapPlot, self)._update_mappers()
+        if not self.aspect_ratio_set:
+            self._update_aspect_ratio()
+
+    def _update_aspect_ratio(self):
+        x_max = self.index_mapper.range.high
+        x_min = self.index_mapper.range.low
+        y_max = self.value_mapper.range.high
+        y_min = self.value_mapper.range.low
+        self.aspect_ratio = (self.index_mapper.screen_bounds[1] /
+                             self.value_mapper.screen_bounds[1])
+        data_aspect_ratio = (x_max - x_min) / (y_max - y_min)
+        if data_aspect_ratio == self.aspect_ratio:
+            return
+        elif data_aspect_ratio > self.aspect_ratio:
+            # expand data range in y-direction to match
+            y_center = (y_max + y_min) / 2
+            y_max_new = y_center + (x_max - x_min) / (2 * self.aspect_ratio)
+            y_min_new = y_center - (x_max - x_min) / (2 * self.aspect_ratio)
+            self.value_mapper.range.high = y_max_new
+            self.value_mapper.range.low = y_min_new
+        else:
+            # expand data range in x-direction to match
+            print 'expanding x'
+            x_center = (x_max + x_min) / 2
+            x_max_new = x_center + (y_max - y_min) * self.aspect_ratio / 2
+            x_min_new = x_center - (y_max - y_min) * self.aspect_ratio / 2
+            self.index_mapper.range.high = x_max_new
+            self.index_mapper.range.low = x_min_new
+        self.aspect_ratio_set = True
 
 class SurveyMapView(ModelView):
     """ View Class for working with survey line data to find depth profile.
@@ -68,10 +111,6 @@ class SurveyMapView(ModelView):
             else:
                 lp.color = self.line_color
 
-    #: This should fix the x and y scale to maintain aspect ratio
-    #: (not yet implemented)
-    aspect_ratio = Float(1.0)
-
     #: Color to draw the lake
     lake_color = ColorTrait('lightblue')
 
@@ -96,9 +135,9 @@ class SurveyMapView(ModelView):
 
     def _plot_default(self):
         plotdata = ArrayPlotData()
-        plot = Plot(plotdata,
-                    auto_grid=False,
-                    bgcolor=self.land_color)
+        plot = MapPlot(plotdata,
+                       auto_grid=False,
+                       bgcolor=self.land_color)
         plot.x_axis.visible = False
         plot.y_axis.visible = False
         plot.padding = (0, 0, 0, 0)
