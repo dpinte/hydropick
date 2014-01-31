@@ -31,7 +31,7 @@ class SurveyMapPane(TraitsDockPane):
     def _current_survey_line_changed(self):
         self.survey_map_view.current_survey_line = self.current_survey_line
 
-    #: proxy for the task's current survey line
+    #: proxy for the task's current survey line group
     current_survey_line_group = DelegatesTo('task')
 
     #: reference to the task's selected survey lines
@@ -40,7 +40,7 @@ class SurveyMapPane(TraitsDockPane):
     def _selected_survey_lines_changed(self):
         self.survey_map_view.selected_survey_lines = self.selected_survey_lines
 
-    survey_map_view = Instance(ModelView)  #Property(depends_on='survey')
+    survey_map_view = Instance(ModelView)
 
     def _survey_map_view_default(self):
         return self._get_survey_map_view()
