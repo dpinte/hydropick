@@ -9,9 +9,11 @@ from __future__ import absolute_import
 
 import os
 import logging
+import warnings
 
-import numpy as np
-from shapely.geometry import LineString
+from hydropick.io.survey_io import (read_survey_line_from_file,
+                                    read_survey_line_from_hdf,
+                                    write_survey_line_to_hdf)
 
 logger = logging.getLogger(__name__)
 
@@ -63,9 +65,7 @@ def import_lake(directory):
 
 def import_sdi(directory, h5file):
     import tables
-    from sdi import binary
-    from ..model.survey_line import SurveyLine
-    from ..model.survey_line_group import SurveyLineGroup
+    from hydropick.model.survey_line_group import SurveyLineGroup
 
     survey_lines = []
     survey_line_groups = []
@@ -76,29 +76,22 @@ def import_sdi(directory, h5file):
                 linename = os.path.splitext(filename)[0]
                 print 'Reading line', linename
                 try:
-                    with tables.openFile(h5file, 'r') as f:
-                        coords = f.getNode('/l' + linename + '/navigation_line').read()
+                    line = read_survey_line_from_hdf(h5file, linename)
+                    # TODO: move image storage to HDF5 as well
+                    line.data_file_path = os.path.join(root, filename)
                 except (IOError, tables.exceptions.NoSuchNodeError):
                     logger.info("Reading sdi file '%s'", filename)
                     try:
-                        data = binary.read(os.path.join(root, filename))
-                    except:
+                        line = read_survey_line_from_file(os.path.join(root, filename),
+                                                          linename)
+                    except Exception as e:
                         # XXX: blind except to read all the lines that we can for now
-                        print 'Failed!'
+                        msg = 'Reading file {} failed with error "{}"'.format(filename, e)
+                        warnings.warn(msg)
+                        logger.warning(msg)
                         break
-                    x = data['frequencies'][-1]['easting']
-                    y = data['frequencies'][-1]['northing']
-                    coords = np.vstack((x, y)).T
-                    with tables.openFile(h5file, 'a') as f:
-                        node = f.createGroup(f.root, 'l' + linename)
-                        f.createArray('/l' + linename, 'navigation_line', coords)
-                        # TODO: write frequency arrays to datastore
-                line = SurveyLine(
-                    name=linename,
-                    data_file_path=os.path.join(root, filename),
-                    navigation_line=LineString(coords),
-                    #frequencies=data['frequencies'],
-                )
+                    else:
+                        write_survey_line_to_hdf(h5file, line)
                 group_lines.append(line)
         if group_lines:
             dirname = os.path.basename(root)
