@@ -61,7 +61,6 @@ class MapPlot(Plot):
             self.value_mapper.range.low = y_min_new
         else:
             # expand data range in x-direction to match
-            print 'expanding x'
             x_center = (x_max + x_min) / 2
             x_max_new = x_center + (y_max - y_min) * self.aspect_ratio / 2
             x_min_new = x_center - (y_max - y_min) * self.aspect_ratio / 2
