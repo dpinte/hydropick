@@ -143,16 +143,22 @@ class SurveyMapView(ModelView):
         plot.border_visible = False
         index_mapper = LinearMapper(range=plot.index_range)
         value_mapper = LinearMapper(range=plot.value_range)
-        # XXX: want to fix the pixel aspect ratio, not the window aspect ratio
         if self.model.lake is not None:
+            line_lengths = [l.length for l in self.model.lake.shoreline]
+            idx_max = line_lengths.index(max(line_lengths))
             for num, l in enumerate(self.model.lake.shoreline):
                 line = np.array(l.coords)
                 x = line[:,0]
                 y = line[:,1]
+                # assume that the longest polygon is lake, all others islands
+                if num == idx_max:
+                    color = self.lake_color
+                else:
+                    color = self.land_color
                 polyplot = PolygonPlot(index=ArrayDataSource(x),
                                        value=ArrayDataSource(y),
                                        edge_color=self.shore_color,
-                                       face_color=self.lake_color,
+                                       face_color=color,
                                        index_mapper=index_mapper,
                                        value_mapper=value_mapper)
                 plot.add(polyplot)
