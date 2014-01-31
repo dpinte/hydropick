@@ -118,17 +118,16 @@ class SurveyMapView(ModelView):
                                        index_mapper=index_mapper,
                                        value_mapper=value_mapper)
                 plot.add(polyplot)
-        for num, l in enumerate(self.lines):
-            line = np.array(l.coords)
-            x = line[:,0]
-            y = line[:,1]
+        for num, line in enumerate(self.survey_lines):
+            coords = np.array(line.navigation_line.coords)
+            x = coords[:,0]
+            y = coords[:,1]
             x_key = 'x-line' + str(num)
             y_key = 'y-line' + str(num)
             plotdata.set_data(x_key, x)
             plotdata.set_data(y_key, y)
             self.line_plots[line.name] = plot.plot((x_key, y_key),
                                                    color=self.line_color)
-        plot.title = self.model.name
         self._set_line_colors()
         plot.tools.append(PanTool(plot))
         plot.tools.append(ZoomTool(plot))
