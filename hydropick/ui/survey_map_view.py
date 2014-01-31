@@ -15,8 +15,8 @@ from shapely.geometry import Point
 from chaco.api import (ArrayPlotData, ArrayDataSource, LinearMapper,
                        Plot, PolygonPlot)
 from chaco.tools.api import PanTool, ZoomTool
-from enable.api import BaseTool
-from traits.api import Dict, Float, Instance, List, on_trait_change, Property, Str
+from enable.api import BaseTool, ColorTrait
+from traits.api import Dict, Float, Instance, List, on_trait_change, Property
 from traitsui.api import ModelView
 from pyface.tasks.api import TraitsDockPane
 
@@ -73,22 +73,23 @@ class SurveyMapView(ModelView):
     aspect_ratio = Float(1.0)
 
     #: Color to draw the lake
-    lake_color = Str('lightblue')
+    lake_color = ColorTrait('lightblue')
 
     #: Color to draw the land
-    land_color = Str('khaki')
+    # XXX: This cannot be an arbitrary tuple, must be in enable.colors.color_table
+    land_color = ColorTrait('wheat')
 
     #: Color to draw the shoreline
-    shore_color = Str('black')
+    shore_color = ColorTrait('black')
 
     #: Color to draw the survey lines
-    line_color = Str('blue')
+    line_color = ColorTrait('blue')
 
     #: Color to draw the selected survey lines
-    selected_line_color = Str('green')
+    selected_line_color = ColorTrait('green')
 
     #: Color to draw the survey lines
-    current_line_color = Str('red')
+    current_line_color = ColorTrait('red')
 
     #: The Chaco plot object
     plot = Property(Instance(Plot), depends_on='model')
