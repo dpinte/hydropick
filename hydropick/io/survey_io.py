@@ -16,8 +16,8 @@ from ..model.survey_line import SurveyLine
 
 def read_survey_line_from_file(filename, linename):
     data = binary.read(filename)
-    x = data['frequencies'][-1]['easting']
-    y = data['frequencies'][-1]['northing']
+    x = data['frequencies'][-1]['interpolated_easting']
+    y = data['frequencies'][-1]['interpolated_northing']
     coords = np.vstack((x, y)).T
     line = SurveyLine(name=linename,
                       data_file_path=filename,
