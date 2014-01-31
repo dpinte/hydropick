@@ -12,7 +12,7 @@ import numpy as np
 from traits.api import provides, Str, HasTraits
 
 import traits.has_traits
-traits.has_traits.CHECK_INTERFACES = 2 
+#traits.has_traits.CHECK_INTERFACES = 2 
 
 from .i_algorithm import IAlgorithm
 
