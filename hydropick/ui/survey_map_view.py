@@ -92,9 +92,9 @@ class SurveyMapView(ModelView):
     current_line_color = ColorTrait('red')
 
     #: The Chaco plot object
-    plot = Property(Instance(Plot), depends_on='model')
+    plot = Instance(Plot)
 
-    def _get_plot(self):
+    def _plot_default(self):
         plotdata = ArrayPlotData()
         plot = Plot(plotdata,
                     auto_grid=False,
@@ -106,7 +106,6 @@ class SurveyMapView(ModelView):
         index_mapper = LinearMapper(range=plot.index_range)
         value_mapper = LinearMapper(range=plot.value_range)
         # XXX: want to fix the pixel aspect ratio, not the window aspect ratio
-        #plot.aspect_ratio = self.aspect_ratio
         if self.model.lake is not None:
             for num, l in enumerate(self.model.lake.shoreline):
                 line = np.array(l.coords)
