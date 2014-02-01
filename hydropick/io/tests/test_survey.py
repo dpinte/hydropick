@@ -12,9 +12,9 @@ import unittest
 
 from shapely.geometry import LineString
 
-from hydropick.io.survey import (read_survey_line_from_file,
-                                 read_survey_line_from_hdf,
-                                 write_survey_line_to_hdf)
+from hydropick.io.survey_io import (read_survey_line_from_file,
+                                    read_survey_line_from_hdf,
+                                    write_survey_line_to_hdf)
 
 class TestSurveyIO(unittest.TestCase):
     """ Tests for the survey line I/O """
