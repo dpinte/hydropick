@@ -29,6 +29,7 @@ class SurveyDataSession(HasTraits):
     to that instance until editing session is finished
     (Make sure surveyline has the traits delegated below from sdi dict )
     """
+    
     # Source of survey line data to be edited
     survey_line = Instance(SurveyLine)
 

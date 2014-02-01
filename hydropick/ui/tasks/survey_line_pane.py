@@ -7,7 +7,7 @@
 
 from __future__ import absolute_import
 
-from traits.api import Instance, Property, Bool, Dict, Str
+from traits.api import Instance, Property, Bool, Dict, Str, DelegatesTo
 from traitsui.api import View, Item
 from pyface.tasks.api import TraitsTaskPane
 
@@ -38,9 +38,16 @@ class SurveyLinePane(TraitsTaskPane):
     # created and stored for quick retrieval on line changes
     data_session_dict = Dict(Str, Instance(SurveyDataSession))
 
+    #: dictionary of (name, class) pairs for available depth pic algorithms
+    algorithms = DelegatesTo('task')
+
     # set when survey_line is none to prevent showing invalid view.
     show_view = Bool(False)
 
+    def on_new_depth_line(self):
+        ''' Open dialog to create new depth line'''
+        self.survey_line_view.new_algorithm_line_dialog()
+        
     def _survey_line_changed(self):
         ''' handle loading of survey line view if valid line provide or else
         provide an empty view.
@@ -55,7 +62,9 @@ class SurveyLinePane(TraitsTaskPane):
                 self.survey_line.load_data()
                 data_session = SurveyDataSession(survey_line=self.survey_line)
                 self.data_session_dict[self.line_name]=data_session
-            self.survey_line_view = SurveyLineView(model=data_session)
+
+            self.survey_line_view = SurveyLineView(model=data_session,
+                                                   algorithms=self.algorithms)
             self.show_view = True
 
     view = View(

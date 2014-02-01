@@ -10,14 +10,17 @@ from __future__ import absolute_import
 import numpy as np
 
 # ETS imports
-from traits.api import Instance, Str, Dict, List, Int
-from traitsui.api import ModelView, View, HSplit
+from traits.api import (Instance, Str, Dict, List, Int, Property,
+                        on_trait_change, Button)
+from traitsui.api import ModelView, View, HSplit, Group, Item, EnumEditor
 from chaco.api import Plot, ArrayPlotData, PlotComponent, Greys
+from enthought.traits.ui.menu import ApplyButton
 
 # Local imports
 from .survey_data_session import SurveyDataSession
 from .survey_tools import TraceTool, LocationTool
 from .survey_views import ControlView, InstanceUItem, PlotContainer
+
 
 class SurveyLineView(ModelView):
     """ View Class for working with survey line data to find depth profile.
@@ -25,7 +28,6 @@ class SurveyLineView(ModelView):
     Uses a Survey class as a model and allows for viewing of various depth
     picking algorithms and manual editing of depth profiles.
     """
-
 
     #==========================================================================
     # Traits Attributes
@@ -49,6 +51,7 @@ class SurveyLineView(ModelView):
     # Custom tool for editing depth lines
     trace_tool = Instance(TraceTool)
 
+    # Custom tool for showing coordinates at mouse position
     location_tool = Instance(LocationTool)
 
     # List of which lines are visible in plots
@@ -66,8 +69,22 @@ class SurveyLineView(ModelView):
     miniplot = Instance(Plot)
     mini_height = Int(100)
 
+    # traits for adding new lines based on algoriths
+    # dictionary of available algoritms
+    algorithms = Dict
+    algorithm_list = Property(depends_on='algorithms')
+
+    # name chosen from UI to apply
+    algorithm_name = Str
+
+    # name to give to resulting depth line
+    new_line_name = Str
+
+    # used in new depth line dialog box to apply choices to make a new line
+    apply_button = Button('Apply')
+
     #==========================================================================
-    # Define View
+    # Define Views
     #==========================================================================
 
     traits_view = View(
@@ -76,6 +93,14 @@ class SurveyLineView(ModelView):
             InstanceUItem('control_view', width=150),
         ),
         resizable=True,
+    )
+
+    add_line_view = View(
+        Group(Item('algorithm_name', editor=EnumEditor(name='algorithm_list')),
+              Item('new_line_name'),
+              'apply_button',
+        ),
+        buttons =['OK', 'Cancel']
     )
 
     #==========================================================================
@@ -136,6 +161,10 @@ class SurveyLineView(ModelView):
     #==========================================================================
     # Helper functions
     #==========================================================================
+    def update_control_view(self):
+        cv = self.control_view
+        cv.visible_lines = self.model.target_choices
+        cv.target_choices = self.model.target_choices
 
     def add_lines(self, **kw):
         ''' Take arbitrary number of key=array pairs.
@@ -144,8 +173,9 @@ class SurveyLineView(ModelView):
         adds them to mainplot and miniplot,
         adds the comonents to self.plot_dict'''
         self.plotdata.update_data(kw)
-        self.model.depth_dict.update(kw)
+        self.model.preimpoundment_depths.update(kw)
         self.update_main_mini_lines(kw.keys())
+        self.update_control_view()
 
     def add_images(self, **kw):
         ''' Adds images same way as lines to plotdata and plots first one
@@ -182,6 +212,8 @@ class SurveyLineView(ModelView):
             newplot = main.plot(('x_array', key), color='blue', name=key)
             self.plot_dict[key] = newplot[0]
             mini.plot(('x_array', key), color='blue', name=key)
+        self.mainplot.invalidate_and_redraw()
+        print 'done'
 
     def update_main_mini_image(self, keylist=[], remove=None):
         ''' Add specified image plots from self.plotdata to both plots.
@@ -215,10 +247,25 @@ class SurveyLineView(ModelView):
     # Get/Set methods
     #==========================================================================
 
+    def _get_algorithm_list(self):
+        ''' provides list of choice for available algorithms to UI'''
+        return tuple(self.algorithms.keys())
     #==========================================================================
-    # Notifications
+    # Notifications or Callbacks
     #==========================================================================
 
+    def new_algorithm_line_dialog(self):
+        ''' called from UI button to bring up add line dialog'''
+        self.configure_traits(view='add_line_view')
+
+    @on_trait_change('apply_button')
+    def add_algorithm_line(self):
+        ''' result of applying selected algorithm.  Makes new depth line'''
+        algorithm = self.algorithms[self.algorithm_name]() # add args?
+        new_line_data = algorithm.process_line(self.model.survey_line)
+        new_line_dict = {str(self.new_line_name) : new_line_data}
+        self.add_lines(**new_line_dict)
+        
     def update_locations(self, image_index):
         ''' Called by location_tool to update display readouts as mouse moves
         '''
