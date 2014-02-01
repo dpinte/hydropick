@@ -173,6 +173,12 @@ class SurveyMapView(ModelView):
             self.line_plots[line.name] = plot.plot((x_key, y_key),
                                                    color=self.line_color)
         self._set_line_colors()
+        if self.model.lake is not None:
+            x_min, y_min, x_max, y_max = self.model.lake.shoreline.bounds
+            index_mapper.range.high = x_max
+            index_mapper.range.low = x_min
+            value_mapper.range.high = y_max
+            value_mapper.range.low = y_min
         plot.tools.append(PanTool(plot))
         plot.tools.append(ZoomTool(plot))
         self.line_select_tool = LineSelectTool(plot, line_plots=self.line_plots)
