@@ -9,7 +9,8 @@ from __future__ import absolute_import
 
 from traits.api import Interface, Tuple, Str, Enum, Array, Bool, Color, Dict
 
-class IDepthLine(Interface):
+@provides(IDepthLine)
+class DepthLine(Interface):
     """ An interface representing a depth line
 
     Each depth line is associated with a specific survey line.
@@ -42,7 +43,7 @@ class IDepthLine(Interface):
     depth_array = Array
 
     # indicated line was manually edited.  Source should indicate original line
-    edited = Bool
+    edited = Bool(False)
 
     #: display color for line (should not be same color as selected line to edit)
     color = Color
@@ -50,4 +51,11 @@ class IDepthLine(Interface):
     #: text field for any notes about this line.
     notes = Str
 
-    
+    def distance_array(self, distance_values):
+        ''' Creates array for x-axis
+
+        takes an array of distance values and pulls out those corresponding to
+        this lines index array
+        '''
+        xs = distance_array(self.index_array)
+        return xs

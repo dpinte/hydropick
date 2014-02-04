@@ -19,7 +19,7 @@ from enthought.traits.ui.menu import ApplyButton
 # Local imports
 from .survey_data_session import SurveyDataSession
 from .survey_tools import TraceTool, LocationTool
-from .survey_views import ControlView, InstanceUItem, PlotContainer
+from .survey_views import ControlView, InstanceUItem, PlotContainer, DataView
 
 
 class SurveyLineView(ModelView):
@@ -42,6 +42,9 @@ class SurveyLineView(ModelView):
 
     # Defines view for all the plot controls and info. Sits by plot container.
     control_view = Instance(ControlView)
+
+    # Defines view for pop up location data window
+    data_view = Instance(DataView)
 
     # Dictionary of plots kept for legend and for tools.
     # Will contain all depth lines at least.  This contains components as
@@ -158,6 +161,8 @@ class SurveyLineView(ModelView):
         self.mainplot.tools.append(tool)
         return tool
 
+    def _data_view_default(self):
+        return DataView()
     #==========================================================================
     # Helper functions
     #==========================================================================
@@ -254,6 +259,10 @@ class SurveyLineView(ModelView):
     # Notifications or Callbacks
     #==========================================================================
 
+    def show_data_dialog(self):
+        print 'show data'
+        self.data_view.configure_traits()
+
     def new_algorithm_line_dialog(self):
         ''' called from UI button to bring up add line dialog'''
         self.configure_traits(view='add_line_view')
@@ -265,17 +274,17 @@ class SurveyLineView(ModelView):
         new_line_data = algorithm.process_line(self.model.survey_line)
         new_line_dict = {str(self.new_line_name) : new_line_data}
         self.add_lines(**new_line_dict)
-        
+
     def update_locations(self, image_index):
         ''' Called by location_tool to update display readouts as mouse moves
         '''
-        cv = self.control_view
+        dv = self.data_view
         lat, long = self.model.lat_long[image_index]
         east, north = self.model.locations[image_index]
-        cv.latitude = lat
-        cv.longitude = long
-        cv.easting = east
-        cv.northing = north
+        dv.latitude = lat
+        dv.longitude = long
+        dv.easting = east
+        dv.northing = north
 
     def adjust_image(self, new_contrast_brightness):
         ''' Given a tuple (contrast, brightness) with values
@@ -292,7 +301,7 @@ class SurveyLineView(ModelView):
 
     def update_depth(self, depth):
         ''' Called by trace tool to update depth readout display'''
-        self.control_view.depth = depth
+        self.data_view.depth = depth
 
     def change_target(self, object, name, old, new_target):
         '''update trace tool target line attribute.'''

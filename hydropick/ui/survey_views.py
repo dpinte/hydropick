@@ -245,14 +245,6 @@ class ControlView(HasTraits):
              editor=CheckListEditor(name='target_choices'),
              style='custom'),
         Item('_'),
-        Item('latitude'),
-        Item('longitude'),
-        Item('_'),
-        Item('easting'),
-        Item('northing'),
-        Item('_'),
-        Item('depth'),
-        Item('_'),
         Label('Brightness and Contrast'),
         Item('brightness', editor=RangeEditor(low=0.0, high=1.0), label='B'),
         Item('contrast', editor=RangeEditor(low=0.0, high=10.0), label='C'),
@@ -261,6 +253,31 @@ class ControlView(HasTraits):
 
     def _get_contrast_brightness(self):
         return (self.contrast, self.brightness)
+
+class DataView(HasTraits):
+    ''' Show location data as cursor moves about'''
+
+    # latitude, longitude for current cursor
+    latitude = Float(0)
+    longitude = Float(0)
+
+    # latitude, longitude for current cursor
+    easting = Float(0)
+    northing = Float(0)
+
+    # depth of current mouse position
+    depth = Float(0)
+
+    traits_view = View(
+        Item('latitude'),
+        Item('longitude'),
+        Item('_'),
+        Item('easting'),
+        Item('northing'),
+        Item('_'),
+        Item('depth'),
+        resizable=True
+        )
 
 class BigView(HasTraits):
     ''' Used to demo layout '''

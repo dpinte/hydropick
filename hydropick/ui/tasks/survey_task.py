@@ -128,6 +128,13 @@ class SurveyTask(Task):
                                accelerator='Ctrl+Left'),
                     id='LineGroup', name='Line Group',
                 ),
+                SGroup(
+                    CentralPaneAction(name='Location Data',
+                               method='on_show_location_data',
+                               enabled_name='show_view',
+                               accelerator='Ctrl+Shift+D'),
+                    id='DataGroup', name='Data Group',
+                ),
                 DockPaneToggleGroup(),
                 id='View', name="&View",
             ),
