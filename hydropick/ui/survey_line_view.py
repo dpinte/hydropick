@@ -269,7 +269,6 @@ class SurveyLineView(ModelView):
     #==========================================================================
 
     def image_adjustment_dialog(self):
-        print 'show data'
         self.image_adjust_view.configure_traits()
 
     def show_data_dialog(self):

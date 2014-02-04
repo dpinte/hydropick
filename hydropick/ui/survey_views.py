@@ -29,9 +29,10 @@ from traitsui.api import View, Item, EnumEditor, UItem, InstanceEditor,\
                          CheckListEditor, HSplit, RangeEditor, Label, HGroup
 from chaco.api import Plot, ArrayPlotData, LinePlot, VPlotContainer,\
                       CMapImagePlot, ScatterPlot, ColorBar, LinearMapper,\
-                      HPlotContainer
-from chaco.tools.api import PanTool, ZoomTool, RangeSelection,\
-                            RangeSelectionOverlay
+                      HPlotContainer, Legend
+from chaco.tools.api import (PanTool, ZoomTool, RangeSelection,
+                            RangeSelectionOverlay, LegendHighlighter,
+                            LegendTool)
 
 
 class InstanceUItem(UItem):
@@ -92,6 +93,14 @@ class PlotContainer(HasTraits):
                                             tool_mode='range',
                                             axis='value')
                                    )
+
+        main = self.mainplot
+        legend = Legend(component=main, padding=10, align="ur")
+        legend.tools.append(LegendHighlighter(legend, drag_button="right"))
+        legend.plots = dict([(k,v) for k,v in main.plots.items() if isinstance(v[0],LinePlot)])
+        print 'legend plots', legend.plots
+        main.overlays.append(legend)
+
         has_img = False
         if 'image plot' in self.mainplot.plots:
             has_img = True
