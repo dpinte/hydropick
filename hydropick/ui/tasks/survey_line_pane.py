@@ -44,6 +44,10 @@ class SurveyLinePane(TraitsTaskPane):
     # set when survey_line is none to prevent showing invalid view.
     show_view = Bool(False)
 
+    def on_image_adjustment(self):
+        ''' Open dialog to create new depth line'''
+        self.survey_line_view.image_adjustment_dialog()
+
     def on_show_location_data(self):
         ''' Open dialog to create new depth line'''
         self.survey_line_view.show_data_dialog()

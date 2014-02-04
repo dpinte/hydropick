@@ -12,14 +12,15 @@ import numpy as np
 # ETS imports
 from traits.api import (Instance, Str, Dict, List, Int, Property,
                         on_trait_change, Button)
-from traitsui.api import ModelView, View, HSplit, Group, Item, EnumEditor
+from traitsui.api import ModelView, View, HSplit, Group, Item, EnumEditor, VGroup
 from chaco.api import Plot, ArrayPlotData, PlotComponent, Greys
 from enthought.traits.ui.menu import ApplyButton
 
 # Local imports
 from .survey_data_session import SurveyDataSession
 from .survey_tools import TraceTool, LocationTool
-from .survey_views import ControlView, InstanceUItem, PlotContainer, DataView
+from .survey_views import (ControlView, InstanceUItem, PlotContainer, DataView,
+                           ImageAdjustView)
 
 
 class SurveyLineView(ModelView):
@@ -45,6 +46,9 @@ class SurveyLineView(ModelView):
 
     # Defines view for pop up location data window
     data_view = Instance(DataView)
+
+    # Defines view for pop up location data window
+    image_adjust_view = Instance(ImageAdjustView)
 
     # Dictionary of plots kept for legend and for tools.
     # Will contain all depth lines at least.  This contains components as
@@ -91,9 +95,9 @@ class SurveyLineView(ModelView):
     #==========================================================================
 
     traits_view = View(
-        HSplit(
+        VGroup(
+            InstanceUItem('control_view'),
             InstanceUItem('plot_container'),
-            InstanceUItem('control_view', width=150),
         ),
         resizable=True,
     )
@@ -144,7 +148,6 @@ class SurveyLineView(ModelView):
         cv.on_trait_change(self.select_line, name='visible_lines')
         cv.on_trait_change(self.change_target, name='line_to_edit')
         cv.on_trait_change(self.change_image, name='image_freq')
-        cv.on_trait_change(self.adjust_image, name='contrast_brightness')
         return cv
 
     def _plotdata_default(self):
@@ -163,6 +166,12 @@ class SurveyLineView(ModelView):
 
     def _data_view_default(self):
         return DataView()
+
+    def _image_adjust_view_default(self):
+        imv = ImageAdjustView()
+        imv.on_trait_change(self.adjust_image, name='contrast_brightness')
+        return imv
+
     #==========================================================================
     # Helper functions
     #==========================================================================
@@ -259,8 +268,11 @@ class SurveyLineView(ModelView):
     # Notifications or Callbacks
     #==========================================================================
 
-    def show_data_dialog(self):
+    def image_adjustment_dialog(self):
         print 'show data'
+        self.image_adjust_view.configure_traits()
+
+    def show_data_dialog(self):
         self.data_view.configure_traits()
 
     def new_algorithm_line_dialog(self):
@@ -321,11 +333,11 @@ class SurveyLineView(ModelView):
     def change_image(self, object, name, old, new):
         ''' Called by changing selected freq.
         Loads new image and recalls saved B&C '''
-        cv = self.control_view
+        iav = self.image_adjust_view
         if old:
-            self.image_settings[old] = [cv.contrast, cv.brightness]
+            self.image_settings[old] = [iav.contrast, iav.brightness]
         self.model.selected_freq = new
-        cv.contrast, cv.brightness = self.image_settings.get(new,[1,0])
+        iav.contrast, iav.brightness = self.image_settings.get(new,[1,0])
         if old in self.plot_dict:
             self.update_main_mini_image([new], remove=old)
         else:

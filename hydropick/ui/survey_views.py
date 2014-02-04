@@ -26,7 +26,7 @@ from enable.api import ComponentEditor
 from traits.api import (Instance, Str, List, HasTraits, File, Float, Property,
                         Button)
 from traitsui.api import View, Item, EnumEditor, UItem, InstanceEditor,\
-                         CheckListEditor, HSplit, RangeEditor, Label
+                         CheckListEditor, HSplit, RangeEditor, Label, HGroup
 from chaco.api import Plot, ArrayPlotData, LinePlot, VPlotContainer,\
                       CMapImagePlot, ScatterPlot, ColorBar, LinearMapper,\
                       HPlotContainer
@@ -216,24 +216,30 @@ class ControlView(HasTraits):
     # selected freq for which image to view
     image_freq = Str
 
+    traits_view = View(
+        HGroup(
+            Item('image_freq', editor=EnumEditor(name='freq_choices')),
+            Item('line_to_edit',
+             editor=EnumEditor(name='target_choices'),
+             tooltip='Edit red line with right mouse button'
+                ),
+            # Item('visible_lines',
+            #  editor=CheckListEditor(name='target_choices'),
+            #  style='custom'),
+            ),
+        resizable=True
+        )
+
+    def _get_contrast_brightness(self):
+        return (self.contrast, self.brightness)
+
+class ImageAdjustView(HasTraits):
     # brightness contrast controls
     brightness = Float(0)
     contrast = Float(1)
     contrast_brightness = Property(depends_on=['brightness', 'contrast'])
 
-    # button to bring up an add_plot dialog
-    add_plot_button = Button('Add Plot')
-
     traits_view = View(
-        Item('image_freq', editor=EnumEditor(name='freq_choices')),
-        Item('line_to_edit',
-             editor=EnumEditor(name='target_choices'),
-             tooltip='Edit red line with right mouse button'
-             ),
-        Item('visible_lines',
-             editor=CheckListEditor(name='target_choices'),
-             style='custom'),
-        Item('_'),
         Label('Brightness and Contrast'),
         Item('brightness', editor=RangeEditor(low=0.0, high=1.0), label='B'),
         Item('contrast', editor=RangeEditor(low=0.0, high=10.0), label='C'),
@@ -242,19 +248,6 @@ class ControlView(HasTraits):
 
     def _get_contrast_brightness(self):
         return (self.contrast, self.brightness)
-
-class ImageAdjust(HasTraits):
-    # brightness contrast controls
-    brightness = Float(0)
-    contrast = Float(1)
-    contrast_brightness = Property(depends_on=['brightness', 'contrast'])
-
-    traits_view = View(
-        Label('Brightness and Contrast'),
-        Item('brightness', editor=RangeEditor(low=0.0, high=1.0), label='B'),
-        Item('contrast', editor=RangeEditor(low=0.0, high=10.0), label='C'),
-        resizable=True
-        )
 
 class DataView(HasTraits):
     ''' Show location data as cursor moves about'''
