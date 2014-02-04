@@ -213,17 +213,6 @@ class ControlView(HasTraits):
     # frequency choices for images
     freq_choices = List()
 
-    # latitude, longitude for current cursor
-    latitude = Float(0)
-    longitude = Float(0)
-
-    # latitude, longitude for current cursor
-    easting = Float(0)
-    northing = Float(0)
-
-    # depth of current mouse position
-    depth = Float(0)
-
     # selected freq for which image to view
     image_freq = Str
 
@@ -253,6 +242,19 @@ class ControlView(HasTraits):
 
     def _get_contrast_brightness(self):
         return (self.contrast, self.brightness)
+
+class ImageAdjust(HasTraits):
+    # brightness contrast controls
+    brightness = Float(0)
+    contrast = Float(1)
+    contrast_brightness = Property(depends_on=['brightness', 'contrast'])
+
+    traits_view = View(
+        Label('Brightness and Contrast'),
+        Item('brightness', editor=RangeEditor(low=0.0, high=1.0), label='B'),
+        Item('contrast', editor=RangeEditor(low=0.0, high=10.0), label='C'),
+        resizable=True
+        )
 
 class DataView(HasTraits):
     ''' Show location data as cursor moves about'''
