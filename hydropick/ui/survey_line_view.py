@@ -47,8 +47,11 @@ class SurveyLineView(ModelView):
     # Defines view for pop up location data window
     data_view = Instance(DataView)
 
-    # Defines view for pop up location data window
+    # Defines view for pop up image adjustments window
     image_adjust_view = Instance(ImageAdjustView)
+
+    # defines popup window for new depth line creation
+    add_depth_line_view = Instance(AddDepthLineView)
 
     # Dictionary of plots kept for legend and for tools.
     # Will contain all depth lines at least.  This contains components as
@@ -87,8 +90,8 @@ class SurveyLineView(ModelView):
     # name to give to resulting depth line
     new_line_name = Str
 
-    # used in new depth line dialog box to apply choices to make a new line
-    apply_button = Button('Apply')
+    # # used in new depth line dialog box to apply choices to make a new line
+    # apply_button = Button('Apply')
 
     #==========================================================================
     # Define Views
@@ -102,13 +105,13 @@ class SurveyLineView(ModelView):
         resizable=True,
     )
 
-    add_line_view = View(
-        Group(Item('algorithm_name', editor=EnumEditor(name='algorithm_list')),
-              Item('new_line_name'),
-              'apply_button',
-        ),
-        buttons =['OK', 'Cancel']
-    )
+    # add_line_view = View(
+    #     Group(Item('algorithm_name', editor=EnumEditor(name='algorithm_list')),
+    #           Item('new_line_name'),
+    #           'apply_button',
+    #     ),
+    #     buttons =['OK', 'Cancel']
+    # )
 
     #==========================================================================
     # Defaults

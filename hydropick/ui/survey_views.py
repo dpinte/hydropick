@@ -34,6 +34,9 @@ from chaco.tools.api import (PanTool, ZoomTool, RangeSelection,
                             RangeSelectionOverlay, LegendHighlighter,
                             LegendTool)
 
+# Local imports
+from ..model.depth_line import DepthLine
+
 
 class InstanceUItem(UItem):
     '''Convenience class for inluding instance in view as Item'''
@@ -206,6 +209,23 @@ class PlotContainer(HasTraits):
         else:
             self.mainplot.index_range.set_bounds("auto", "auto")
 
+class AddDepthLineView(HasTraits):
+    ''' Defines popup window for adding new depthline'''
+
+    # depth line instance to be edited or displays
+    depth_line = Instance(DepthLine)
+
+    # used in new depth line dialog box to apply choices to make a new line
+    apply_button = Button('Apply')
+    
+    traits_view = View(
+        Group(Item('depth_line'),
+              'apply_button',
+        ),
+        buttons =['OK', 'Cancel']
+    )
+
+
 
 class ControlView(HasTraits):
     ''' Define controls and info subview with size control'''
@@ -215,9 +235,6 @@ class ControlView(HasTraits):
 
     # chosen key for depth line to edit
     line_to_edit = Str
-
-    # list of chosen lines to view in plots
-    visible_lines = List([])
 
     # frequency choices for images
     freq_choices = List()
@@ -232,9 +249,6 @@ class ControlView(HasTraits):
              editor=EnumEditor(name='target_choices'),
              tooltip='Edit red line with right mouse button'
                 ),
-            # Item('visible_lines',
-            #  editor=CheckListEditor(name='target_choices'),
-            #  style='custom'),
             ),
         resizable=True
         )

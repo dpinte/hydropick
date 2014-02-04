@@ -49,7 +49,6 @@ class TestAlgorithms(unittest.TestCase):
         try:
             class_list = self.get_classes()
             for cls in class_list:
-                print cls
                 line = cls().process_line(self.survey_line)
                 array = np.asarray(line)
                 self.assertIsInstance(array, np.ndarray,
