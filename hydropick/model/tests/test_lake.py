@@ -10,7 +10,11 @@ import unittest
 
 from shapely.geometry.base import BaseGeometry
 
+from traits import has_traits
+
 from hydropick.model.lake import Lake
+
+has_traits.CHECK_INTERFACES = 2
 
 
 class TestLake(unittest.TestCase):
@@ -25,3 +29,6 @@ class TestLake(unittest.TestCase):
         lake = Lake(name=name, shoreline_file=filename)
         self.assertIsInstance(lake.shoreline, BaseGeometry)
         self.assertEqual(lake.elevation, 504.0)
+
+if __name__ == "__main__":
+    unittest.main()
