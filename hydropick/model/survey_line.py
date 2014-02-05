@@ -20,7 +20,7 @@ from sdi import binary
 from .i_core_sample import ICoreSample
 from .i_survey_line import ISurveyLine
 from .i_depth_line import IDepthLine
-from depth_line import DepthLine
+from .depth_line import DepthLine
 
 
 @provides(ISurveyLine)
@@ -49,6 +49,7 @@ class SurveyLine(HasTraits):
     trace_num = Array
 
     #: array of trace numbers corresponding to each intensity pixel columns
+    #: ! NOTE ! starts at 1, not 0, so need to subtract 1 to use as index
     freq_trace_num = Dict
 
     #: relevant core samples
@@ -127,7 +128,7 @@ class SurveyLine(HasTraits):
                                line_type='current surface',
                                source='sdi_file',
                                source_name=filename,
-                               index_array=self.trace_num,
+                               index_array=self.trace_num - 1,
                                depth_array=sdi_depth_line_data,
                                color='blue')
         self.lake_depths[depth_line.name] = depth_line

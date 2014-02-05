@@ -7,10 +7,10 @@
 
 from __future__ import absolute_import
 
-from traits.api import (Interface, Str, Enum, Array, Bool, Color, Dict,
+from traits.api import (Str, Enum, Array, Bool, Color, Dict,
                         provides, HasTraits)
 
-from i_depth_line import IDepthLine
+from .i_depth_line import IDepthLine
 
 
 @provides(IDepthLine)
@@ -40,7 +40,7 @@ class DepthLine(HasTraits):
     #: arguments for the source: typically arguments to be sent to an algorithm
     args = Dict
 
-    #: array of indices (trace_num's) on which the line is defined
+    #: array of indices (trace_num - 1) on which the line is defined
     index_array = Array
 
     # array of depth values for each index
@@ -61,5 +61,5 @@ class DepthLine(HasTraits):
         takes an array of distance values and pulls out those corresponding to
         this lines index array
         '''
-        xs = distance_array(self.index_array)
+        xs = distance_array[self.index_array]
         return xs
