@@ -9,6 +9,6 @@ __requires__ = [
     "fiona>=1.0.2",
     "scimath>=4.1.2",
     "shapely>=1.2.17",
-    "tables>=2.4.0",
+    "tables>=3.0.0",
     "sdi",
 ]
