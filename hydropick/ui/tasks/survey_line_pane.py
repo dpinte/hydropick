@@ -7,10 +7,11 @@
 
 from __future__ import absolute_import
 
-from traits.api import Instance, Property, Bool, Dict, Str, DelegatesTo
+from traits.api import Instance, Property, Bool, Dict, Str, Supports, DelegatesTo
 from traitsui.api import View, Item
 from pyface.tasks.api import TraitsTaskPane
 
+from ...model.i_survey import ISurvey
 from ...model.i_survey_line import ISurveyLine
 from ..survey_data_session import SurveyDataSession
 from ..survey_line_view import SurveyLineView
@@ -20,6 +21,8 @@ class SurveyLinePane(TraitsTaskPane):
 
     id = 'hydropick.survey_line'
     name = "Survey Line"
+
+    survey = Supports(ISurvey)
 
     survey_line = Instance(ISurveyLine)
 
@@ -47,7 +50,7 @@ class SurveyLinePane(TraitsTaskPane):
     def on_new_depth_line(self):
         ''' Open dialog to create new depth line'''
         self.survey_line_view.new_algorithm_line_dialog()
-        
+
     def _survey_line_changed(self):
         ''' handle loading of survey line view if valid line provide or else
         provide an empty view.
@@ -59,7 +62,7 @@ class SurveyLinePane(TraitsTaskPane):
             data_session = self.data_session_dict.get(self.line_name, None)
             if data_session is None:
                 # create new datasession object and entry for this surveyline.
-                self.survey_line.load_data()
+                self.survey_line.load_data(self.survey.hdf5_file)
                 data_session = SurveyDataSession(survey_line=self.survey_line)
                 self.data_session_dict[self.line_name]=data_session
 

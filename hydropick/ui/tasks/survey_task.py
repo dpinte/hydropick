@@ -187,7 +187,7 @@ class SurveyTask(Task):
         """ Create the central pane: the editor pane.
         """
         from .survey_line_pane import SurveyLinePane
-        pane = SurveyLinePane()
+        pane = SurveyLinePane(survey=self.survey)
         # listen for changes to the current survey line
         self.on_trait_change(lambda new: setattr(pane, 'survey_line', new),
                             'current_survey_line')
