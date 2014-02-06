@@ -9,6 +9,7 @@ from __future__ import absolute_import
 
 from traits.api import Interface, Str
 
+
 class IAlgorithm(Interface):
     """ An algorithm for detecting features of a survey line
 

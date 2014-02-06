@@ -21,6 +21,8 @@ class SurveyLinePane(TraitsTaskPane):
     id = 'hydropick.survey_line'
     name = "Survey Line"
 
+    # current survey line viewed in editing pane.
+    # listener is set up in 'task.create_central_pane' to change line.
     survey_line = Instance(ISurveyLine)
 
     # provides string with name of line for keys or info.
@@ -45,15 +47,15 @@ class SurveyLinePane(TraitsTaskPane):
     show_view = Bool(False)
 
     def on_image_adjustment(self):
-        ''' Open dialog to create new depth line'''
+        ''' Open dialog to adjust image (B&C : task menu)'''
         self.survey_line_view.image_adjustment_dialog()
 
     def on_show_location_data(self):
-        ''' Open dialog to create new depth line'''
+        ''' Open dialog to show location data (task menu)'''
         self.survey_line_view.show_data_dialog()
 
     def on_new_depth_line(self):
-        ''' Open dialog to create new depth line'''
+        ''' Open dialog to create new depth line (task menu)'''
         self.survey_line_view.new_algorithm_line_dialog()
 
     def _survey_line_changed(self):

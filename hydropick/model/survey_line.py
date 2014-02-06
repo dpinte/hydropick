@@ -106,8 +106,6 @@ class SurveyLine(HasTraits):
             intensity = freq_dict['intensity'].T
             self.frequencies[str(key)] = intensity
             self.freq_trace_num[str(key)] = freq_dict['trace_num']
-            lake_key = 'Lakedepth_{:.1f}'.format(key)
-            self.lake_depths[lake_key] = freq_dict['depth_r1']
 
         # for all other traits, use un-freq-sorted values
         self.trace_num = sdi_dict_raw['trace_num']

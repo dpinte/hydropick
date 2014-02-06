@@ -40,28 +40,41 @@ class TraceTool(BaseTool):
     """
 
     event_state = Enum('normal', 'edit')
+
+    # determines whether tool is allowed in edit state when mouse pressed
+    edit_allowed = Bool(False)
+
     # these record last mouse position so that new position can be checked for
     # missing points -- i.e. delta_index should be 1
     last_index = Int(np.nan)
     last_y = Float(np.nan)
 
     depth = Float
+
     # when set, subsequent points will be processed for data updating.
+    # when off last_y/index points will be reset to current position when
+    # editing starts.  this could possibly be done with mouse down instead.
     mouse_down = Bool(False)
 
     target_line = Instance(LinePlot)
 
     def normal_right_down(self, event):
-        self.event_state = 'edit'
+        ''' start editing '''
+        if self.edit_allowed:
+            self.event_state = 'edit'
+        else:
+            self.event_state = 'normal'
 
     def edit_right_up(self, event):
+        ''' finish editing'''
         self.event_state = 'normal'
         self.mouse_down = False
 
-    def edit_key_pressed(self, event):
-        # saw this in an example but it doesn't seem to do anything.
-        if event.character == "Esc":
-            self._reset()
+
+    # def edit_key_pressed(self, event):
+    #     ''' reset '''
+    #     if event.character == "Esc":
+    #         self._reset()
 
     def fill_in_missing_pts(self, current_index, newy, ydata):
         """ Fill in missing points if mouse goes to fast to capture all
@@ -96,7 +109,7 @@ class TraceTool(BaseTool):
         connects only the initial and final point.
         '''
 
-        if isinstance(self.target_line, LinePlot):
+        if isinstance(self.target_line, LinePlot) and self.edit_allowed:
             newx, newy = self.component.map_data((event.x, event.y))
             target = self.target_line
             xdata = target.index.get_data()
@@ -117,5 +130,3 @@ class TraceTool(BaseTool):
                 self.mouse_down = True
                 self.last_index = current_index
                 self.last_y = newy
-
-                

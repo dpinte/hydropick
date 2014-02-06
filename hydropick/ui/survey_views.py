@@ -24,15 +24,14 @@ import numpy as np
 # ETS imports
 from enable.api import ComponentEditor
 from traits.api import (Instance, Str, List, HasTraits, File, Float, Property,
-                        Button)
-from traitsui.api import View, Item, EnumEditor, UItem, InstanceEditor,\
-                         CheckListEditor, HSplit, RangeEditor, Label, HGroup
-from chaco.api import Plot, ArrayPlotData, LinePlot, VPlotContainer,\
-                      CMapImagePlot, ScatterPlot, ColorBar, LinearMapper,\
-                      HPlotContainer, Legend
+                        Button, Enum, Bool)
+from traitsui.api import (View, Group, Item, EnumEditor, UItem, InstanceEditor,
+                          HSplit, RangeEditor, Label, HGroup)
+from chaco.api import (Plot, ArrayPlotData, LinePlot, VPlotContainer,
+                       CMapImagePlot, ScatterPlot, ColorBar, LinearMapper,
+                       HPlotContainer, Legend)
 from chaco.tools.api import (PanTool, ZoomTool, RangeSelection,
-                            RangeSelectionOverlay, LegendHighlighter,
-                            LegendTool)
+                             RangeSelectionOverlay, LegendHighlighter)
 
 # Local imports
 from ..model.depth_line import DepthLine
@@ -61,10 +60,13 @@ class PlotContainer(HasTraits):
     miniplot = Instance(Plot)
     # Vplotcontainer will have mmainplot on top for working and small miniplot
     # below for reference
-    plotcontainer = Instance(VPlotContainer)
+    plot_container = Instance(VPlotContainer)
+
+    # trait used to signal editor when legend is moved (rt drag) => stop edit.
+    legend_highlighter = Instance(LegendHighlighter)
 
     # View for the plot container
-    traits_view = View(UItem('plotcontainer', editor=ComponentEditor()))
+    traits_view = View(UItem('plot_container', editor=ComponentEditor()))
 
     #==========================================================================
     # Defaults
@@ -88,7 +90,7 @@ class PlotContainer(HasTraits):
     # Add a range overlay to the miniplot that is hooked up to the range
     # of the main plot.
 
-    def _plotcontainer_default(self):
+    def _plot_container_default(self):
         ''' Define plot container tools and look.
         '''
         self.mainplot.tools.append(PanTool(self.mainplot))
@@ -96,12 +98,14 @@ class PlotContainer(HasTraits):
                                             tool_mode='range',
                                             axis='value')
                                    )
-
         main = self.mainplot
+
+        # Make clickable, dragable legend.
         legend = Legend(component=main, padding=10, align="ur")
-        legend.tools.append(LegendHighlighter(legend, drag_button="right"))
-        legend.plots = dict([(k,v) for k,v in main.plots.items() if isinstance(v[0],LinePlot)])
-        print 'legend plots', legend.plots
+        self.legend_highlighter = LegendHighlighter(legend, drag_button="right")
+        legend.tools.append(self.legend_highlighter)
+        legend.plots = dict([(k,v) for k,v in main.plots.items() if
+                             isinstance(v[0],LinePlot)])
         main.overlays.append(legend)
 
         has_img = False
@@ -111,8 +115,7 @@ class PlotContainer(HasTraits):
             self.img_data = imgplot.value
             colormap = imgplot.color_mapper
             lin_mapper = LinearMapper(range=colormap.range)
-            colorbar = ColorBar(
-                                index_mapper=lin_mapper,
+            colorbar = ColorBar(index_mapper=lin_mapper,
                                 color_mapper=colormap,
                                 plot=imgplot,
                                 orientation='v',
@@ -160,18 +163,18 @@ class PlotContainer(HasTraits):
         spacing = 25
         padding = 50
         width, height = (1000, 600)
-        plotcontainer = VPlotContainer(bgcolor="lightgray",
+        plot_container = VPlotContainer(bgcolor="lightgray",
                                        spacing=spacing,
                                        padding=padding,
                                        fill_padding=False,
                                        width=width, height=height,
                                        )
         if has_img:
-            plotcontainer.add(self.miniplot, container)
+            plot_container.add(self.miniplot, container)
         else:
-            plotcontainer.add(self.miniplot, self.mainplot)
+            plot_container.add(self.miniplot, self.mainplot)
 
-        return plotcontainer
+        return plot_container
 
     def a_plot_with_index(self):
         ''' Find first plot in data with an index or create one from img
@@ -209,6 +212,7 @@ class PlotContainer(HasTraits):
         else:
             self.mainplot.index_range.set_bounds("auto", "auto")
 
+
 class AddDepthLineView(HasTraits):
     ''' Defines popup window for adding new depthline'''
 
@@ -217,12 +221,12 @@ class AddDepthLineView(HasTraits):
 
     # used in new depth line dialog box to apply choices to make a new line
     apply_button = Button('Apply')
-    
+
     traits_view = View(
         Group(Item('depth_line'),
               'apply_button',
-        ),
-        buttons =['OK', 'Cancel']
+              ),
+        buttons = ['OK', 'Cancel']
     )
 
 
@@ -242,35 +246,46 @@ class ControlView(HasTraits):
     # selected freq for which image to view
     image_freq = Str
 
+    # used to explicitly get edit mode
+    edit = Enum('Editing', 'Not Editing')     # Button('Not Editing')
+
     traits_view = View(
         HGroup(
             Item('image_freq', editor=EnumEditor(name='freq_choices')),
             Item('line_to_edit',
-             editor=EnumEditor(name='target_choices'),
-             tooltip='Edit red line with right mouse button'
-                ),
+                 editor=EnumEditor(name='target_choices'),
+                 tooltip='Edit red line with right mouse button'
+                 ),
+            Item('edit',
+                 tooltip='Toggle between "not editing" and \
+                          "editing" selected line'
+                 ),
             ),
         resizable=True
         )
 
-    def _get_contrast_brightness(self):
-        return (self.contrast, self.brightness)
+    def _edit_default(self):
+        return 'Not Editing'
+
 
 class ImageAdjustView(HasTraits):
     # brightness contrast controls
     brightness = Float(0)
     contrast = Float(1)
     contrast_brightness = Property(depends_on=['brightness', 'contrast'])
+    invert = Bool
 
     traits_view = View(
         Label('Brightness and Contrast'),
         Item('brightness', editor=RangeEditor(low=0.0, high=1.0), label='B'),
-        Item('contrast', editor=RangeEditor(low=0.0, high=10.0), label='C'),
+        Item('contrast', editor=RangeEditor(low=1.0, high=20.0), label='C'),
+        Item('invert'),
         resizable=True
         )
 
     def _get_contrast_brightness(self):
         return (self.contrast, self.brightness)
+
 
 class DataView(HasTraits):
     ''' Show location data as cursor moves about'''
@@ -296,6 +311,7 @@ class DataView(HasTraits):
         Item('depth'),
         resizable=True
         )
+
 
 class BigView(HasTraits):
     ''' Used to demo layout '''

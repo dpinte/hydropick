@@ -17,10 +17,11 @@ from chaco.api import Plot, ArrayPlotData, PlotComponent, Greys
 from enthought.traits.ui.menu import ApplyButton
 
 # Local imports
+from ..model.depth_line import DepthLine
 from .survey_data_session import SurveyDataSession
 from .survey_tools import TraceTool, LocationTool
 from .survey_views import (ControlView, InstanceUItem, PlotContainer, DataView,
-                           ImageAdjustView)
+                           ImageAdjustView, AddDepthLineView)
 
 
 class SurveyLineView(ModelView):
@@ -90,9 +91,6 @@ class SurveyLineView(ModelView):
     # name to give to resulting depth line
     new_line_name = Str
 
-    # # used in new depth line dialog box to apply choices to make a new line
-    # apply_button = Button('Apply')
-
     #==========================================================================
     # Define Views
     #==========================================================================
@@ -104,14 +102,6 @@ class SurveyLineView(ModelView):
         ),
         resizable=True,
     )
-
-    # add_line_view = View(
-    #     Group(Item('algorithm_name', editor=EnumEditor(name='algorithm_list')),
-    #           Item('new_line_name'),
-    #           'apply_button',
-    #     ),
-    #     buttons =['OK', 'Cancel']
-    # )
 
     #==========================================================================
     # Defaults
@@ -130,6 +120,14 @@ class SurveyLineView(ModelView):
             self.add_lines(**self.model.depth_dict)
         if self.model.frequencies:
             self.add_images(**self.model.frequencies)
+
+        container.on_trait_change(self.legend_capture,
+                                   name='legend_highlighter._drag_state')
+        
+        # need to change selected freq to
+        minf, maxf = self.model.get_low_high_freq()
+        self.model.selected_freq = minf
+        self.model.selected_freq = maxf
         return container
 
     def _control_view_default(self):
@@ -151,7 +149,23 @@ class SurveyLineView(ModelView):
         cv.on_trait_change(self.select_line, name='visible_lines')
         cv.on_trait_change(self.change_target, name='line_to_edit')
         cv.on_trait_change(self.change_image, name='image_freq')
+        cv.on_trait_change(self.toggle_edit, name='edit')
+
+        # need to change selected freq to
+        minf, maxf = self.model.get_low_high_freq()
+        self.model.selected_freq = minf
+        self.model.selected_freq = maxf
         return cv
+
+    def _add_depth_line_view_default(self):
+        return AddDepthLineView(depth_line=DepthLine())
+
+    def toggle_edit(self):
+        ''' enables editing tool based on ui edit selector'''
+        if self.control_view.edit == 'Editing':
+            self.trace_tool.edit_allowed = True
+        else:
+            self.trace_tool.edit_allowed = False
 
     def _plotdata_default(self):
         ''' Provides initial plotdata object'''
@@ -173,6 +187,7 @@ class SurveyLineView(ModelView):
     def _image_adjust_view_default(self):
         imv = ImageAdjustView()
         imv.on_trait_change(self.adjust_image, name='contrast_brightness')
+        imv.on_trait_event(self.adjust_image, name='invert')
         return imv
 
     #==========================================================================
@@ -189,8 +204,10 @@ class SurveyLineView(ModelView):
         self.plotdata then self.depth_dict,
         adds them to mainplot and miniplot,
         adds the comonents to self.plot_dict'''
-        self.plotdata.update_data(kw)
-        self.model.preimpoundment_depths.update(kw)
+
+        line_dict = dict([(k, v.depth_array) for k, v in kw.items()])
+        self.plotdata.update_data(line_dict)
+        #        self.model.preimpoundment_depths.update(kw)
         self.update_main_mini_lines(kw.keys())
         self.update_control_view()
 
@@ -271,6 +288,10 @@ class SurveyLineView(ModelView):
     # Notifications or Callbacks
     #==========================================================================
 
+    def legend_capture(self,obj, name, old, new):
+        ''' stop editing depth line when moving legend (rt mouse button)'''
+        self.control_view.edit = 'Not Editing'
+
     def image_adjustment_dialog(self):
         self.image_adjust_view.configure_traits()
 
@@ -279,14 +300,14 @@ class SurveyLineView(ModelView):
 
     def new_algorithm_line_dialog(self):
         ''' called from UI button to bring up add line dialog'''
-        self.configure_traits(view='add_line_view')
+        self.add_depth_line_view.configure_traits()
 
     @on_trait_change('apply_button')
     def add_algorithm_line(self):
         ''' result of applying selected algorithm.  Makes new depth line'''
         algorithm = self.algorithms[self.algorithm_name]() # add args?
         new_line_data = algorithm.process_line(self.model.survey_line)
-        new_line_dict = {str(self.new_line_name) : new_line_data}
+        new_line_dict = {str(self.new_line_name): new_line_data}
         self.add_lines(**new_line_dict)
 
     def update_locations(self, image_index):
@@ -300,18 +321,22 @@ class SurveyLineView(ModelView):
         dv.easting = east
         dv.northing = north
 
-    def adjust_image(self, new_contrast_brightness):
+    def adjust_image(self, obj, name, old, new):
         ''' Given a tuple (contrast, brightness) with values
         from 0 to 10, -1 to 1'''
-        c, b = new_contrast_brightness
-        n = 2**16 - 1
         data = self.model.frequencies[self.model.selected_freq]
-        data = c * data
-        mn, mx = data.min(), data.max()
-        offset = b * (2 - mx + mn - n) + n - mn - 1
-        data = data + offset
+        if name == 'invert':
+            data = 1-data
+        elif name == 'contrast_brightness':
+            c, b = new
+            data = c * data
+            b2 = c * b - b
+            b3 = b2 + 1
+            data = np.clip(data, b2, b3)
+            if getattr(obj, 'invert'):
+                data = 1-data
         self.plotdata.set_data(self.model.selected_freq,
-                               np.clip(data, 0, n))
+                               data)
 
     def update_depth(self, depth):
         ''' Called by trace tool to update depth readout display'''
@@ -332,14 +357,17 @@ class SurveyLineView(ModelView):
         self.mainplot.invalidate_and_redraw()
         self.trace_tool.target_line = new_target_line
 
-    def change_image(self, object, name, old, new):
+    def change_image(self, old, new):
         ''' Called by changing selected freq.
         Loads new image and recalls saved B&C '''
         iav = self.image_adjust_view
         if old:
-            self.image_settings[old] = [iav.contrast, iav.brightness]
+            self.image_settings[old] = [iav.contrast,
+                                        iav.brightness,
+                                        iav.invert]
         self.model.selected_freq = new
-        iav.contrast, iav.brightness = self.image_settings.get(new,[1,0])
+        c, b, i = self.image_settings.get(new, [1, 0, True])
+        iav.contrast, iav.brightness, iav.invert = c, b, i
         if old in self.plot_dict:
             self.update_main_mini_image([new], remove=old)
         else:
