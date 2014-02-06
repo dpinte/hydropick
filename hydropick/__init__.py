@@ -4,6 +4,7 @@ __requires__ = [
     "apptools>=4.2.0",
     "numpy>=1.6",
     "traits>=4.4",
+    "ets>=4.4",
     "enable>4.2",
     "chaco>=4.4",
     "fiona>=1.0.2",
