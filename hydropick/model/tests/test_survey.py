@@ -7,12 +7,14 @@
 
 import os
 import unittest
-from shapely.geometry import LineString
+import shutil
+import tempfile
 
+from shapely.geometry import LineString
 from traits import has_traits
 
 from hydropick.model.survey import Survey
-from hydropick.io.survey_io import read_survey_line_from_file
+from hydropick.io import survey_io
 
 has_traits.CHECK_INTERFACES = 2
 
@@ -24,17 +26,23 @@ class TestSurvey(unittest.TestCase):
         self.line_name = '12041701'
         here = os.path.dirname(__file__)
         top = os.path.dirname(os.path.dirname(here))
-        self.binaryfile = os.path.join(top, 'io', 'tests', 'files', 
+        self.binaryfile = os.path.join(top, 'io', 'tests', 'files',
                                        '{}.bin'.format(self.line_name))
+        self.tempdir = tempfile.mkdtemp()
+        self.h5file = os.path.join(self.tempdir, 'test.h5')
+
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
 
     def test_empty_survey(self):
         Survey(name='Empty Survey')
 
-    def test_read_from_file(self):
-        line = read_survey_line_from_file(self.binaryfile, self.line_name)
+    def test_read_from_hdf(self):
+        survey_io.import_survey_line_from_file(self.binaryfile, self.h5file, self.line_name)
+        line = survey_io.read_survey_line_from_hdf(self.h5file, self.line_name)
         self.assertEqual(line.name, self.line_name)
         self.assertIsInstance(line.navigation_line, LineString)
-        line.load_data()
+        line.load_data(self.h5file)
         self.assertEqual(line.frequencies.keys(), ['24.0385', '208.333', '50.0'])
         # TODO: more tests here
 
