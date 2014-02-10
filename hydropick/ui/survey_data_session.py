@@ -14,9 +14,8 @@ from copy import deepcopy
 import numpy as np
 
 # ETS imports
-from traits.api import Instance, HasTraits, Array, Property, Float,\
-                       List, Str, Bool,Tuple, Dict,\
-                       DelegatesTo, Event
+from traits.api import (Instance, HasTraits, Array, Property, Float, List,
+                        Str, Tuple, Dict, DelegatesTo, Event)
 
 # Local imports
 from ..model.survey_line import SurveyLine
@@ -37,13 +36,12 @@ class SurveyDataSession(HasTraits):
     locations = DelegatesTo('survey_line', 'locations')
 
     # lat/long for each pixel in line data arrays
-    lat_long =  DelegatesTo('survey_line', 'lat_long')
-         ##Property(depends_on=['survey_line', 'lat_long'])
+    lat_long = DelegatesTo('survey_line', 'lat_long')
 
     #: a dictionary mapping frequencies to intensity arrays
     # NOTE:  assume arrays are transposed so that img_plot(array)
     # displays them correctly and array.shape gives (xsize,ysize)
-    frequencies = Property(Dict, depends_on='survey_line')
+    frequencies = Property(Dict)
 
     # dict of array of trace numbers for each freq => pixel location
     freq_trace_num = DelegatesTo('survey_line', 'freq_trace_num')
@@ -64,11 +62,7 @@ class SurveyDataSession(HasTraits):
     preimpoundment_depths_updated = Event
 
     #: Dictionary of all depth lines. Allows editor easy access to all lines.
-    depth_dict = Property(Dict,
-                          depends_on=['lake_depths', 'preimpoundment_depths',
-                                      'lake_depths.items',
-                                      'preimpoundment_depths.items']
-                          )
+    depth_dict = Property(Dict)
 
     # array of approximate distance values for each index in trace_num
     distance_array = Property(depends_on=['survey_line.trace_num',
@@ -81,16 +75,14 @@ class SurveyDataSession(HasTraits):
     selected_target = Str
 
     # Keys of frequencies dictionary.
-    freq_choices = Property(List, depends_on='frequencies')
+    freq_choices = Property(List)
 
     # Selected freq key from frequencies dict for displaying image.
     selected_freq = Str
 
     # Y bounds should be set based on depth per pixel value of image data.
     # Y axis of depth lines should be set to match this value.
-    ybounds = Property(Tuple, depends_on=['pixel_depth_offset',
-                                          'pixel_depth_scale',
-                                          'frequencies'])
+    ybounds = Property(Tuple)
 
     pixel_depth_offset = DelegatesTo('survey_line', 'draft')
     pixel_depth_scale = DelegatesTo('survey_line', 'pixel_resolution')
@@ -101,11 +93,10 @@ class SurveyDataSession(HasTraits):
     x_array = Property(Array)
 
     # xbounds used for image display (arguably could be in view class)
-    xbounds = Property(Tuple, depends_on=['frequencies', 'frequencies.items'])
+    xbounds = Property(Tuple)
 
     # cumulative distance along path based on locations array.
-    cumulative_distance = Property(depends_on=['locations',
-                                               'survey_line.trace_num'])
+    cumulative_distance = Property()
 
     ymax = Float(0)
     #==========================================================================
@@ -136,7 +127,6 @@ class SurveyDataSession(HasTraits):
         minf, maxf = fsorted[0], fsorted[-1]
         return minf, maxf
 
-
     def _get_freq_choices(self):
         ''' Get list of available frequencies as (value,string) pair from
         frequencies dict for use in selector widget.
@@ -165,13 +155,10 @@ class SurveyDataSession(HasTraits):
 
     def _get_x_array(self):
         ''' Initially set as horizontal pixel number of arbitrary image'''
-        #N = self.frequencies.values()[0].shape[1]
-        # xs =  np.arange(N)
         xarray = self.distance_array
         return xarray
 
     def _get_xbounds(self):
-        #bounds = (self.x_array.min(), self.x_array.max())
         bounds = (self.distance_array.min(), self.distance_array.max())
         return bounds
 

@@ -11,10 +11,9 @@ import numpy as np
 
 # ETS imports
 from traits.api import (Instance, Str, Dict, List, Int, Property,
-                        on_trait_change, Button)
-from traitsui.api import ModelView, View, HSplit, Group, Item, EnumEditor, VGroup
+                        on_trait_change)
+from traitsui.api import ModelView, View, VGroup
 from chaco.api import Plot, ArrayPlotData, PlotComponent, Greys
-from enthought.traits.ui.menu import ApplyButton
 
 # Local imports
 from ..model.depth_line import DepthLine
@@ -122,8 +121,8 @@ class SurveyLineView(ModelView):
             self.add_images(**self.model.frequencies)
 
         container.on_trait_change(self.legend_capture,
-                                   name='legend_highlighter._drag_state')
-        
+                                  name='legend_highlighter._drag_state')
+
         # need to change selected freq to
         minf, maxf = self.model.get_low_high_freq()
         self.model.selected_freq = minf
@@ -247,7 +246,6 @@ class SurveyLineView(ModelView):
             self.plot_dict[key] = newplot[0]
             mini.plot(('x_array', key), color='blue', name=key)
         self.mainplot.invalidate_and_redraw()
-        print 'done'
 
     def update_main_mini_image(self, keylist=[], remove=None):
         ''' Add specified image plots from self.plotdata to both plots.
@@ -305,7 +303,7 @@ class SurveyLineView(ModelView):
     @on_trait_change('apply_button')
     def add_algorithm_line(self):
         ''' result of applying selected algorithm.  Makes new depth line'''
-        algorithm = self.algorithms[self.algorithm_name]() # add args?
+        algorithm = self.algorithms[self.algorithm_name]()     # add args?
         new_line_data = algorithm.process_line(self.model.survey_line)
         new_line_dict = {str(self.new_line_name): new_line_data}
         self.add_lines(**new_line_dict)

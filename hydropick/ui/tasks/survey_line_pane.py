@@ -15,6 +15,7 @@ from ...model.i_survey_line import ISurveyLine
 from ..survey_data_session import SurveyDataSession
 from ..survey_line_view import SurveyLineView
 
+
 class SurveyLinePane(TraitsTaskPane):
     """ The dock pane holding the map view of the survey """
 
@@ -27,6 +28,7 @@ class SurveyLinePane(TraitsTaskPane):
 
     # provides string with name of line for keys or info.
     line_name = Property(depends_on='survey_line.name')
+
     def _get_line_name(self):
         if self.survey_line:
             return self.survey_line.name
@@ -71,13 +73,13 @@ class SurveyLinePane(TraitsTaskPane):
                 # create new datasession object and entry for this surveyline.
                 self.survey_line.load_data()
                 data_session = SurveyDataSession(survey_line=self.survey_line)
-                self.data_session_dict[self.line_name]=data_session
+                self.data_session_dict[self.line_name] = data_session
 
             self.survey_line_view = SurveyLineView(model=data_session,
                                                    algorithms=self.algorithms)
             self.show_view = True
 
     view = View(
-                Item('survey_line_view', style='custom', show_label=False,
-                     visible_when='show_view')
-    )
+        Item('survey_line_view', style='custom', show_label=False,
+             visible_when='show_view')
+        )

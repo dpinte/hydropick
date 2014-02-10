@@ -7,7 +7,8 @@
 
 from __future__ import absolute_import
 
-from traits.api import Interface, Tuple, Str, Enum, Array, Bool, Color, Dict
+from traits.api import Interface, Str, Enum, Array, Bool, Color, Dict
+
 
 class IDepthLine(Interface):
     """ An interface representing a depth line
@@ -44,10 +45,8 @@ class IDepthLine(Interface):
     # indicated line was manually edited.  Source should indicate original line
     edited = Bool
 
-    #: display color for line (should not be same color as selected line to edit)
+    #: display color for line (should not be same color as selected edit line)
     color = Color
 
     #: text field for any notes about this line.
     notes = Str
-
-    

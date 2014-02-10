@@ -23,10 +23,10 @@ import numpy as np
 
 # ETS imports
 from enable.api import ComponentEditor
-from traits.api import (Instance, Str, List, HasTraits, File, Float, Property,
+from traits.api import (Instance, Str, List, HasTraits, Float, Property,
                         Button, Enum, Bool)
 from traitsui.api import (View, Group, Item, EnumEditor, UItem, InstanceEditor,
-                          HSplit, RangeEditor, Label, HGroup)
+                          RangeEditor, Label, HGroup)
 from chaco.api import (Plot, ArrayPlotData, LinePlot, VPlotContainer,
                        CMapImagePlot, ScatterPlot, ColorBar, LinearMapper,
                        HPlotContainer, Legend)
@@ -102,10 +102,11 @@ class PlotContainer(HasTraits):
 
         # Make clickable, dragable legend.
         legend = Legend(component=main, padding=10, align="ur")
-        self.legend_highlighter = LegendHighlighter(legend, drag_button="right")
+        self.legend_highlighter = LegendHighlighter(legend,
+                                                    drag_button="right")
         legend.tools.append(self.legend_highlighter)
-        legend.plots = dict([(k,v) for k,v in main.plots.items() if
-                             isinstance(v[0],LinePlot)])
+        legend.plots = dict([(k, v) for k, v in main.plots.items() if
+                             isinstance(v[0], LinePlot)])
         main.overlays.append(legend)
 
         has_img = False
@@ -164,11 +165,11 @@ class PlotContainer(HasTraits):
         padding = 50
         width, height = (1000, 600)
         plot_container = VPlotContainer(bgcolor="lightgray",
-                                       spacing=spacing,
-                                       padding=padding,
-                                       fill_padding=False,
-                                       width=width, height=height,
-                                       )
+                                        spacing=spacing,
+                                        padding=padding,
+                                        fill_padding=False,
+                                        width=width, height=height,
+                                        )
         if has_img:
             plot_container.add(self.miniplot, container)
         else:
@@ -226,9 +227,8 @@ class AddDepthLineView(HasTraits):
         Group(Item('depth_line'),
               'apply_button',
               ),
-        buttons = ['OK', 'Cancel']
+        buttons=['OK', 'Cancel']
     )
-
 
 
 class ControlView(HasTraits):
@@ -313,47 +313,5 @@ class DataView(HasTraits):
         )
 
 
-class BigView(HasTraits):
-    ''' Used to demo layout '''
-    datafile = File
-    controlview = Instance(ControlView)
-    plotview = Instance(PlotContainer)
-    traits_view = View(
-        HSplit(
-            InstanceUItem('plotview', width=700),
-            InstanceUItem('controlview', width=150),
-            show_border=True
-        ),
-        resizable=True,
-    )
-
-#==========================================================================
-# create individual views to check independently
-#==========================================================================
-
-
-def get_plotview():
-    data = ArrayPlotData(x=np.arange(10), y=np.arange(10)**2)
-    mini = Plot(data)
-    main = Plot(data)
-    mini.plot(('x', 'y'))
-    main.plot(('x', 'y'))
-    view = PlotContainer(miniplot=mini, mainplot=main)
-    return view
-
-
-def get_controlview():
-    view = ControlView(freqs=[], choices=['a', 'b', 'c'])
-    return view
-
-
-def get_bigview():
-    pv = get_plotview()
-    cv = get_controlview()
-    view = BigView(datafile='file', plotview=pv, controlview=cv)
-    return view
-
-
 if __name__ == '__main__':
-    view = get_bigview()
-    view.configure_traits()
+    pass

@@ -70,7 +70,6 @@ class TraceTool(BaseTool):
         self.event_state = 'normal'
         self.mouse_down = False
 
-
     # def edit_key_pressed(self, event):
     #     ''' reset '''
     #     if event.character == "Esc":

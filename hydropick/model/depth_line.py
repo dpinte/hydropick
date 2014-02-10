@@ -63,4 +63,3 @@ class DepthLine(HasTraits):
         '''
         xs = distance_array[self.index_array]
         return xs
-
