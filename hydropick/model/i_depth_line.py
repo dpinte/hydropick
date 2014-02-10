@@ -50,3 +50,6 @@ class IDepthLine(Interface):
 
     #: text field for any notes about this line.
     notes = Str
+
+    # lock prevents depth line from being edited.
+    lock = Bool
