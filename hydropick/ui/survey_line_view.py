@@ -14,7 +14,6 @@ from traits.api import (Instance, Str, Dict, List, Int, Property,
                         on_trait_change, Button)
 from traitsui.api import ModelView, View, HSplit, Group, Item, EnumEditor
 from chaco.api import Plot, ArrayPlotData, PlotComponent, Greys
-from enthought.traits.ui.menu import ApplyButton
 
 # Local imports
 from .survey_data_session import SurveyDataSession
