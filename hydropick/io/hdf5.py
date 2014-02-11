@@ -92,7 +92,7 @@ class HDF5Backend(object):
         version number is correct
         """
         with tables.open_file(self.filepath, mode) as f:
-            if f.get_filesize() <= 10000 and len(f.list_nodes('/')) == 0:
+            if len(f.listNodes('/')) == 0:
                 f.root._v_attrs.version = self.hydropick_format_version
             if not hasattr(f.root._v_attrs, 'version') or f.root._v_attrs.version != self.hydropick_format_version:
                 # TODO: implement upgrade code
