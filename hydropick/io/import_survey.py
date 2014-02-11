@@ -127,7 +127,7 @@ def import_survey(directory):
         survey_lines=survey_lines,
         survey_line_groups=survey_line_groups,
         core_samples=core_samples,
-        hdf5_file = hdf5_file,
+        hdf5_file=hdf5_file,
     )
 
     return survey
