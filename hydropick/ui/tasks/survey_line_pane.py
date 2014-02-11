@@ -7,14 +7,15 @@
 
 from __future__ import absolute_import
 
-from traits.api import Instance, Property, Bool, Dict, Str, Supports, DelegatesTo
+from traits.api import Delegate, Instance, Property, Bool, Dict, Str, Supports, DelegatesTo
 from traitsui.api import View, Item
 from pyface.tasks.api import TraitsTaskPane
 
-from ...model.i_survey import ISurvey
 from ...model.i_survey_line import ISurveyLine
 from ..survey_data_session import SurveyDataSession
 from ..survey_line_view import SurveyLineView
+from .survey_task import SurveyTask
+
 
 class SurveyLinePane(TraitsTaskPane):
     """ The dock pane holding the map view of the survey """
@@ -22,7 +23,9 @@ class SurveyLinePane(TraitsTaskPane):
     id = 'hydropick.survey_line'
     name = "Survey Line"
 
-    survey = Supports(ISurvey)
+    survey_task = Supports(SurveyTask)
+
+    survey = Delegate('survey_task')
 
     survey_line = Instance(ISurveyLine)
 

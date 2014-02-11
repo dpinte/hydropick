@@ -23,6 +23,7 @@ from ...model import algorithms
 
 from .task_command_action import TaskCommandAction
 
+
 class SurveyTask(Task):
     """ A task for viewing and editing hydrological survey data """
 
@@ -187,7 +188,7 @@ class SurveyTask(Task):
         """ Create the central pane: the editor pane.
         """
         from .survey_line_pane import SurveyLinePane
-        pane = SurveyLinePane(survey=self.survey)
+        pane = SurveyLinePane(survey_task=self)
         # listen for changes to the current survey line
         self.on_trait_change(lambda new: setattr(pane, 'survey_line', new),
                             'current_survey_line')
