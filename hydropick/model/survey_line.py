@@ -10,13 +10,8 @@ from __future__ import absolute_import
 import numpy as np
 from shapely.geometry import LineString
 
-from traits.api import (HasTraits, Array, Dict, Event, List, Supports, Str,
-                        provides, CFloat)
-
-from sdi import binary
-
 from traits.api import (HasTraits, Array, Dict, Event, Instance, List,
-                        Supports, Str, provides, Tuple)
+                        Supports, Str, provides, CFloat, Tuple)
 
 from .i_core_sample import ICoreSample
 from .i_survey_line import ISurveyLine
@@ -28,9 +23,6 @@ class SurveyLine(HasTraits):
 
     #: the user-visible name for the line
     name = Str
-
-    #: file location for this surveyline.  Used to load data when needed.
-    data_file_path = Str
 
     #: sample locations, an Nx2 array (example: easting/northing?)
     locations = Array(shape=(None, 2))
@@ -78,14 +70,13 @@ class SurveyLine(HasTraits):
 
     # XXX probably other metadata should be here
 
-    def load_data(self):
+    def load_data(self, hdf5_file):
         ''' Called by UI to load this survey line when selected to edit
-
-        TODO : call load from HDF5 source when available
         '''
-        # read in sdi dictionary.  Only use 'frequencies' item.
-        sdi_dict = binary.read(self.data_file_path)
-        freq_dict_list = sdi_dict['frequencies']
+        from ..io import survey_io
+
+        # read frequency dict from hdf5 file.
+        freq_dict_list = survey_io.read_frequency_data_from_hdf(hdf5_file, self.name)
 
         # fill frequncies and lake depths dictionaries with freqs as keys.
         for freq_dict in freq_dict_list:
