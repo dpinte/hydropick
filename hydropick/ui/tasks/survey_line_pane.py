@@ -7,7 +7,7 @@
 
 from __future__ import absolute_import
 
-from traits.api import Delegate, Instance, Property, Bool, Dict, Str, Supports, DelegatesTo
+from traits.api import DelegatesTo, Instance, Property, Bool, Dict, Str, Supports, DelegatesTo
 from traitsui.api import View, Item
 from pyface.tasks.api import TraitsTaskPane
 
@@ -25,7 +25,7 @@ class SurveyLinePane(TraitsTaskPane):
 
     survey_task = Supports(SurveyTask)
 
-    survey = Delegate('survey_task')
+    survey = DelegatesTo('survey_task')
 
     survey_line = Instance(ISurveyLine)
 
