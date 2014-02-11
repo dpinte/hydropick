@@ -30,6 +30,26 @@ class LocationTool(BaseTool):
         event.handled = False
 
 
+class InspectorFreezeTool(BaseTool):
+    ''' Provides key for "freezing" line inspector tool so that cursor
+    will remain in place
+    '''
+
+    #inspector_tool = Instance(LineInspector)
+    tool_set = Set
+    off_key = KeySpec("f","alt",ignore=['shift'])
+
+    def normal_key_pressed(self,event):
+        if self.off_key.match(event):
+            
+            for tool in self.tool_set:
+                active = tool.is_interactive
+                if active:
+                    tool.is_interactive = False
+                else:
+                    tool.is_interactive = True
+
+
 class TraceTool(BaseTool):
     """ Allows mouse update of impoundment boundary trace
 

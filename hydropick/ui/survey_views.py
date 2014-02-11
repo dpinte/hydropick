@@ -35,6 +35,7 @@ from chaco.tools.api import (PanTool, ZoomTool, RangeSelection,
 
 # Local imports
 from ..model.depth_line import DepthLine
+from .survey_tools import InspectorFreezeTool
 
 
 class InstanceUItem(UItem):
@@ -42,6 +43,264 @@ class InstanceUItem(UItem):
 
     style = Str('custom')
     editor = Instance(InstanceEditor, ())
+
+
+class PlotContainer2(HasTraits):
+    ''' miniplot must have at least one plot with an index.
+        therefore there should be a check in the plot dictionary
+        that there is a plot with an index
+    '''
+
+    #==========================================================================
+    # Traits Attributes
+    #==========================================================================
+
+    # Vplotcontainer will have mmainplot on top for working and small miniplot
+    # below for reference
+    plot_container = Instance(VPlotContainer)
+
+    model = Instance(DataModel)
+    data = Instance(ArrayPlotData)
+
+    hplot_dict = Dict
+    selected_hplots = List
+    legend_dict = Dict
+    inspector_freeze_tool = Instance(InspectorFreezeTool)
+
+    mini_height = Int(150)
+    slice_plot_width = Int(100)
+    hplot_padding = Int(5)
+    main_padding = Int(15)
+    #==========================================================================
+    # Define Views
+    #==========================================================================
+
+    traits_view = View(UItem('vplotcontainer',
+                             editor=ComponentEditor(),
+                             show_label=False),
+                        )
+
+    #==========================================================================
+    # Defaults
+    #==========================================================================
+    def _vplotcontainer_default(self):
+        self.create_empty_plot()
+
+    def _inspector_freeze_tool_default(self):
+        tool = InspectorFreezeTool(tool_set=set())
+        return tool
+
+    #==========================================================================
+    # Helper functions
+    #==========================================================================
+    def create_empty_plot(self):
+        ''' place filler
+        '''
+        vpc = VPlotContainer(bgcolor='lightgrey', height=1000, width=800)
+        self.vplotcontainer = vpc
+        return vpc
+
+    def create_vplot(self):
+        ''' fill vplot container with 1 mini plot for range selection
+        and N main plots ordered from to top to bottom by freq
+        '''
+        vpc = VPlotContainer(bgcolor='lightgrey')
+        if self.model.freq_choices:
+            # create mini plot using the highest freq as background
+            keys = self.model.freq_choices
+            mini = self.create_hplot(key=keys[-1], mini=True)
+            self.mini_hplot = mini
+            vpc.add(mini)
+
+            # create hplot containers for each freq and add to dict.
+            # dictionary will be used to access these later to individually
+            # address them to turn them on or off etc.
+            # note these are added with lowest freq on bottom
+            for freq in self.model.freq_choices:
+                hpc = self.create_hplot(key=freq)
+                self.hplot_dict[freq] = hpc
+                vpc.add(hpc)
+
+        # add tool to freeze line inspector cursor when in desired position
+        vpc.tools.append(self.inspector_freeze_tool)
+
+        self.vplot_container = vpc
+        self.set_hplot_visibility()
+
+    def set_hplot_visibility(self):
+        ''' to be called when selected hplots are changed
+        For selected hplots set the hplot, legend, and axis visibility'''
+        sorted_hplots = [f for f in self.model.freq_choices
+                         if f in self.selected_hplots]
+
+        if sorted_hplots:
+            bottom = sorted_hplots[0]
+            top = sorted_hplots[-1]
+
+        for freq, hpc in self.hplot_dict.items():
+            hpc.visible = (freq in sorted_hplots)
+            hpc.components[0].x_axis.visible = (freq == bottom)
+            legend = self.legend_dict[freq]
+            legend.visible = (freq == top)
+
+    def create_hplot(self, key=None, mini=False):
+        if mini:
+            hpc = HPlotContainer(bgcolor='darkgrey',
+                                 height=self.mini_height,
+                                 resizable='h',
+                                 padding=self.hplot_padding
+                                 )
+        else:
+            hpc = HPlotContainer(bgcolor='lightgrey',
+                            padding = self.hplot_padding
+                            )
+
+        # make slice plot for showing intesity profile of main plot
+        slice_plot = Plot(self.data,
+                          width=self.slice_plot_width,
+                          orientation="v",
+                          resizable="v",
+                          padding=self.main_padding,
+                          bgcolor='beige'
+                          )
+
+        slice_plot.x_axis.visible = False
+        slice_key = key + '_slice'
+        ydata_key = key + 'y'
+        slice_plot.plot((key+'y', slice_key))
+
+        # make main plot for editing depth lines
+        main = Plot(self.data,
+                    border_visible=True,
+                    bgcolor='beige'
+                    origin='top left',
+                    padding=self.main_padding
+                    )
+
+        # add intensity img to plot
+        img_plot = main.img_plot(key, name=key,
+                                 xbounds=self.model.x_bounds[key],
+                                 ybounds=self.model.y_bounds[key]
+                                 )
+        # add line plots: use method since these may change
+        self.update_line_plots(plot)
+
+        # now add tools depending if it is a mini plot or not
+        if mini:
+            # add range selection tool only
+            # first add a reference line to attache it to
+            reference = self.make_reference_plot()
+            main.add(reference)
+            # attache range selector to this plot
+            range_tool = RangeSelection(reference)
+            reference.tools.append(range_tool)
+            range_overlay = RangeSelectionOverlay(reference,
+                                                  metadata_name="selections")
+            refplot.overlays.append(range_overlay)
+            range_tool.on_trait_change(self._range_selection_handler,
+                                       "selection")
+            # add to hplot and dict
+            hpc.add(main)
+            self.hplot_dict['mini'] = hpc
+
+        else:
+            # add zoom tools
+            main.tools.append(PanTool(main))
+            main.tools.append(ZoomTool(main, tool_mode='range', axis='value'))
+
+            # add line inspector and attach to freeze tool
+            line_inspector = LineInspector(component=img_plot,
+                                               axis='index_x',
+                                               inspect_mode="indexed",
+                                               is_interactive=True,
+                                               write_metadata=True,
+                                               metadata_name='x_slice',
+                                               is_listener=True,
+                                               color="white")
+            img_plot.overlays.append(line_inspector)
+            self.inspector_freeze_tool.tool_set.add(line_inspector)
+
+            # add listener for changes to metadata made by line inspector
+            img_plot.on_trait_change(self.metadata_changed, 'index.metadata')
+
+            # add clickable legend ; must update legend when depth_dict updated
+            legend = Legend(component=main, padding=0,
+                            align="ur", font='modern 8')
+            legend_highlighter = LegendHighlighter(legend,
+                                                        drag_button="right")
+            legend.tools.append(self.legend_highlighter)
+            for k,v in self.model.depth_dict:
+                legend.plots[k] = main.plots[k]
+            legend.visible = False
+            self.legend_dict[key] = legend
+            main.overlays.append(legend)
+
+            # add main and slice plot to hplot container and dict
+            hpc.add(main,slice_plot)
+            self.hplot_dict[key] = hpc
+
+        return hpc
+
+        # add 'reference' plot for range selector tool to cover entire range
+    def update_line_plots(self, key, plot):
+        ''' takes a Plot object and adds all available line plots to it.
+        Each Plot.plots has one img plot labeled by freq key and the rest are
+        line plots.  When depth_dict is updated, check all keys to see all
+        lines are plotted'''
+
+        for line_key, depth_line in self.model.depth_dict.items():
+            not_plotted = line_key not in plot.plots
+            not_image = line_key not in self.model.freq_choices
+            if not_plotted and not_image:
+                self.plot_depth_line(key, line_key, depth_line, plot)
+
+    def plot_depth_line(self, key, line_key, depth_line, plot):
+        ''' plot a depth_line using a depth line object'''
+
+        # add data to ArrayPlotData if not there
+        if line_key not in self.data.arrays.keys()
+            x = self.model.distance_array[depth_line.index_array]
+            y = depth_line.depth_array
+            key_x, key_y = line_key + '_x',  line_key + '_y'
+            self.data.update({key_x: x, key_y: y})
+
+        # now plot
+        line_plot = plot.plot((key_x, key_y),
+                              color=depth_line.color,
+                              name=line_key
+                              )
+        # match vertical to ybounds in case there are pathological points
+        line_plot.value_range.low = plot.plots[key].ybounds[0]
+        line_plot.value_range.high = plot.plots[key].ybounds[1]
+
+    def make_reference_plot(self, plot)
+        x_pts = np.array([self.model.distance_array.min(),
+                          self.model.distance_array.max()]
+                          )
+        y_pts = 0 * x_pts
+        ref_plot = create_scatter_plot((x_pts, y_pts), color = 'black')
+        return ref_plot
+
+
+    #==========================================================================
+    # Notifiers and Handlers
+    #==========================================================================
+    def _range_selection_handler(self, event):
+        # The event obj should be a tuple (low, high) in data space
+        if event is not None:
+            #adjust index range for main plots
+            low, high = event
+            for key,hpc in self.hplot_dict.items():
+                if key is not 'mini':
+                    this_plot = hpc.components[0]
+                    this_plot.index_range.low = low
+                    this_plot.index_range.high = high
+        else:
+            # reset range back to full/auto for main plots
+            for key,hpc in self.hplot_dict.items():
+                if key is not 'mini':
+                    this_plot = hpc.components[0]
+                    this_plot.index_range.set_bounds("auto", "auto")
 
 
 class PlotContainer(HasTraits):
