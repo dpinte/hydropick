@@ -94,18 +94,13 @@ class HDF5Backend(object):
         with tables.open_file(self.filepath, mode) as f:
             if f.get_filesize() <= 10000 and len(f.list_nodes('/')) == 0:
                 f.root._v_attrs.version = self.hydropick_format_version
-            try:
-                if f.root._v_attrs.version != self.hydropick_format_version:
-                    # TODO: implement upgrade code
-                    raise NotImplementedError(
-                        "Unsupported version of hdf5 backend file. Delete file and try again."
-                    )
-                else:
-                    yield f
-            except AttributeError:
+            if not hasattr(f.root._v_attrs, 'version') or f.root._v_attrs.version != self.hydropick_format_version:
+                # TODO: implement upgrade code
                 raise NotImplementedError(
                     "Unsupported version of hdf5 backend file. Delete file and try again."
                 )
+            else:
+                yield f
 
     def _write_freq_dicts(self, line_name, freq_dicts):
         with self._open_file('a') as f:
