@@ -21,10 +21,11 @@ from ..model.depth_line import DepthLine
 from .survey_data_session import SurveyDataSession
 from .survey_tools import TraceTool, LocationTool
 from .survey_views import (ControlView, InstanceUItem, PlotContainer, DataView,
-                           ImageAdjustView, AddDepthLineView)
+                           ImageAdjustView, AddDepthLineView,
+                           HPlotSelectionView)
 
 logger = logging.getLogger(__name__)
-
+EDIT_COLOR = 'black'
 
 class SurveyLineView(ModelView):
     """ View Class for working with survey line data to find depth profile.
@@ -49,6 +50,9 @@ class SurveyLineView(ModelView):
 
     # Defines view for pop up location data window
     data_view = Instance(DataView)
+    
+    # Defines view for pop up location data window
+    plot_selection_view = Instance(HPlotSelectionView)
 
     # Defines view for pop up image adjustments window
     image_adjust_view = Instance(ImageAdjustView)
@@ -62,7 +66,7 @@ class SurveyLineView(ModelView):
     plot_dict = Dict(Str, PlotComponent)
 
     # Custom tool for editing depth lines
-    trace_tools = List   #Instance(TraceTool)
+    trace_tools = Dict   #Instance(TraceTool)
 
     # Custom tool for showing coordinates at mouse position
     location_tool = Instance(LocationTool)
@@ -143,13 +147,13 @@ class SurveyLineView(ModelView):
         c.model = self.model
         c.vplot_container.invalidate_and_redraw()
 
-    @on_trait_change('plotdata.arrays')
-    def redraw_edit_lines(self):
-        print 'change plotdata'
-        for k, hpc in self.plot_container.hplot_dict.items():
-            if k is not 'mini':
-                main = hpc.components[0]
-                main.invalidate_and_redraw()
+    # @on_trait_change('plotdata.arrays')
+    # def redraw_edit_lines(self):
+    #     print 'change plotdata'
+    #     for k, hpc in self.plot_container.hplot_dict.items():
+    #         if k is not 'mini':
+    #             main = hpc.components[0]
+    #             main.invalidate_and_redraw()
 
     def _control_view_default(self):
         ''' Creates ControlView object filled with associated traits'''
@@ -172,9 +176,16 @@ class SurveyLineView(ModelView):
     def _add_depth_line_view_default(self):
         return AddDepthLineView(depth_line=DepthLine())
 
+    def _plot_selection_view_default(self):
+        freq_choices = self.model.freq_choices
+        return HPlotSelectionView(hplot_choices=freq_choices,
+                                  visible_frequencies=freq_choices,
+                                  intensit_profile=True
+                                  )
+
     def toggle_edit(self):
         ''' enables editing tool based on ui edit selector'''
-        for tool in self.trace_tools:
+        for tool in self.trace_tools.values():
             if self.control_view.edit == 'Editing':
                 tool.edit_allowed = True
             else:
@@ -186,14 +197,14 @@ class SurveyLineView(ModelView):
 
     def _trace_tools_default(self):
         ''' Sets up trace tool for editing lines'''
-        tools = []
+        tools = {}
         for key, hpc in self.plot_container.hplot_dict.items():
             if key is not 'mini':
                 main = hpc.components[0]
                 tool = TraceTool(main)
                 tool.on_trait_change(self.update_depth, 'depth')
                 main.tools.append(tool)
-                tools.append(tool)
+                tools[key] = tool
         return tools
 
     def _data_view_default(self):
@@ -359,6 +370,10 @@ class SurveyLineView(ModelView):
         ''' called from UI button to bring up add line dialog'''
         self.add_depth_line_view.configure_traits()
 
+    def plot_view_selection_dialog(self):
+        ''' called from view menu to edit which plots to view'''
+        self.plot_selection_view.configure_traits()
+
     @on_trait_change('apply_button')
     def add_algorithm_line(self):
         ''' result of applying selected algorithm.  Makes new depth line'''
@@ -403,22 +418,26 @@ class SurveyLineView(ModelView):
         '''update trace tool target line attribute.'''
         self.plot_dict = self.plot_container.plot_dict
         # change colors of lines appropriately
-        new_target_line = self.plot_dict[new_target]
-        new_target_line.color = 'red'
-        old_target_line = self.plot_dict.get(old, None)
-        if old_target_line:
-            old_color = self.model.depth_dict[new_target].color
-            old_target_line.color = old_color
+        for key in self.model.freq_choices:
+            new_plot_key = key + '_' + new_target
+            new_target_line = self.plot_dict[new_plot_key]
+            new_target_line.color = EDIT_COLOR
+            old_plot_key = key + '_' + old
+            old_target_line = self.plot_dict.get(old_plot_key, None)
+            if old_target_line:
+                old_color = self.model.depth_dict[new_target].color
+                old_target_line.color = old_color
+            # update trace_tool targets.
+            tool = self.trace_tools[key]
+            tool.target_line = new_target_line
+            tool.key = new_target
+
         # # make selected plot visible
         # cv = self.control_view
         # if new_target not in cv.visible_lines:
         #     newset = set(cv.visible_lines).union(set([new_target]))
         #     cv.visible_lines = list(newset)
 
-        # update trace_tool targets.
-        for tool in self.trace_tools:
-            tool.target_line = new_target_line
-            tool.key = new_target
 
         self.plot_container.vplot_container.invalidate_and_redraw()
 

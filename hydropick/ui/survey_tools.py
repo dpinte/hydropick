@@ -56,7 +56,6 @@ class InspectorFreezeTool(BaseTool):
 
     def normal_key_pressed(self, event):
         if self.off_key.match(event):
-            print event.character
             for tool in self.tool_set:
                 active = tool.is_interactive
                 if active:
@@ -92,12 +91,17 @@ class TraceTool(BaseTool):
     mouse_down = Bool(False)
 
     target_line = Instance(LinePlot)
+
+    # ArrayPlotData object holding all data.  This tool will change this data
+    # which then updates all three freq plots at once.
+    
     data = Property()
+    # line key for this depth line.  from depth_dict, label data in data obj
     key = Str
 
     def _get_data(self):
         return self.target_line.container.data
-    
+
     def normal_right_down(self, event):
         ''' start editing '''
         if self.edit_allowed:
@@ -159,7 +163,8 @@ class TraceTool(BaseTool):
                 indices, ys = self.fill_in_missing_pts(current_index,
                                                        newy, ydata)
                 ydata[indices] = ys
-                target.value.set_data(ydata)
+                data_key = self.key + '_y'
+                self.data.set_data(data_key, ydata)
                 self.last_index = indices[-1]
                 self.last_y = ys[-1]
 

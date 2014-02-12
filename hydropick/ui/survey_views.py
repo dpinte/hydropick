@@ -297,7 +297,7 @@ class PlotContainer(HasTraits):
 
             # add main and slice plot to hplot container and dict
             #****************************************************
-            main.title = key
+            main.title = 'frequency = {}'.format(key)
             main.title_font = TITLE_FONT
             hpc.add(main, slice_plot)
             self.hplot_dict[key] = hpc
@@ -317,7 +317,10 @@ class PlotContainer(HasTraits):
             if not_plotted and not_image:
                 line_plot = self.plot_depth_line(key, line_key,
                                                  depth_line, plot)
-                self.plot_dict[line_key] = line_plot
+                # note: plot dict needs 3 entries for every line since each
+                # freq has a copy using the same plotdata source
+                plot_key = key + '_' + line_key
+                self.plot_dict[plot_key] = line_plot
 
     def plot_depth_line(self, key, line_key, depth_line, plot):
         ''' plot a depth_line using a depth line object'''

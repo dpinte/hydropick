@@ -59,6 +59,10 @@ class SurveyLinePane(TraitsTaskPane):
     def on_new_depth_line(self):
         ''' Open dialog to create new depth line (task menu)'''
         self.survey_line_view.new_algorithm_line_dialog()
+        
+    def on_show_plot_view_selection(self):
+        ''' Open dialog to change which plots to view (task menu)'''
+        self.survey_line_view.plot_view_selection_dialog()
 
     def _survey_line_changed(self):
         ''' handle loading of survey line view if valid line provide or else
