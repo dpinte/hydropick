@@ -19,7 +19,7 @@ from chaco.api import Plot, ArrayPlotData, PlotComponent, Greys
 # Local imports
 from ..model.depth_line import DepthLine
 from .survey_data_session import SurveyDataSession
-from .survey_tools import TraceTool, LocationTool
+from .survey_tools import TraceTool, LocationTool, DepthTool
 from .survey_views import (ControlView, InstanceUItem, PlotContainer, DataView,
                            ImageAdjustView, AddDepthLineView,
                            HPlotSelectionView)
@@ -50,7 +50,7 @@ class SurveyLineView(ModelView):
 
     # Defines view for pop up location data window
     data_view = Instance(DataView)
-    
+
     # Defines view for pop up location data window
     plot_selection_view = Instance(HPlotSelectionView)
 
@@ -68,8 +68,11 @@ class SurveyLineView(ModelView):
     # Custom tool for editing depth lines
     trace_tools = Dict   #Instance(TraceTool)
 
-    # Custom tool for showing coordinates at mouse position
-    location_tool = Instance(LocationTool)
+    # Custom tool for showing coordinates and other info at mouse position
+    location_tools = Dict    #   Instance(LocationTool)
+
+    # Custom tool for showing depth values at mouse position
+    depth_tools = Dict    #   Instance(LocationTool)
 
     # List of which lines are visible in plots
     visible_lines = List([])
@@ -145,6 +148,9 @@ class SurveyLineView(ModelView):
         c.plot_dict = self.plot_dict
         c.data = self.plotdata
         c.model = self.model
+        # need to call tools to activate defaults
+        start_tools = self.location_tools
+        start_tools = self.depth_tools
         c.vplot_container.invalidate_and_redraw()
 
     # @on_trait_change('plotdata.arrays')
@@ -180,7 +186,7 @@ class SurveyLineView(ModelView):
         freq_choices = self.model.freq_choices
         return HPlotSelectionView(hplot_choices=freq_choices,
                                   visible_frequencies=freq_choices,
-                                  intensit_profile=True
+                                  intensity_profile=True
                                   )
 
     def toggle_edit(self):
@@ -202,6 +208,30 @@ class SurveyLineView(ModelView):
             if key is not 'mini':
                 main = hpc.components[0]
                 tool = TraceTool(main)
+                main.tools.append(tool)
+                tools[key] = tool
+        return tools
+
+    def _location_tools_default(self):
+        ''' Sets up location tools for intensity images'''
+        tools = {}
+        for key, hpc in self.plot_container.hplot_dict.items():
+            if key is not 'mini':
+                main = hpc.components[0]
+                img = main.plots[key][0]
+                tool = LocationTool(img)
+                tool.on_trait_change(self.update_locations, 'image_index')
+                img.tools.append(tool)
+                tools[key] = tool
+        return tools
+
+    def _depth_tools_default(self):
+        ''' Sets up location tools for intensity images'''
+        tools = {}
+        for key, hpc in self.plot_container.hplot_dict.items():
+            if key is not 'mini':
+                main = hpc.components[0]
+                tool = DepthTool(main)
                 tool.on_trait_change(self.update_depth, 'depth')
                 main.tools.append(tool)
                 tools[key] = tool
@@ -211,10 +241,12 @@ class SurveyLineView(ModelView):
         return DataView()
 
     def _image_adjust_view_default(self):
-        imv = ImageAdjustView()
-        imv.on_trait_change(self.adjust_image, name='contrast_brightness')
-        imv.on_trait_event(self.adjust_image, name='invert')
-        return imv
+        iav = ImageAdjustView()
+        iav.freq_choices = self.model.freq_choices
+        iav.on_trait_change(self.adjust_image, name='contrast_brightness')
+        iav.on_trait_event(self.adjust_image, name='invert')
+        iav.on_trait_event(self.adjust_image, name='frequency')
+        return iav
 
     #==========================================================================
     # Helper functions
@@ -265,85 +297,85 @@ class SurveyLineView(ModelView):
         cv.visible_lines = self.model.target_choices
         cv.target_choices = self.model.target_choices
 
-    def add_lines(self, **kw):
-        ''' Take arbitrary number of key=array pairs.
-        Adds them to
-        self.plotdata then self.depth_dict,
-        adds them to mainplot and miniplot,
-        adds the comonents to self.plot_dict'''
+    # def add_lines(self, **kw):
+    #     ''' Take arbitrary number of key=array pairs.
+    #     Adds them to
+    #     self.plotdata then self.depth_dict,
+    #     adds them to mainplot and miniplot,
+    #     adds the comonents to self.plot_dict'''
 
-        line_dict = dict([(k, v.depth_array) for k, v in kw.items()])
-        self.plotdata.update_data(line_dict)
-        #        self.model.preimpoundment_depths.update(kw)
-        self.update_main_mini_lines(kw.keys())
-        self.update_control_view()
+    #     line_dict = dict([(k, v.depth_array) for k, v in kw.items()])
+    #     self.plotdata.update_data(line_dict)
+    #     #        self.model.preimpoundment_depths.update(kw)
+    #     self.update_main_mini_lines(kw.keys())
+    #     self.update_control_view()
 
-    def add_images(self, **kw):
-        ''' Adds images same way as lines to plotdata and plots first one
-        '''
-        self.plotdata.update_data(kw)
-        self.model.frequencies.update(kw)
-        imagelist = [kw.keys()[0]]
-        self.update_main_mini_image(imagelist)
+    # def add_images(self, **kw):
+    #     ''' Adds images same way as lines to plotdata and plots first one
+    #     '''
+    #     self.plotdata.update_data(kw)
+    #     self.model.frequencies.update(kw)
+    #     imagelist = [kw.keys()[0]]
+    #     self.update_main_mini_image(imagelist)
 
-    def make_plot(self, height=None):
-        ''' Creates one Plot instance with all depthlines and one image plot.
-        Used for mainplot and miniplot to make identical plots apart from
-        height.
-        '''
-        plot = Plot(self.plotdata,
-                    border_visible=True,
-                    bgcolor="white",
-                    padding=0,
-                    origin='top left'
-                    )
-        if height:
-            plot.height = height
-            plot.resizable = 'h'
+    # def make_plot(self, height=None):
+    #     ''' Creates one Plot instance with all depthlines and one image plot.
+    #     Used for mainplot and miniplot to make identical plots apart from
+    #     height.
+    #     '''
+    #     plot = Plot(self.plotdata,
+    #                 border_visible=True,
+    #                 bgcolor="white",
+    #                 padding=0,
+    #                 origin='top left'
+    #                 )
+    #     if height:
+    #         plot.height = height
+    #         plot.resizable = 'h'
 
-        return plot
+    #     return plot
 
-    def update_main_mini_lines(self, keylist=[]):
-        ''' Add specified lineplots already in self.plotdata to both plots
-        Assumes x_array from model.x_array is already in plotdata as well.
-        '''
-        import ipdb; ipdb.set_trace()    ##############################################   trace
-        main = self.mainplot
-        mini = self.miniplot
-        for key in keylist:
-            newplot = main.plot(('x_array', key), color='blue', name=key)
-            self.plot_dict[key] = newplot[0]
-            mini.plot(('x_array', key), color='blue', name=key)
-        self.mainplot.invalidate_and_redraw()
+    # def update_main_mini_lines(self, keylist=[]):
+    #     ''' Add specified lineplots already in self.plotdata to both plots
+    #     Assumes x_array from model.x_array is already in plotdata as well.
+    #     '''
+    #     import ipdb; ipdb.set_trace()    ##############################################   trace
+    #     main = self.mainplot
+    #     mini = self.miniplot
+    #     for key in keylist:
+    #         newplot = main.plot(('x_array', key), color='blue', name=key)
+    #         self.plot_dict[key] = newplot[0]
+    #         mini.plot(('x_array', key), color='blue', name=key)
+    #     self.mainplot.invalidate_and_redraw()
 
-    def update_main_mini_image(self, keylist=[], remove=None):
-        ''' Add specified image plots from self.plotdata to both plots.
-        Should be done after lineplots to set plot axis ranges automatically
-        '''
-        import ipdb; ipdb.set_trace()    ##############################################   trace
-        main = self.mainplot
-        mini = self.miniplot
-        for key in keylist:
-            newplot = main.img_plot(key, colormap=Greys,
-                                    xbounds=self.model.xbounds,
-                                    ybounds=self.model.ybounds,
-                                    name=key)
-            self.trace_tool.image = newplot[0]
-            self.location_tool = LocationTool(newplot[0])
-            self.location_tool.on_trait_change(self.update_locations,
-                                               'image_index')
-            newplot[0].tools.append(self.location_tool)
+    # def update_main_mini_image(self, keylist=[], remove=None):
+    #     ''' Add specified image plots from self.plotdata to both plots.
+    #     Should be done after lineplots to set plot axis ranges automatically
+    #     '''
+    #     import ipdb; ipdb.set_trace()    ##############################################   trace
+    #     main = self.mainplot
+    #     mini = self.miniplot
+    #     for key in keylist:
+    #         newplot = main.img_plot(key, colormap=Greys,
+    #                                 xbounds=self.model.xbounds,
+    #                                 ybounds=self.model.ybounds,
+    #                                 name=key)
+    #         self.trace_tool.image = newplot[0]
+    #         self.location_tool = LocationTool(newplot[0])
+    #         self.location_tool.on_trait_change(self.update_locations,
+    #                                            'image_index, depth')
+    #         newplot[0].tools.append(self.location_tool)
 
-            self.plot_dict[key] = newplot[0]
-            mini.img_plot(key, colormap=Greys,
-                          xbounds=self.model.xbounds,
-                          ybounds=self.model.ybounds,
-                          name=key)
-        if remove:
-            mini.plots.pop(remove)[0]
-            main.plots.pop(remove)[0]
+    #         self.plot_dict[key] = newplot[0]
+    #         mini.img_plot(key, colormap=Greys,
+    #                       xbounds=self.model.xbounds,
+    #                       ybounds=self.model.ybounds,
+    #                       name=key)
+    #     if remove:
+    #         mini.plots.pop(remove)[0]
+    #         main.plots.pop(remove)[0]
 
-        self.mainplot.invalidate_and_redraw()
+    #     self.mainplot.invalidate_and_redraw()
 
     #==========================================================================
     # Get/Set methods
@@ -374,6 +406,20 @@ class SurveyLineView(ModelView):
         ''' called from view menu to edit which plots to view'''
         self.plot_selection_view.configure_traits()
 
+    @on_trait_change('plot_selection_view.visible_frequencies')
+    def change_visible_frequencies(self):
+        ''' update visible hplots based on visible freq checkboxes'''
+        vis_hplots = self.plot_selection_view.visible_frequencies
+        self.plot_container.selected_hplots = vis_hplots
+        self.plot_container.set_hplot_visibility()
+
+    @on_trait_change('plot_selection_view.intensity_profile')
+    def change_intensity_profile_visibility(self):
+        ''' update visible hplots based on visible freq checkboxes'''
+        show_profile = self.plot_selection_view.intensity_profile
+        self.plot_container.show_intensity_profiles = show_profile
+        self.plot_container.set_intensity_profile_visibility(show_profile)
+
     @on_trait_change('apply_button')
     def add_algorithm_line(self):
         ''' result of applying selected algorithm.  Makes new depth line'''
@@ -382,33 +428,58 @@ class SurveyLineView(ModelView):
         new_line_dict = {str(self.new_line_name): new_line_data}
         self.add_lines(**new_line_dict)
 
-    def update_locations(self, image_index):
+    def update_locations(self,image_index):
         ''' Called by location_tool to update display readouts as mouse moves
         '''
         dv = self.data_view
         lat, long = self.model.lat_long[image_index]
         east, north = self.model.locations[image_index]
+        power = self.model.survey_line.power[image_index]
+        gain = self.model.survey_line.gain[image_index]
         dv.latitude = lat
         dv.longitude = long
         dv.easting = east
         dv.northing = north
+        dv.power = power
+        dv.gain = gain
 
     def adjust_image(self, obj, name, old, new):
         ''' Given a tuple (contrast, brightness) with values
-        from 0 to 10, -1 to 1'''
-        data = self.model.frequencies[self.model.selected_freq]
-        if name == 'invert':
+        from 0 to CONTRAST_MAX, 0 to 1
+        if frequency is changed, update view which will update plots.
+        if other values are changed and there is a freq, it will
+        update data with new values and save settings'''
+        iav = self.image_adjust_view
+        if name is 'frequency':
+            # changed freq : update settings
+            freq = new
+            c, b, i = self.image_settings.setdefault(freq, [1, 0, True])
+            iav.contrast, iav.brightness, iav.invert = c, b, i
+        else:
+            if iav.frequency:
+                freq = iav.frequency
+                if name == 'invert':
+                    self.image_settings[freq][2] = new
+                    self.apply_image_settings(freq)
+                elif name == 'contrast_brightness':
+                    self.image_settings[freq][:2] = new
+                self.apply_image_settings(freq)
+
+    def apply_image_settings(self, freq):
+        ''' apply saved image settings to this freq (or set default).
+        always reapply changes from original data.
+        apply to plot data'''
+        c, b, invert = self.image_settings.setdefault(freq, [1, 0, True])
+        data = self.model.frequencies[freq]
+        data = c * data
+        b2 = c * b - b
+        b3 = b2 + 1
+        data = np.clip(data, b2, b3)
+        if invert:
             data = 1-data
-        elif name == 'contrast_brightness':
-            c, b = new
-            data = c * data
-            b2 = c * b - b
-            b3 = b2 + 1
-            data = np.clip(data, b2, b3)
-            if getattr(obj, 'invert'):
-                data = 1-data
-        self.plotdata.set_data(self.model.selected_freq,
-                               data)
+        print 'updating ',freq
+        self.plot_container.data.update_data({freq: data})
+
 
     def update_depth(self, depth):
         ''' Called by trace tool to update depth readout display'''

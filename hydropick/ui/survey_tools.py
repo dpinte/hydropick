@@ -21,15 +21,25 @@ from chaco.api import LinePlot
 class LocationTool(BaseTool):
     ''' Provides index position of cursor for selected image
     '''
-
+    # index of the mouse position for given image
     image_index = Int
 
     def normal_mouse_move(self, event):
+
         index = self.component.map_index((event.x, event.y))[0]
         if index:
             self.image_index = index
-        event.handled = False
 
+
+class DepthTool(BaseTool):
+    ''' Provides index position of cursor for selected image
+    '''
+    # index of the mouse position for given image
+    depth = Float
+
+    def normal_mouse_move(self, event):
+        newx, newy = self.component.map_data((event.x, event.y))
+        self.depth = newy
 
 class InspectorFreezeTool(BaseTool):
     ''' Provides key for "freezing" line inspector tool so that cursor
@@ -94,7 +104,7 @@ class TraceTool(BaseTool):
 
     # ArrayPlotData object holding all data.  This tool will change this data
     # which then updates all three freq plots at once.
-    
+
     data = Property()
     # line key for this depth line.  from depth_dict, label data in data obj
     key = Str

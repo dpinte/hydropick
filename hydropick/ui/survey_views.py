@@ -26,7 +26,7 @@ import numpy as np
 from enable.api import ComponentEditor
 from traits.api import (Instance, Str, List, HasTraits, Float, Property,
                         Button, Enum, Bool, Dict, on_trait_change, Trait,
-                        Callable, Tuple)
+                        Callable, Tuple, CFloat)
 from traitsui.api import (View, Group, Item, EnumEditor, UItem, InstanceEditor,
                           RangeEditor, Label, HGroup, CheckListEditor)
 from chaco import default_colormaps
@@ -53,7 +53,11 @@ SLICE_PLOT_WIDTH = 75
 HPLOT_PADDING = 0
 MAIN_PADDING = 10
 MAIN_PADDING_LEFT = 20
-MAIN_PADDING_BOTTOM = 20
+MAIN_PADDING_BOTTOM = 10
+MINI_PADDING = 15
+
+CONTRAST_MAX = float(20)
+
 
 class InstanceUItem(UItem):
     '''Convenience class for inluding instance in view as Item'''
@@ -82,8 +86,13 @@ class PlotContainer(HasTraits):
     ###### storage structures for listener access to these objects via lookup
     # dict of hplots (main-edit-plot|slice plot) keyed by freq like intensities
     hplot_dict = Dict(Str, Instance(HPlotContainer))
+
     # hplots visible in main vplotcontainer. Set by checkbox.
     selected_hplots = List
+
+    # show intensity slice profiles
+    show_intensity_profiles = Bool(True)
+
     # legends for each hplot:main.  Used to set visibility
     legend_dict = Dict
 
@@ -162,6 +171,7 @@ class PlotContainer(HasTraits):
 
         self.vplot_container = vpc
         self.set_hplot_visibility(all=True)
+        self.set_intensity_profile_visibility()
 
     def set_hplot_visibility(self, all=False):
         ''' to be called when selected hplots are changed
@@ -184,24 +194,84 @@ class PlotContainer(HasTraits):
                 if freq == bottom or freq == 'mini':
                     #pass
                     main.x_axis.visible = True
-                    main.padding_bottom = MAIN_PADDING_BOTTOM
+                    hpc.padding_bottom = MAIN_PADDING_BOTTOM
                 else:
                     main.x_axis.visible = False
-                    main.padding_bottom = MAIN_PADDING
+                    hpc.padding_bottom = MAIN_PADDING_BOTTOM    #HPLOT_PADDING
 
                 print 'key', freq, hpc.components[0].x_axis.visible
                 legend = self.legend_dict.get(freq, None)
                 if legend:
                     legend.visible = (freq == top)
+
+                main.invalidate_and_redraw()
+                hpc.invalidate_and_redraw()
+                hpc.container.invalidate_and_redraw()
+                hpc.invalidate_and_redraw()
+                main.invalidate_and_redraw()
         else:
             logger.info('no hplot containers')
+
+        # for k, hpc in self.hplot_dict.items():
+        #     if k in self.selected_hplots:
+        #         hpc.visible = True
+        #     hpc.invalidate_and_redraw()
+        #     hpc.container.invalidate_and_redraw()
+        # self.set_intensity_profile_visibility(show=False)
+        # self.set_intensity_profile_visibility(show=self.show_intensity_profiles)
+
+        self.reset_all()
+
+    def reset_all(self):
+        for k, hpc in self.hplot_dict.items():
+            if k is not 'mini':
+                profile = hpc.components[1]
+                main = hpc.components[0]
+                profile.visible = False
+                main.visible = False
+                hpc.visible = False
+                hpc.invalidate_and_redraw()
+
+        for k, hpc in self.hplot_dict.items():
+            if k is not 'mini':
+                profile = hpc.components[1]
+                main = hpc.components[0]
+                if k in self.selected_hplots:
+                    main.visible = True
+                    profile.visible = self.show_intensity_profiles
+                    hpc.visible = True
+                hpc.invalidate_and_redraw()
+        self.vplot_container.invalidate_and_redraw()
+
+
+
+    def set_intensity_profile_visibility(self, show=True):
+        ''' sets intensity profile visibility for all hplots '''
+        # for k, hpc in self.hplot_dict.items():
+        #     if k is not 'mini':
+        #         profile = hpc.components[1]
+        #         profile.visible = show
+        #         main = hpc.components[0]
+        #         main.visible = True
+        #         main.invalidate_and_redraw()
+        #         hpc.invalidate_and_redraw()
+        #         main.invalidate_and_redraw()
+        # for k, hpc in self.hplot_dict.items():
+        #     if k is not 'mini':
+        #         main = hpc.components[0]
+        #         main.visible = True
+        #         main.invalidate_and_redraw()
+        #         hpc.invalidate_and_redraw()
+        #         main.invalidate_and_redraw()
+        self.reset_all()
+
 
     def create_hplot(self, key=None, mini=False):
         if mini:
             hpc = HPlotContainer(bgcolor='darkgrey',
                                  height=MINI_HEIGHT,
                                  resizable='h',
-                                 padding=HPLOT_PADDING
+                                 padding=0
                                  )
         else:
             hpc = HPlotContainer(bgcolor='lightgrey',
@@ -215,6 +285,7 @@ class PlotContainer(HasTraits):
                           orientation="v",
                           resizable="v",
                           padding=MAIN_PADDING,
+                          padding_left=MAIN_PADDING_LEFT,
                           bgcolor='beige'
                           )
 
@@ -231,6 +302,8 @@ class PlotContainer(HasTraits):
                     padding=MAIN_PADDING,
                     padding_left=MAIN_PADDING_LEFT,
                     )
+        if mini:
+            main.padding = MINI_PADDING
 
         # add intensity img to plot and get reference for line inspector
         print self.img_colormap
@@ -297,7 +370,7 @@ class PlotContainer(HasTraits):
 
             # add main and slice plot to hplot container and dict
             #****************************************************
-            main.title = 'frequency = {}'.format(key)
+            main.title = 'frequency = {} kHz'.format(key)
             main.title_font = TITLE_FONT
             hpc.add(main, slice_plot)
             self.hplot_dict[key] = hpc
@@ -383,7 +456,7 @@ class PlotContainer(HasTraits):
         was changed by the line inspector.  The line inspector sets the
         "x_slice" key in the meta data.  We then retrieve this and use it
         to update the metadata for the intensity plots for all freqs'''
-
+        print "******** META CHANGED********",obj, name, old, new
         selected_meta = obj.metadata
         slice_meta = selected_meta.get("x_slice", None)
         for key, hplot in self.hplot_dict.items():
@@ -406,181 +479,187 @@ class PlotContainer(HasTraits):
 
             # now updata data array which will updata slice plot
             x_index, y_index = slice_meta
-            slice_data = np.flipud(img.value.data[:, x_index])
-            self.data.update_data({slice_key: slice_data})
+            try:
+                slice_data = np.flipud(img.value.data[:, x_index])
+                self.data.update_data({slice_key: slice_data})
+            except IndexError:
+                logger.info('slice index out of bounds for {}'.format(key))
+            except Exception as err:
+                logger.info('unknown exception in slice update:{}'.format(err))
+                raise Exception
 
         else:   # clear all slice plots
             self.data.update_data({slice_key: np.array([])})
 
 
-class PlotContainer2(HasTraits):
-    ''' miniplot must have at least one plot with an index.
-        therefore there should be a check in the plot dictionary
-        that there is a plot with an index
-    '''
+# class PlotContainer2(HasTraits):
+#     ''' miniplot must have at least one plot with an index.
+#         therefore there should be a check in the plot dictionary
+#         that there is a plot with an index
+#     '''
 
-    #==========================================================================
-    # Traits Attributes
-    #==========================================================================
+#     #==========================================================================
+#     # Traits Attributes
+#     #==========================================================================
 
-    # These two plots should have the same data.  The miniplot will provide a
-    # continuous full view of data set.
-    mainplot = Instance(Plot)
-    miniplot = Instance(Plot)
-    # Vplotcontainer will have mmainplot on top for working and small miniplot
-    # below for reference
-    plot_container = Instance(VPlotContainer)
+#     # These two plots should have the same data.  The miniplot will provide a
+#     # continuous full view of data set.
+#     mainplot = Instance(Plot)
+#     miniplot = Instance(Plot)
+#     # Vplotcontainer will have mmainplot on top for working and small miniplot
+#     # below for reference
+#     plot_container = Instance(VPlotContainer)
 
-    # trait used to signal editor when legend is moved (rt drag) => stop edit.
-    legend_highlighter = Instance(LegendHighlighter)
+#     # trait used to signal editor when legend is moved (rt drag) => stop edit.
+#     legend_highlighter = Instance(LegendHighlighter)
 
-    # View for the plot container
-    traits_view = View(UItem('plot_container', editor=ComponentEditor()))
+#     # View for the plot container
+#     traits_view = View(UItem('plot_container', editor=ComponentEditor()))
 
-    #==========================================================================
-    # Defaults
-    #==========================================================================
+#     #==========================================================================
+#     # Defaults
+#     #==========================================================================
 
-    def _mainplot_default(self):
-        return self.default_plot()
+#     def _mainplot_default(self):
+#         return self.default_plot()
 
-    def _miniplot_default(self):
-        return self.default_plot()
+#     def _miniplot_default(self):
+#         return self.default_plot()
 
-    def default_plot(self):
-        # Provides initial line plot to satisfy range tool.  Subsequent plots
-        # should have at least one line plot
-        y = np.arange(10)
-        data = ArrayPlotData(y=y)
-        plot = Plot(data)
-        plot.plot(('y'))
-        return plot
+#     def default_plot(self):
+#         # Provides initial line plot to satisfy range tool.  Subsequent plots
+#         # should have at least one line plot
+#         y = np.arange(10)
+#         data = ArrayPlotData(y=y)
+#         plot = Plot(data)
+#         plot.plot(('y'))
+#         return plot
 
-    # Add a range overlay to the miniplot that is hooked up to the range
-    # of the main plot.
+#     # Add a range overlay to the miniplot that is hooked up to the range
+#     # of the main plot.
 
-    def _plot_container_default(self):
-        ''' Define plot container tools and look.
-        '''
-        self.mainplot.tools.append(PanTool(self.mainplot))
-        self.mainplot.tools.append(ZoomTool(self.mainplot,
-                                            tool_mode='range',
-                                            axis='value')
-                                   )
-        main = self.mainplot
+#     def _plot_container_default(self):
+#         ''' Define plot container tools and look.
+#         '''
+#         self.mainplot.tools.append(PanTool(self.mainplot))
+#         self.mainplot.tools.append(ZoomTool(self.mainplot,
+#                                             tool_mode='range',
+#                                             axis='value')
+#                                    )
+#         main = self.mainplot
 
-        # Make clickable, dragable legend.
-        legend = Legend(component=main, padding=10, align="ur")
-        self.legend_highlighter = LegendHighlighter(legend,
-                                                    drag_button="right")
-        legend.tools.append(self.legend_highlighter)
-        legend.plots = dict([(k, v) for k, v in main.plots.items() if
-                             isinstance(v[0], LinePlot)])
-        main.overlays.append(legend)
+#         # Make clickable, dragable legend.
+#         legend = Legend(component=main, padding=10, align="ur")
+#         self.legend_highlighter = LegendHighlighter(legend,
+#                                                     drag_button="right")
+#         legend.tools.append(self.legend_highlighter)
+#         legend.plots = dict([(k, v) for k, v in main.plots.items() if
+#                              isinstance(v[0], LinePlot)])
+#         main.overlays.append(legend)
 
-        has_img = False
-        if 'image plot' in self.mainplot.plots:
-            has_img = True
-            imgplot = self.mainplot.plots['image plot'][0]
-            self.img_data = imgplot.value
-            colormap = imgplot.color_mapper
-            lin_mapper = LinearMapper(range=colormap.range)
-            colorbar = ColorBar(index_mapper=lin_mapper,
-                                color_mapper=colormap,
-                                plot=imgplot,
-                                orientation='v',
-                                resizable='v',
-                                width=30,
-                                padding=20
-                                )
+#         has_img = False
+#         if 'image plot' in self.mainplot.plots:
+#             has_img = True
+#             imgplot = self.mainplot.plots['image plot'][0]
+#             self.img_data = imgplot.value
+#             colormap = imgplot.color_mapper
+#             lin_mapper = LinearMapper(range=colormap.range)
+#             colorbar = ColorBar(index_mapper=lin_mapper,
+#                                 color_mapper=colormap,
+#                                 plot=imgplot,
+#                                 orientation='v',
+#                                 resizable='v',
+#                                 width=30,
+#                                 padding=20
+#                                 )
 
-            colorbar.padding_top = self.mainplot.padding_top
-            colorbar.padding_bottom = self.mainplot.padding_bottom
+#             colorbar.padding_top = self.mainplot.padding_top
+#             colorbar.padding_bottom = self.mainplot.padding_bottom
 
-            # create a range selection for the colorbar
-            range_selection = RangeSelection(component=colorbar)
-            colorbar.tools.append(range_selection)
-            overlay = RangeSelectionOverlay(component=colorbar,
-                                            border_color="white",
-                                            alpha=0.8,
-                                            fill_color="lightgray")
-            colorbar.overlays.append(overlay)
+#             # create a range selection for the colorbar
+#             range_selection = RangeSelection(component=colorbar)
+#             colorbar.tools.append(range_selection)
+#             overlay = RangeSelectionOverlay(component=colorbar,
+#                                             border_color="white",
+#                                             alpha=0.8,
+#                                             fill_color="lightgray")
+#             colorbar.overlays.append(overlay)
 
-            # we also want to the range selection to inform the cmap plot of
-            # the selection, so set that up as well
-            range_selection.listeners.append(imgplot)
-            #range_selection.on_trait_change(self.adjust_img, 'selection')
+#             # we also want to the range selection to inform the cmap plot of
+#             # the selection, so set that up as well
+#             range_selection.listeners.append(imgplot)
+#             #range_selection.on_trait_change(self.adjust_img, 'selection')
 
-            # Create a container to position the plot and the colorbar
-            # side-by-side
-            container = HPlotContainer(use_backbuffer=True)
-            container.add(self.mainplot)
-            container.add(colorbar)
-            container.bgcolor = "lightgray"
+#             # Create a container to position the plot and the colorbar
+#             # side-by-side
+#             container = HPlotContainer(use_backbuffer=True)
+#             container.add(self.mainplot)
+#             container.add(colorbar)
+#             container.bgcolor = "lightgray"
 
-        firstplot = self.a_plot_with_index()
-        # connect plots with range tools
-        if firstplot:
-            range_tool = RangeSelection(firstplot)
-            firstplot.tools.append(range_tool)
-            range_overlay = RangeSelectionOverlay(firstplot,
-                                                  metadata_name="selections")
-            firstplot.overlays.append(range_overlay)
-            range_tool.on_trait_change(self._range_selection_handler,
-                                       "selection")
+#         firstplot = self.a_plot_with_index()
+#         # connect plots with range tools
+#         if firstplot:
+#             range_tool = RangeSelection(firstplot)
+#             firstplot.tools.append(range_tool)
+#             range_overlay = RangeSelectionOverlay(firstplot,
+#                                                   metadata_name="selections")
+#             firstplot.overlays.append(range_overlay)
+#             range_tool.on_trait_change(self._range_selection_handler,
+#                                        "selection")
 
-        # add to container and fine tune spacing
-        spacing = 25
-        padding = 50
-        width, height = (1000, 600)
-        plot_container = VPlotContainer(bgcolor="lightgray",
-                                        spacing=spacing,
-                                        padding=padding,
-                                        fill_padding=False,
-                                        width=width, height=height,
-                                        )
-        if has_img:
-            plot_container.add(self.miniplot, container)
-        else:
-            plot_container.add(self.miniplot, self.mainplot)
+#         # add to container and fine tune spacing
+#         spacing = 25
+#         padding = 50
+#         width, height = (1000, 600)
+#         plot_container = VPlotContainer(bgcolor="lightgray",
+#                                         spacing=spacing,
+#                                         padding=padding,
+#                                         fill_padding=False,
+#                                         width=width, height=height,
+#                                         )
+#         if has_img:
+#             plot_container.add(self.miniplot, container)
+#         else:
+#             plot_container.add(self.miniplot, self.mainplot)
 
-        return plot_container
+#         return plot_container
 
-    def a_plot_with_index(self):
-        ''' Find first plot in data with an index or create one from img
-        '''
-        plots = self.miniplot.plots.values()
-        indexplot = None
-        imgplot = None
-        for [plot] in plots:
-            if isinstance(plot, LinePlot) or isinstance(plot, ScatterPlot):
-                indexplot = plot
+#     def a_plot_with_index(self):
+#         ''' Find first plot in data with an index or create one from img
+#         '''
+#         plots = self.miniplot.plots.values()
+#         indexplot = None
+#         imgplot = None
+#         for [plot] in plots:
+#             if isinstance(plot, LinePlot) or isinstance(plot, ScatterPlot):
+#                 indexplot = plot
 
-            elif isinstance(plot, CMapImagePlot):
-                imgplot = plot
-            if indexplot:
-                break
+#             elif isinstance(plot, CMapImagePlot):
+#                 imgplot = plot
+#             if indexplot:
+#                 break
 
-        if not indexplot:
-            if imgplot:
-                array_width = imgplot.value.get_data().shape[1]
-                xvalues = np.arange(array_width)
-                data = self.miniplot.data
-                data.set_data('default plot', xvalues)
-                plot = self.miniplot.plot(('default plot'))
-            else:
-                pass  # 'NO SUITABLE PLOTS'
+#         if not indexplot:
+#             if imgplot:
+#                 array_width = imgplot.value.get_data().shape[1]
+#                 xvalues = np.arange(array_width)
+#                 data = self.miniplot.data
+#                 data.set_data('default plot', xvalues)
+#                 plot = self.miniplot.plot(('default plot'))
+#             else:
+#                 pass  # 'NO SUITABLE PLOTS'
 
-        return indexplot
+#         return indexplot
 
-    def _range_selection_handler(self, event):
-        # The event obj should be a tuple (low, high) in data space
-        if event is not None:
-            low, high = event
-            self.mainplot.index_range.low = low
-            self.mainplot.index_range.high = high
-        else:
-            self.mainplot.index_range.set_bounds("auto", "auto")
+#     def _range_selection_handler(self, event):
+#         # The event obj should be a tuple (low, high) in data space
+#         if event is not None:
+#             low, high = event
+#             self.mainplot.index_range.low = low
+#             self.mainplot.index_range.high = high
+#         else:
+#             self.mainplot.index_range.set_bounds("auto", "auto")
 
 
 class AddDepthLineView(HasTraits):
@@ -639,21 +718,27 @@ class ControlView(HasTraits):
 
 class ImageAdjustView(HasTraits):
     # brightness contrast controls
-    brightness = Float(0)
-    contrast = Float(1)
+    freq_choices = List
+    frequency = Str
+    brightness = Float(0.0)
+    contrast = Float(1.0)
     contrast_brightness = Property(depends_on=['brightness', 'contrast'])
     invert = Bool
 
     traits_view = View(
+        Label('Frequency to Edit'),
+        UItem('frequency', editor=EnumEditor(name='freq_choices')),
         Label('Brightness and Contrast'),
         Item('brightness', editor=RangeEditor(low=0.0, high=1.0), label='B'),
-        Item('contrast', editor=RangeEditor(low=1.0, high=20.0), label='C'),
+        Item('contrast',
+             editor=RangeEditor(low=1.0, high=CONTRAST_MAX), label='C'),
         Item('invert'),
         resizable=True
         )
 
     def _get_contrast_brightness(self):
         return (self.contrast, self.brightness)
+
 
 class HPlotSelectionView(HasTraits):
     ''' provide checkbox pop up to set visibilty of hplots'''
@@ -666,15 +751,14 @@ class HPlotSelectionView(HasTraits):
     intensity_profile = Bool
 
     traits_view = View(Label('Select Frequencies to View'),
-                       Item('visible_frequencies',
-                            editor=CheckListEditor(name='hplot_choices'),
-                            style='custom'
-                            ),
-                        Item('intensity_profile'),
-                        resizable=True
-                        )
-
-
+                       UItem('visible_frequencies',
+                             editor=CheckListEditor(name='hplot_choices'),
+                             style='custom'
+                             ),
+                       Label('Show Intensity Profiles'),
+                       UItem('intensity_profile'),
+                       resizable=True
+                       )
 
 
 class DataView(HasTraits):
@@ -691,6 +775,10 @@ class DataView(HasTraits):
     # depth of current mouse position
     depth = Float(0)
 
+    # power & gain at current cursor
+    power = CFloat(0)
+    gain = CFloat(0)
+
     traits_view = View(
         Item('latitude'),
         Item('longitude'),
@@ -699,6 +787,9 @@ class DataView(HasTraits):
         Item('northing'),
         Item('_'),
         Item('depth'),
+        Item('_'),
+        Item('power'),
+        Item('gain'),
         resizable=True
         )
 
