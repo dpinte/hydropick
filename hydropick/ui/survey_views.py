@@ -403,7 +403,8 @@ class PlotContainer(HasTraits):
 
             # now updata data array which will updata slice plot
             x_index, y_index = slice_meta
-            self.data.update_data({slice_key: img.value.data[:, x_index]})
+            slice_data = np.flipud(img.value.data[:, x_index])
+            self.data.update_data({slice_key: slice_data})
 
         else:   # clear all slice plots
             self.data.update_data({slice_key: np.array([])})

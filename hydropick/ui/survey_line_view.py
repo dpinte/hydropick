@@ -145,6 +145,7 @@ class SurveyLineView(ModelView):
 
     @on_trait_change('plotdata.arrays')
     def redraw_edit_lines(self):
+        print 'change plotdata'
         for k, hpc in self.plot_container.hplot_dict.items():
             if k is not 'mini':
                 main = hpc.components[0]
