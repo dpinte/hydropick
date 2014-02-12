@@ -11,13 +11,13 @@ import os
 import logging
 import warnings
 
-from hydropick.io.survey_io import (read_survey_line_from_file,
-                                    read_survey_line_from_hdf,
-                                    write_survey_line_to_hdf)
+from hydropick.io.survey_io import (import_survey_line_from_file,
+                                    read_survey_line_from_hdf)
 
 logger = logging.getLogger(__name__)
 
 # XXX this is not fully implemented
+
 
 def get_name(directory):
     # name defaults to parent and grandparent directory names
@@ -32,6 +32,7 @@ def get_name(directory):
     else:
         name = "Untitled"
     return name
+
 
 def import_cores(directory):
     from sdi import corestick
@@ -77,21 +78,17 @@ def import_sdi(directory, h5file):
                 print 'Reading line', linename
                 try:
                     line = read_survey_line_from_hdf(h5file, linename)
-                    # TODO: move image storage to HDF5 as well
-                    line.data_file_path = os.path.join(root, filename)
                 except (IOError, tables.exceptions.NoSuchNodeError):
-                    logger.info("Reading sdi file '%s'", filename)
+                    logger.info("Importing sdi file '%s'", filename)
                     try:
-                        line = read_survey_line_from_file(os.path.join(root, filename),
-                                                          linename)
+                        import_survey_line_from_file(os.path.join(root, filename), h5file, linename)
+                        line = read_survey_line_from_hdf(h5file, linename)
                     except Exception as e:
                         # XXX: blind except to read all the lines that we can for now
                         msg = 'Reading file {} failed with error "{}"'.format(filename, e)
                         warnings.warn(msg)
                         logger.warning(msg)
                         break
-                    else:
-                        write_survey_line_to_hdf(h5file, line)
                 group_lines.append(line)
         if group_lines:
             dirname = os.path.basename(root)
@@ -114,12 +111,12 @@ def import_survey(directory):
     lake = import_lake(os.path.join(directory, 'ForSurvey'))
 
     # HDF5 datastore file for survey
-    hdf5file = os.path.join(directory, name + '.h5')
-    print hdf5file
+    hdf5_file = os.path.join(directory, name + '.h5')
+    print hdf5_file
 
     # read in sdi data
     survey_lines, survey_line_groups = import_sdi(os.path.join(directory, 'SDI_Data'),
-                                                  hdf5file)
+                                                  hdf5_file)
 
     # read in edits to sdi data
     # XXX not implemented
@@ -130,6 +127,7 @@ def import_survey(directory):
         survey_lines=survey_lines,
         survey_line_groups=survey_line_groups,
         core_samples=core_samples,
+        hdf5_file=hdf5_file,
     )
 
     return survey

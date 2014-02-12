@@ -2,22 +2,31 @@
 
 '''
 import os
+import shutil
+import tempfile
 import unittest
 import numpy as np
 
-from hydropick.model.survey_line import SurveyLine
 from traits.interface_checker import InterfaceError
 from traits import has_traits
+from hydropick.io import survey_io
+
 
 class TestAlgorithms(unittest.TestCase):
-
 
     def setUp(self):
         has_traits.CHECK_INTERFACES = 1
         self.test_dir = os.path.dirname(__file__)
-        filename = os.path.join(self.test_dir, 'files', '12030101.bin')
-        self.survey_line = SurveyLine(data_file_path=filename)
-        self.survey_line.load_data()
+        linename = '12030101'
+        filename = os.path.join(self.test_dir, 'files', linename + '.bin')
+        self.tempdir = tempfile.mkdtemp()
+        self.h5file = os.path.join(self.tempdir, 'test.h5')
+        survey_io.import_survey_line_from_file(filename, self.h5file, linename)
+        self.survey_line = survey_io.read_survey_line_from_hdf(self.h5file, linename)
+        self.survey_line.load_data(self.h5file)
+
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
 
     def get_classes(self):
         from hydropick.model import algorithms

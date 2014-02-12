@@ -12,9 +12,15 @@ import numpy as np
 
 # ETS imports
 from traits.api import (Instance, Str, Dict, List, Int, Property,
+<<<<<<< HEAD
                         on_trait_change)
 from traitsui.api import ModelView, View, VGroup
 from chaco.api import Plot, ArrayPlotData, PlotComponent, Greys
+=======
+                        on_trait_change, Button)
+from traitsui.api import ModelView, View, HSplit, Group, Item, EnumEditor
+from chaco.api import Plot, ArrayDataSource, ArrayPlotData, LinePlot, LinearMapper, PlotComponent, Greys
+>>>>>>> feature/plot_cores
 
 # Local imports
 from ..model.depth_line import DepthLine
@@ -117,8 +123,25 @@ class SurveyLineView(ModelView):
     #==========================================================================
 
     def _plot_container_default(self):
+<<<<<<< HEAD
         ''' Create initial plot container'''
         container = PlotContainer()
+=======
+        ''' Creat initial plot container'''
+        dist_unit = self.model.survey_line.locations_unit
+        self.mainplot = self.make_plot()
+        self.mainplot.y_axis.title = 'Depth (m)'
+        self.miniplot = self.make_plot(height=self.mini_height)
+        self.miniplot.x_axis.title = 'Distance ({})'.format(dist_unit)
+        container = PlotContainer(mainplot=self.mainplot,
+                                  miniplot=self.miniplot)
+        if self.model.depth_dict:
+            self.add_lines(**self.model.depth_dict)
+        if self.model.frequencies:
+            self.add_images(**self.model.frequencies)
+        if self.model.core_samples:
+            self.add_cores(self.model.core_samples)
+>>>>>>> feature/plot_cores
         return container
         # dist_unit = self.model.survey_line.locations_unit
         # self.mainplot = self.make_plot()
@@ -297,6 +320,7 @@ class SurveyLineView(ModelView):
         cv.visible_lines = self.model.target_choices
         cv.target_choices = self.model.target_choices
 
+<<<<<<< HEAD
     # def add_lines(self, **kw):
     #     ''' Take arbitrary number of key=array pairs.
     #     Adds them to

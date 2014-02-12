@@ -12,28 +12,20 @@ from shapely.geometry import LineString
 import tables
 
 from sdi import binary
+from . import hdf5
 from ..model.survey_line import SurveyLine
 
-def read_survey_line_from_file(filename, linename):
-    data = binary.read(filename)
-    x = data['frequencies'][-1]['interpolated_easting']
-    y = data['frequencies'][-1]['interpolated_northing']
-    coords = np.vstack((x, y)).T
-    line = SurveyLine(name=linename,
-                      data_file_path=filename,
-                      navigation_line=LineString(coords))
-    return line
+
+def import_survey_line_from_file(filename, h5file, linename):
+    hdf5.HDF5Backend(h5file).import_binary_file(filename)
 
 def read_survey_line_from_hdf(h5file, name):
-    with tables.openFile(h5file, 'r') as f:
-        coords = f.getNode('/l' + name + '/navigation_line').read()
+    coords = hdf5.HDF5Backend(h5file).read_survey_line_coords(name)
     line = SurveyLine(name=name,
+                      data_file_path=h5file,
                       navigation_line=LineString(coords))
     return line
 
-def write_survey_line_to_hdf(h5file, line):
-    coords = np.vstack(line.navigation_line.coords.xy)
-    with tables.openFile(h5file, 'a') as f:
-        node = f.createGroup(f.root, 'l' + line.name)
-        f.createArray('/l' + line.name, 'navigation_line', coords.T)
-        # TODO: write frequency arrays to datastore
+
+def read_frequency_data_from_hdf(h5file, name):
+    return hdf5.HDF5Backend(h5file).read_frequency_data(name)

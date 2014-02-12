@@ -11,11 +11,16 @@ import os
 import numpy as np
 from shapely.geometry import LineString
 
+<<<<<<< HEAD
 from traits.api import (HasTraits, Array, Dict, Event, List, Supports, Str,
                         provides, CFloat, Instance)
 
 from sdi import binary
 
+=======
+from traits.api import (HasTraits, Array, Dict, Event, Instance, List,
+                        Supports, Str, provides, CFloat, Tuple)
+>>>>>>> feature/plot_cores
 
 from .i_core_sample import ICoreSample
 from .i_survey_line import ISurveyLine
@@ -29,9 +34,6 @@ class SurveyLine(HasTraits):
 
     #: the user-visible name for the line
     name = Str
-
-    #: file location for this surveyline.  Used to load data when needed.
-    data_file_path = Str
 
     #: sample locations, an Nx2 array (example: easting/northing?)
     locations = Array(shape=(None, 2))
@@ -89,15 +91,20 @@ class SurveyLine(HasTraits):
 
     # XXX probably other metadata should be here
 
-    def load_data(self):
+    def load_data(self, hdf5_file):
         ''' Called by UI to load this survey line when selected to edit
-
-        TODO : call load from HDF5 source when available
         '''
+<<<<<<< HEAD
         # read in sdi dictionary.  Only use 'frequencies' item.
         sdi_dict_separated = binary.read(self.data_file_path)
         sdi_dict_raw = binary.read(self.data_file_path, separate=False)
         freq_dict_list = sdi_dict_separated['frequencies']
+=======
+        from ..io import survey_io
+
+        # read frequency dict from hdf5 file.
+        freq_dict_list = survey_io.read_frequency_data_from_hdf(hdf5_file, self.name)
+>>>>>>> feature/plot_cores
 
         # fill frequncies and freq_trace_num dictionaries with freqs as keys.
         for freq_dict in freq_dict_list:
@@ -105,6 +112,7 @@ class SurveyLine(HasTraits):
             # transpose array to go into image plot correctly oriented
             intensity = freq_dict['intensity'].T
             self.frequencies[str(key)] = intensity
+<<<<<<< HEAD
             self.freq_trace_num[str(key)] = freq_dict['trace_num']
 
         # for all other traits, use un-freq-sorted values
@@ -130,3 +138,29 @@ class SurveyLine(HasTraits):
                                depth_array=sdi_depth_line_data,
                                color='blue')
         self.lake_depths[depth_line.name] = depth_line
+=======
+            self.shape = intensity.shape
+            lake_key = 'Lakedepth_{:.1f}'.format(key)
+            self.lake_depths[lake_key] = freq_dict['depth_r1']
+
+        # for all other traits, take from first freq, assuming identical
+        freq_dict = freq_dict_list[0]
+        self.locations = np.vstack([freq_dict['interpolated_easting'],
+                                   freq_dict['interpolated_northing']]).T
+        self.lat_long = np.vstack([freq_dict['latitude'],
+                                  freq_dict['longitude']]).T
+        self.draft = (np.mean(freq_dict['draft']))
+        self.heave = freq_dict['heave']
+        self.pixel_resolution = (np.mean(freq_dict['pixel_resolution']))
+
+    def nearby_core_samples(self, core_samples, dist_tol=100):
+        """ Find core samples from a list of CoreSample instances
+        that lie within dist_tol units of this survey line.
+        """
+        def distance(core, line):
+            """ Calculate distance between a core sample and a survey line
+            """
+            from shapely.geometry import Point
+            return self.navigation_line.distance(Point(core.location))
+        return [core for core in core_samples if distance(core, self) < dist_tol]
+>>>>>>> feature/plot_cores
