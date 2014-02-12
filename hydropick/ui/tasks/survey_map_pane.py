@@ -14,6 +14,7 @@ from enable.component_editor import ComponentEditor
 from pyface.tasks.api import TraitsDockPane
 
 from hydropick.ui.survey_map_view import SurveyMapView
+from hydropick.ui.tasks.survey_task import SurveyTask
 from hydropick.model.i_survey import ISurvey
 
 
@@ -25,20 +26,25 @@ class SurveyMapPane(TraitsDockPane):
 
     survey = Supports(ISurvey)
 
+    survey_task = Supports(SurveyTask)
+
     #: proxy for the task's current survey line
-    current_survey_line = DelegatesTo('task')
+    current_survey_line = DelegatesTo('survey_task')
 
     def _current_survey_line_changed(self):
         self.survey_map_view.current_survey_line = self.current_survey_line
 
     #: proxy for the task's current survey line group
-    current_survey_line_group = DelegatesTo('task')
+    current_survey_line_group = DelegatesTo('survey_task')
 
     #: reference to the task's selected survey lines
-    selected_survey_lines = DelegatesTo('task')
+    selected_survey_lines = DelegatesTo('survey_task')
 
     def _selected_survey_lines_changed(self):
-        self.survey_map_view.selected_survey_lines = self.selected_survey_lines
+        try:
+            self.survey_map_view.selected_survey_lines = self.selected_survey_lines
+        except:
+            pass
 
     survey_map_view = Instance(ModelView)
 
@@ -50,17 +56,21 @@ class SurveyMapPane(TraitsDockPane):
         self.survey_map_view = self._get_survey_map_view()
 
     def _get_survey_map_view(self):
-        if self.task is None:
+        #from IPython import embed; embed()
+        if self.survey_task is None:
             selected_survey_lines = []
-        else:
-            selected_survey_lines = self.selected_survey_lines
+            return None
         return SurveyMapView(model=self.survey,
-                             selected_survey_lines=selected_survey_lines)
+                             survey_task=self.survey_task,
+                             selected_survey_lines=self.selected_survey_lines)
 
     plot = Property(Instance(Plot), depends_on='survey_map_view')
 
     def _get_plot(self):
-        return self.survey_map_view.plot
+        try:
+            return self.survey_map_view.plot
+        except:
+            return None
 
     view = View(Item('plot', editor=ComponentEditor(),
                      width=400,

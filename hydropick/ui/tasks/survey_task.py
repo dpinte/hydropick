@@ -18,6 +18,7 @@ from apptools.undo.i_command_stack import ICommandStack
 
 from ...model.i_survey import ISurvey
 from ...model.i_survey_line import ISurveyLine
+from ...model.survey_line import SurveyLine
 from ...model.i_survey_line_group import ISurveyLineGroup
 from ...model import algorithms
 
@@ -46,6 +47,9 @@ class SurveyTask(Task):
     #: the currently active survey line that we are viewing
     current_survey_line = Supports(ISurveyLine)
 
+    def _current_survey_line_default(self):
+        return SurveyLine()
+    
     #: the selected survey lines
     selected_survey_lines = List(Supports(ISurveyLine))
 
@@ -203,7 +207,7 @@ class SurveyTask(Task):
         data = SurveyDataPane(survey=self.survey)
         self.on_trait_change(lambda new: setattr(data, 'survey', new), 'survey')
 
-        map = SurveyMapPane(survey=self.survey)
+        map = SurveyMapPane(survey=self.survey, survey_task=self)
         self.on_trait_change(lambda new: setattr(map, 'survey', new), 'survey')
         return [data, map]
 

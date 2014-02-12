@@ -16,13 +16,14 @@ from chaco.api import (ArrayPlotData, ArrayDataSource, LinearMapper,
                        Plot, PolygonPlot)
 from chaco.tools.api import PanTool, ZoomTool
 from enable.api import BaseTool, ColorTrait
-from traits.api import Bool, Dict, Float, Instance, List, on_trait_change, Property
+from traits.api import Bool, DelegatesTo, Dict, Float, Instance, List, on_trait_change, Property, Supports
 from traitsui.api import ModelView
 from pyface.tasks.api import TraitsDockPane
 
 # local imports
 from hydropick.model.i_survey import ISurvey
 from hydropick.model.i_survey_line import ISurveyLine
+from hydropick.ui.tasks.survey_task import SurveyTask
 from hydropick.ui.line_select_tool import LineSelectTool
 
 
@@ -88,13 +89,15 @@ class SurveyMapView(ModelView):
 
     map_pane = Instance(TraitsDockPane)
 
+    survey_task = Supports(SurveyTask)
+    
     line_select_tool = Instance(BaseTool)
 
     #: distance tolerance in data units on map (feet by default)
     tol = Float(100)
 
     #: proxy for the task's current survey line
-    current_survey_line = Instance(ISurveyLine)
+    current_survey_line = DelegatesTo('survey_task')
 
     #: reference to the task's selected survey lines
     selected_survey_lines = List(Instance(ISurveyLine))
