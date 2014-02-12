@@ -13,7 +13,7 @@ import numpy as np
 from traits.api import (Instance, Str, Dict, List, Int, Property,
                         on_trait_change, Button)
 from traitsui.api import ModelView, View, HSplit, Group, Item, EnumEditor
-from chaco.api import Plot, ArrayPlotData, PlotComponent, Greys
+from chaco.api import Plot, ArrayDataSource, ArrayPlotData, LinePlot, LinearMapper, PlotComponent, Greys
 
 # Local imports
 from .survey_data_session import SurveyDataSession
@@ -119,6 +119,8 @@ class SurveyLineView(ModelView):
             self.add_lines(**self.model.depth_dict)
         if self.model.frequencies:
             self.add_images(**self.model.frequencies)
+        if self.model.core_samples:
+            self.add_cores(self.model.core_samples)
         return container
 
     def _control_view_default(self):
@@ -183,6 +185,25 @@ class SurveyLineView(ModelView):
         self.model.frequencies.update(kw)
         imagelist = [kw.keys()[0]]
         self.update_main_mini_image(imagelist)
+
+    def add_cores(self, cores):
+        """ FIXME: really plot the core
+        """
+        main = self.mainplot
+        index_mapper = LinearMapper(range=main.index_range)
+        value_mapper = LinearMapper(range=main.value_range)
+        print main.index_range.low, main.index_range.high
+        print main.value_range.low, main.value_range.high
+        for core in cores:
+            # XXX: bogus x location
+            x = [1000, 1000]
+            y = [0, 9]
+            lineplot = LinePlot(index=ArrayDataSource(x),
+                                value=ArrayDataSource(y),
+                                color='red',
+                                index_mapper=index_mapper,
+                                value_mapper=value_mapper)
+            main.add(lineplot)
 
     def make_plot(self, height=None):
         ''' Creates one Plot instance with all depthlines and one image plot.
