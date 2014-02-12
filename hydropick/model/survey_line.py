@@ -97,3 +97,14 @@ class SurveyLine(HasTraits):
         self.draft = (np.mean(freq_dict['draft']))
         self.heave = freq_dict['heave']
         self.pixel_resolution = (np.mean(freq_dict['pixel_resolution']))
+
+    def nearby_core_samples(self, core_samples, dist_tol=100):
+        """ Find core samples from a list of CoreSample instances
+        that lie within dist_tol units of this survey line.
+        """
+        def distance(core, line):
+            """ Calculate distance between a core sample and a survey line
+            """
+            from shapely.geometry import Point
+            return self.navigation_line.distance(Point(core.location))
+        return [core for core in core_samples if distance(core, self) < dist_tol]
