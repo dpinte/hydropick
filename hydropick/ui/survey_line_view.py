@@ -7,6 +7,7 @@
 
 from __future__ import absolute_import
 
+import logging
 import numpy as np
 
 # ETS imports
@@ -21,6 +22,8 @@ from .survey_data_session import SurveyDataSession
 from .survey_tools import TraceTool, LocationTool
 from .survey_views import (ControlView, InstanceUItem, PlotContainer, DataView,
                            ImageAdjustView, AddDepthLineView)
+
+logger = logging.getLogger(__name__)
 
 
 class SurveyLineView(ModelView):
@@ -56,10 +59,10 @@ class SurveyLineView(ModelView):
     # Dictionary of plots kept for legend and for tools.
     # Will contain all depth lines at least.  This contains components as
     # opposed to the depth_dict{str:array} in the model.
-    plot_dict = Dict(Str, PlotComponent, value={})
+    plot_dict = Dict(Str, PlotComponent)
 
     # Custom tool for editing depth lines
-    trace_tool = Instance(TraceTool)
+    trace_tools = List   #Instance(TraceTool)
 
     # Custom tool for showing coordinates at mouse position
     location_tool = Instance(LocationTool)
@@ -107,53 +110,62 @@ class SurveyLineView(ModelView):
     #==========================================================================
 
     def _plot_container_default(self):
-        ''' Creat initial plot container'''
-        dist_unit = self.model.survey_line.locations_unit
-        self.mainplot = self.make_plot()
-        self.mainplot.y_axis.title = 'Depth (m)'
-        self.miniplot = self.make_plot(height=self.mini_height)
-        self.miniplot.x_axis.title = 'Distance ({})'.format(dist_unit)
-        container = PlotContainer(mainplot=self.mainplot,
-                                  miniplot=self.miniplot)
-        if self.model.depth_dict:
-            self.add_lines(**self.model.depth_dict)
-        if self.model.frequencies:
-            self.add_images(**self.model.frequencies)
-
-        container.on_trait_change(self.legend_capture,
-                                  name='legend_highlighter._drag_state')
-
-        # need to change selected freq to
-        minf, maxf = self.model.get_low_high_freq()
-        self.model.selected_freq = minf
-        self.model.selected_freq = maxf
+        ''' Create initial plot container'''
+        container = PlotContainer()
         return container
+        # dist_unit = self.model.survey_line.locations_unit
+        # self.mainplot = self.make_plot()
+        # self.mainplot.y_axis.title = 'Depth (m)'
+        # self.miniplot = self.make_plot(height=self.mini_height)
+        # self.miniplot.x_axis.title = 'Distance ({})'.format(dist_unit)
+        # container = PlotContainer(mainplot=self.mainplot,
+        #                           miniplot=self.miniplot)
+        # if self.model.depth_dict:
+        #     self.add_lines(**self.model.depth_dict)
+        # if self.model.frequencies:
+        #     self.add_images(**self.model.frequencies)
+
+        # container.on_trait_change(self.legend_capture,
+        #                           name='legend_highlighter._drag_state')
+
+        # # need to change selected freq to
+        # minf, maxf = self.model.get_low_high_freq()
+        # self.model.selected_freq = minf
+        # self.model.selected_freq = maxf
+        # return container
+
+    @on_trait_change('model')
+    def update_plot_container(self):
+        self.create_data_array()
+        c = self.plot_container
+        c.plot_dict = self.plot_dict
+        c.data = self.plotdata
+        c.model = self.model
+        c.vplot_container.invalidate_and_redraw()
+
+    @on_trait_change('plotdata.arrays')
+    def redraw_edit_lines(self):
+        for k, hpc in self.plot_container.hplot_dict.items():
+            if k is not 'mini':
+                main = hpc.components[0]
+                main.invalidate_and_redraw()
 
     def _control_view_default(self):
         ''' Creates ControlView object filled with associated traits'''
 
         cv = ControlView(target_choices=self.model.target_choices,
                          line_to_edit=self.model.selected_target,
-                         visible_lines=[],
                          freq_choices=self.model.freq_choices,
-                         image_freq=self.model.selected_freq,
-                         latitude=0,
-                         longitude=0
+                         image_freq='',
                          )
         # set default values for widgets
-        cv.visible_lines = self.model.target_choices
-        cv.image_freq = self.model.selected_freq
+        cv.image_freq = ''
 
         # Add notifications
-        cv.on_trait_change(self.select_line, name='visible_lines')
         cv.on_trait_change(self.change_target, name='line_to_edit')
         cv.on_trait_change(self.change_image, name='image_freq')
         cv.on_trait_change(self.toggle_edit, name='edit')
 
-        # need to change selected freq to
-        minf, maxf = self.model.get_low_high_freq()
-        self.model.selected_freq = minf
-        self.model.selected_freq = maxf
         return cv
 
     def _add_depth_line_view_default(self):
@@ -161,24 +173,27 @@ class SurveyLineView(ModelView):
 
     def toggle_edit(self):
         ''' enables editing tool based on ui edit selector'''
-        if self.control_view.edit == 'Editing':
-            self.trace_tool.edit_allowed = True
-        else:
-            self.trace_tool.edit_allowed = False
+        for tool in self.trace_tools:
+            if self.control_view.edit == 'Editing':
+                tool.edit_allowed = True
+            else:
+                tool.edit_allowed = False
 
     def _plotdata_default(self):
         ''' Provides initial plotdata object'''
-        if self.model.x_array.any():
-            return ArrayPlotData(x_array=self.model.x_array)
-        else:
-            return ArrayPlotData()
+        return ArrayPlotData()
 
-    def _trace_tool_default(self):
+    def _trace_tools_default(self):
         ''' Sets up trace tool for editing lines'''
-        tool = TraceTool(self.mainplot)
-        tool.on_trait_change(self.update_depth, 'depth')
-        self.mainplot.tools.append(tool)
-        return tool
+        tools = []
+        for key, hpc in self.plot_container.hplot_dict.items():
+            if key is not 'mini':
+                main = hpc.components[0]
+                tool = TraceTool(main)
+                tool.on_trait_change(self.update_depth, 'depth')
+                main.tools.append(tool)
+                tools.append(tool)
+        return tools
 
     def _data_view_default(self):
         return DataView()
@@ -192,6 +207,47 @@ class SurveyLineView(ModelView):
     #==========================================================================
     # Helper functions
     #==========================================================================
+
+    def create_data_array(self):
+        '''want data array to have all data in it :
+            3x img    min=1  (1 per hplot)
+            3x img depth value array (1 per hplot, used for slice plotting)
+            3x x_slice min=3 (1 per hplot)
+            nx lines  min=0  (all on each hplot)
+
+            data keys:
+            intensity images key = freq
+            img depth arrays key = freq_y
+            slice line key = freq_slice
+            depth line key = prefix_line_name_x
+
+        '''
+
+        if self.plotdata is None:
+            self.plotdata = ArrayPlotData()
+        d = self.plotdata
+
+        if self.model:
+            # add the freq dependent (3@) data
+            for k, img in self.model.frequencies.items():
+                y_key = k+'_y'
+                slice_key = k+'_slice'
+                kw = {k: self.model.frequencies[k],
+                      y_key: self.model.y_arrays[k],
+                      slice_key: np.array([]),
+                      }
+                d.update_data(**kw)
+
+            # add the depth line data
+            for line_key, depth_line in self.model.depth_dict.items():
+                x = self.model.distance_array[depth_line.index_array]
+                y = depth_line.depth_array
+                key_x, key_y = line_key + '_x',  line_key + '_y'
+                kw = {key_x: x, key_y: y}
+                d.update_data(**kw)
+
+        return d
+
     def update_control_view(self):
         cv = self.control_view
         cv.visible_lines = self.model.target_choices
@@ -239,6 +295,7 @@ class SurveyLineView(ModelView):
         ''' Add specified lineplots already in self.plotdata to both plots
         Assumes x_array from model.x_array is already in plotdata as well.
         '''
+        import ipdb; ipdb.set_trace()    ##############################################   trace
         main = self.mainplot
         mini = self.miniplot
         for key in keylist:
@@ -251,6 +308,7 @@ class SurveyLineView(ModelView):
         ''' Add specified image plots from self.plotdata to both plots.
         Should be done after lineplots to set plot axis ranges automatically
         '''
+        import ipdb; ipdb.set_trace()    ##############################################   trace
         main = self.mainplot
         mini = self.miniplot
         for key in keylist:
@@ -286,7 +344,7 @@ class SurveyLineView(ModelView):
     # Notifications or Callbacks
     #==========================================================================
 
-    def legend_capture(self,obj, name, old, new):
+    def legend_capture(self, obj, name, old, new):
         ''' stop editing depth line when moving legend (rt mouse button)'''
         self.control_view.edit = 'Not Editing'
 
@@ -342,18 +400,26 @@ class SurveyLineView(ModelView):
 
     def change_target(self, object, name, old, new_target):
         '''update trace tool target line attribute.'''
+        self.plot_dict = self.plot_container.plot_dict
+        # change colors of lines appropriately
         new_target_line = self.plot_dict[new_target]
         new_target_line.color = 'red'
         old_target_line = self.plot_dict.get(old, None)
         if old_target_line:
-            old_target_line.color = 'blue'
-        # make selected plot visible
-        cv = self.control_view
-        if new_target not in cv.visible_lines:
-            newset = set(cv.visible_lines).union(set([new_target]))
-            cv.visible_lines = list(newset)
-        self.mainplot.invalidate_and_redraw()
-        self.trace_tool.target_line = new_target_line
+            old_color = self.model.depth_dict[new_target].color
+            old_target_line.color = old_color
+        # # make selected plot visible
+        # cv = self.control_view
+        # if new_target not in cv.visible_lines:
+        #     newset = set(cv.visible_lines).union(set([new_target]))
+        #     cv.visible_lines = list(newset)
+
+        # update trace_tool targets.
+        for tool in self.trace_tools:
+            tool.target_line = new_target_line
+            tool.key = new_target
+
+        self.plot_container.vplot_container.invalidate_and_redraw()
 
     def change_image(self, old, new):
         ''' Called by changing selected freq.

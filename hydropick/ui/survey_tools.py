@@ -8,8 +8,9 @@
 import numpy as np
 
 # ETS imports
-from enable.api import BaseTool
-from traits.api import Float, Enum, Int, Bool, Instance
+from enable.api import BaseTool, KeySpec
+from traits.api import (Float, Enum, Int, Bool, Instance, Str, List, Set,
+                        Property)
 from chaco.api import LinePlot
 
 #==============================================================================
@@ -34,14 +35,28 @@ class InspectorFreezeTool(BaseTool):
     ''' Provides key for "freezing" line inspector tool so that cursor
     will remain in place
     '''
-
-    #inspector_tool = Instance(LineInspector)
     tool_set = Set
-    off_key = KeySpec("f","alt",ignore=['shift'])
+    main_key = Str("f")
+    modifier_key = Str("alt")
+    ignore_keys = List(Str, value=['shift'])
 
-    def normal_key_pressed(self,event):
+    off_key = Instance(KeySpec)
+
+    def _off_key_default(self):
+        self.reset_off_key()
+        self.on_trait_change(self.reset_off_key, ['main_key',
+                                                  'modifier_key',
+                                                  'ignore_keys'])
+        return self.off_key
+
+    def reset_off_key(self):
+        self.off_key = KeySpec(self.main_key,
+                               self.modifier_key,
+                               ignore=self.ignore_keys)
+
+    def normal_key_pressed(self, event):
         if self.off_key.match(event):
-            
+            print event.character
             for tool in self.tool_set:
                 active = tool.is_interactive
                 if active:
@@ -77,7 +92,12 @@ class TraceTool(BaseTool):
     mouse_down = Bool(False)
 
     target_line = Instance(LinePlot)
+    data = Property()
+    key = Str
 
+    def _get_data(self):
+        return self.target_line.container.data
+    
     def normal_right_down(self, event):
         ''' start editing '''
         if self.edit_allowed:

@@ -48,7 +48,7 @@ class SurveyLine(HasTraits):
     #: complete trace_num set. array = combined freq_trace_num arrays
     trace_num = Array
 
-    #: array of trace numbers corresponding to each intensity pixel columns
+    #: array of trace numbers corresponding to each intensity pixel/column
     #: ! NOTE ! starts at 1, not 0, so need to subtract 1 to use as index
     freq_trace_num = Dict
 

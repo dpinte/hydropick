@@ -105,9 +105,11 @@ class SurveyDataSession(HasTraits):
     # Y axis of depth lines should be set to match this value.
     ybounds = Property(Dict)
 
+    # dict of depth value arrays for each freq/intensity plot to plot slices.
+    y_arrays = Property(Dict)
+
     # cumulative distance along path based on locations array.
     cumulative_distance = Property()
-
 
     #==========================================================================
     # Defaults
@@ -166,8 +168,13 @@ class SurveyDataSession(HasTraits):
         ''' Combine lake depths and preimpoundment in to one dict.
         '''
         depth_dict = {}
-        depth_dict.update(self.lake_depths)
-        depth_dict.update(self.preimpoundment_depths)
+        for k, v in self.lake_depths.items():
+            key = 'POST_' + k
+            depth_dict[key] = v
+        for k, v in self.preimpoundment_depths.items():
+            key = 'PRE_' + k
+            depth_dict[key] = v
+
         return depth_dict
 
     def _get_target_choices(self):
@@ -184,8 +191,19 @@ class SurveyDataSession(HasTraits):
             d[key] = (freq_dist.min(), freq_dist.max())
         return d
 
+    def _get_y_arrays(self):
+        ''' y arrays for each freq provided in dictionary'''
+        d = {}
+        for key, intensity in self.frequencies.items():
+            N = intensity.shape[0]
+            min, max = self.ybounds[key]
+            array = np.linspace(min, max, num=N)
+            d[key] = array
+        return d
+
     def _get_ybounds(self):
-        d={}
+        ''' made dict of y bounds for each intensity plot'''
+        d = {}
         min = np.mean(self.pixel_depth_offset)
         for key, intensity in self.frequencies.items():
             N = intensity.shape[0]
@@ -194,8 +212,8 @@ class SurveyDataSession(HasTraits):
         return d
 
     def _get_distance_array(self):
-        ''' creates linear mapping of cumulative distance to the trace_num array
-        so each trace_num/index will have an approximate distance along the line.
+        ''' creates linear mapping of cumulative distance to trace_num array
+        so each trace_num/index will have an approximate distance along line.
         This can be used to get an x_value array for any function defined on a
         subset of the trace_num array via x_array = distance[index_array]
         '''
