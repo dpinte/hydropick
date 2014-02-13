@@ -7,7 +7,7 @@
 
 from __future__ import absolute_import
 
-from traits.api import DelegatesTo, Instance, Property, Bool, Dict, Str, Supports, DelegatesTo
+from traits.api import DelegatesTo, Instance, Property, Bool, Dict, List, Str, Supports, DelegatesTo
 from traitsui.api import View, Item
 from pyface.tasks.api import TraitsTaskPane
 
@@ -15,6 +15,7 @@ from ...model.i_survey_line import ISurveyLine
 from ..survey_data_session import SurveyDataSession
 from ..survey_line_view import SurveyLineView
 from .survey_task import SurveyTask
+from hydropick.model.i_core_sample import ICoreSample
 
 
 class SurveyLinePane(TraitsTaskPane):
@@ -28,6 +29,8 @@ class SurveyLinePane(TraitsTaskPane):
     survey = DelegatesTo('survey_task')
 
     survey_line = Instance(ISurveyLine)
+
+    core_samples = List(Supports(ICoreSample))
 
     # provides string with name of line for keys or info.
     line_name = Property(depends_on='survey_line.name')
@@ -71,6 +74,8 @@ class SurveyLinePane(TraitsTaskPane):
 
             self.survey_line_view = SurveyLineView(model=data_session,
                                                    algorithms=self.algorithms)
+            self.survey_line.core_samples = self.survey_line.nearby_core_samples(self.survey.core_samples)
+            print self.survey_line.core_samples
             self.show_view = True
 
     view = View(

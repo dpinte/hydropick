@@ -13,7 +13,7 @@ from shapely.geometry import Point
 
 # ETS imports
 from chaco.api import (ArrayPlotData, ArrayDataSource, LinearMapper,
-                       Plot, PolygonPlot)
+                       Plot, PolygonPlot, ScatterPlot)
 from chaco.tools.api import PanTool, ZoomTool
 from enable.api import BaseTool, ColorTrait
 from traits.api import Bool, Dict, Float, Instance, List, on_trait_change, Property
@@ -120,6 +120,9 @@ class SurveyMapView(ModelView):
     #: Color to draw the shoreline
     shore_color = ColorTrait('black')
 
+    #: Color to draw the core locations
+    core_color = ColorTrait('red')
+
     #: Color to draw the survey lines
     line_color = ColorTrait('blue')
 
@@ -172,6 +175,16 @@ class SurveyMapView(ModelView):
             plotdata.set_data(y_key, y)
             self.line_plots[line.name] = plot.plot((x_key, y_key),
                                                    color=self.line_color)
+        for core in self.model.core_samples:
+            x, y = core.location
+            scatterplot = ScatterPlot(index=ArrayDataSource([x]),
+                                       value=ArrayDataSource([y]),
+                                       marker='circle',
+                                       color=self.core_color,
+                                       outline_color=self.core_color,
+                                       index_mapper=index_mapper,
+                                       value_mapper=value_mapper)
+            plot.add(scatterplot)
         self._set_line_colors()
         if self.model.lake is not None:
             x_min, y_min, x_max, y_max = self.model.lake.shoreline.bounds
