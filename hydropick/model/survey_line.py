@@ -11,10 +11,8 @@ import os
 import numpy as np
 from shapely.geometry import LineString
 
-from sdi import binary
-
 from traits.api import (HasTraits, Array, Dict, Event, List, Supports, Str,
-                        provides, CFloat, Instance, Tuple)
+                        provides, CFloat, Instance)
 
 from .i_core_sample import ICoreSample
 from .i_survey_line import ISurveyLine
@@ -90,7 +88,7 @@ class SurveyLine(HasTraits):
         '''
         # read in sdi dictionary.  Only use 'frequencies' item.
         # sdi_dict_separated = binary.read(self.data_file_path)
-        # sdi_dict_raw = binary.read(self.data_file_path, separate=False) 
+        # sdi_dict_raw = binary.read(self.data_file_path, separate=False)
         # freq_dict_list = sdi_dict_separated['frequencies']
 
         from ..io import survey_io
@@ -142,4 +140,6 @@ class SurveyLine(HasTraits):
             """
             from shapely.geometry import Point
             return self.navigation_line.distance(Point(core.location))
-        return [core for core in core_samples if distance(core, self) < dist_tol]
+        cores = [core for core in core_samples
+                 if distance(core, self) < dist_tol]
+        return cores

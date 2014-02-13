@@ -30,10 +30,9 @@ from traits.api import (Instance, Str, List, HasTraits, Float, Property,
 from traitsui.api import (View, Group, Item, EnumEditor, UItem, InstanceEditor,
                           RangeEditor, Label, HGroup, CheckListEditor)
 from chaco import default_colormaps
-from chaco.api import (Plot, ArrayPlotData, LinePlot, VPlotContainer,
-                       CMapImagePlot, ScatterPlot, ColorBar, LinearMapper,
-                       HPlotContainer, Legend, create_scatter_plot,
-                       PlotComponent)
+from chaco.api import (Plot, ArrayPlotData, VPlotContainer, HPlotContainer,
+                       Legend, create_scatter_plot, PlotComponent,
+                       create_line_plot)
 from chaco.tools.api import (PanTool, ZoomTool, RangeSelection, LineInspector,
                              RangeSelectionOverlay, LegendHighlighter)
 
@@ -44,6 +43,7 @@ from .survey_data_session import SurveyDataSession
 from ..model.core_sample import CoreSample
 
 # global constants
+# these still need to be tweaked to get the right look
 logger = logging.getLogger(__name__)
 COLORMAPS = default_colormaps.color_map_name_dict.keys()
 DEFAULT_COLORMAP = 'Spectral'
@@ -189,16 +189,13 @@ class PlotContainer(HasTraits):
             top = sorted_hplots[-1]
             for freq, hpc in self.hplot_dict.items():
                 hpc.visible = ((freq in sorted_hplots) or (freq == 'mini'))
-                # hpc.components[0].x_axis.visible = (freq == bottom or
-                #                                     freq == 'mini')
                 main = hpc.components[0]
                 if freq == bottom or freq == 'mini':
-                    #pass
                     main.x_axis.visible = True
                     hpc.padding_bottom = MAIN_PADDING_BOTTOM
                 else:
                     main.x_axis.visible = False
-                    hpc.padding_bottom = MAIN_PADDING_BOTTOM    #HPLOT_PADDING
+                    hpc.padding_bottom = MAIN_PADDING_BOTTOM 
 
                 print 'key', freq, hpc.components[0].x_axis.visible
                 legend = self.legend_dict.get(freq, None)
@@ -212,14 +209,6 @@ class PlotContainer(HasTraits):
                 main.invalidate_and_redraw()
         else:
             logger.info('no hplot containers')
-
-        # for k, hpc in self.hplot_dict.items():
-        #     if k in self.selected_hplots:
-        #         hpc.visible = True
-        #     hpc.invalidate_and_redraw()
-        #     hpc.container.invalidate_and_redraw()
-        # self.set_intensity_profile_visibility(show=False)
-        # self.set_intensity_profile_visibility(show=self.show_intensity_profiles)
 
         self.reset_all()
 
@@ -244,28 +233,9 @@ class PlotContainer(HasTraits):
                 hpc.invalidate_and_redraw()
         self.vplot_container.invalidate_and_redraw()
 
-
-
     def set_intensity_profile_visibility(self, show=True):
         ''' sets intensity profile visibility for all hplots '''
-        # for k, hpc in self.hplot_dict.items():
-        #     if k is not 'mini':
-        #         profile = hpc.components[1]
-        #         profile.visible = show
-        #         main = hpc.components[0]
-        #         main.visible = True
-        #         main.invalidate_and_redraw()
-        #         hpc.invalidate_and_redraw()
-        #         main.invalidate_and_redraw()
-        # for k, hpc in self.hplot_dict.items():
-        #     if k is not 'mini':
-        #         main = hpc.components[0]
-        #         main.visible = True
-        #         main.invalidate_and_redraw()
-        #         hpc.invalidate_and_redraw()
-        #         main.invalidate_and_redraw()
         self.reset_all()
-
 
     def create_hplot(self, key=None, mini=False):
         if mini:
@@ -281,13 +251,15 @@ class PlotContainer(HasTraits):
                                  )
 
         # make slice plot for showing intesity profile of main plot
+        #************************************************************
         slice_plot = Plot(self.data,
                           width=SLICE_PLOT_WIDTH,
                           orientation="v",
                           resizable="v",
                           padding=MAIN_PADDING,
                           padding_left=MAIN_PADDING_LEFT,
-                          bgcolor='beige'
+                          bgcolor='beige',
+                          origin='top left'
                           )
 
         slice_plot.x_axis.visible = False
@@ -296,6 +268,7 @@ class PlotContainer(HasTraits):
         slice_plot.plot((ydata_key, slice_key), name=slice_key)
 
         # make main plot for editing depth lines
+        #************************************************************
         main = Plot(self.data,
                     border_visible=True,
                     bgcolor='beige',
@@ -307,6 +280,7 @@ class PlotContainer(HasTraits):
             main.padding = MINI_PADDING
 
         # add intensity img to plot and get reference for line inspector
+        #************************************************************
         print self.img_colormap
         img_plot = main.img_plot(key, name=key,
                                  xbounds=self.model.xbounds[key],
@@ -314,9 +288,19 @@ class PlotContainer(HasTraits):
                                  colormap=self._cmap
                                  )[0]
         # add line plots: use method since these may change
+        #************************************************************
         self.update_line_plots(key, main)
 
+        # add vertical core lines to main plots
+        #************************************************************
+        for core in self.model.core_samples:
+            pass
+            # need to add the following function still
+            # x = self.model.get_nearest_point_to_core(core)
+            # self.plot_core(x, main)
+
         # now add tools depending if it is a mini plot or not
+        #************************************************************
         if mini:
             # add range selection tool only
             # first add a reference line to attache it to
@@ -480,7 +464,7 @@ class PlotContainer(HasTraits):
             # now updata data array which will updata slice plot
             x_index, y_index = slice_meta
             try:
-                slice_data = np.flipud(img.value.data[:, x_index])
+                slice_data = img.value.data[:, x_index]
                 self.data.update_data({slice_key: slice_data})
             except IndexError:
                 logger.info('slice index out of bounds for {}'.format(key))
@@ -491,175 +475,12 @@ class PlotContainer(HasTraits):
         else:   # clear all slice plots
             self.data.update_data({slice_key: np.array([])})
 
-
-# class PlotContainer2(HasTraits):
-#     ''' miniplot must have at least one plot with an index.
-#         therefore there should be a check in the plot dictionary
-#         that there is a plot with an index
-#     '''
-
-#     #==========================================================================
-#     # Traits Attributes
-#     #==========================================================================
-
-#     # These two plots should have the same data.  The miniplot will provide a
-#     # continuous full view of data set.
-#     mainplot = Instance(Plot)
-#     miniplot = Instance(Plot)
-#     # Vplotcontainer will have mmainplot on top for working and small miniplot
-#     # below for reference
-#     plot_container = Instance(VPlotContainer)
-
-#     # trait used to signal editor when legend is moved (rt drag) => stop edit.
-#     legend_highlighter = Instance(LegendHighlighter)
-
-#     # View for the plot container
-#     traits_view = View(UItem('plot_container', editor=ComponentEditor()))
-
-#     #==========================================================================
-#     # Defaults
-#     #==========================================================================
-
-#     def _mainplot_default(self):
-#         return self.default_plot()
-
-#     def _miniplot_default(self):
-#         return self.default_plot()
-
-#     def default_plot(self):
-#         # Provides initial line plot to satisfy range tool.  Subsequent plots
-#         # should have at least one line plot
-#         y = np.arange(10)
-#         data = ArrayPlotData(y=y)
-#         plot = Plot(data)
-#         plot.plot(('y'))
-#         return plot
-
-#     # Add a range overlay to the miniplot that is hooked up to the range
-#     # of the main plot.
-
-#     def _plot_container_default(self):
-#         ''' Define plot container tools and look.
-#         '''
-#         self.mainplot.tools.append(PanTool(self.mainplot))
-#         self.mainplot.tools.append(ZoomTool(self.mainplot,
-#                                             tool_mode='range',
-#                                             axis='value')
-#                                    )
-#         main = self.mainplot
-
-#         # Make clickable, dragable legend.
-#         legend = Legend(component=main, padding=10, align="ur")
-#         self.legend_highlighter = LegendHighlighter(legend,
-#                                                     drag_button="right")
-#         legend.tools.append(self.legend_highlighter)
-#         legend.plots = dict([(k, v) for k, v in main.plots.items() if
-#                              isinstance(v[0], LinePlot)])
-#         main.overlays.append(legend)
-
-#         has_img = False
-#         if 'image plot' in self.mainplot.plots:
-#             has_img = True
-#             imgplot = self.mainplot.plots['image plot'][0]
-#             self.img_data = imgplot.value
-#             colormap = imgplot.color_mapper
-#             lin_mapper = LinearMapper(range=colormap.range)
-#             colorbar = ColorBar(index_mapper=lin_mapper,
-#                                 color_mapper=colormap,
-#                                 plot=imgplot,
-#                                 orientation='v',
-#                                 resizable='v',
-#                                 width=30,
-#                                 padding=20
-#                                 )
-
-#             colorbar.padding_top = self.mainplot.padding_top
-#             colorbar.padding_bottom = self.mainplot.padding_bottom
-
-#             # create a range selection for the colorbar
-#             range_selection = RangeSelection(component=colorbar)
-#             colorbar.tools.append(range_selection)
-#             overlay = RangeSelectionOverlay(component=colorbar,
-#                                             border_color="white",
-#                                             alpha=0.8,
-#                                             fill_color="lightgray")
-#             colorbar.overlays.append(overlay)
-
-#             # we also want to the range selection to inform the cmap plot of
-#             # the selection, so set that up as well
-#             range_selection.listeners.append(imgplot)
-#             #range_selection.on_trait_change(self.adjust_img, 'selection')
-
-#             # Create a container to position the plot and the colorbar
-#             # side-by-side
-#             container = HPlotContainer(use_backbuffer=True)
-#             container.add(self.mainplot)
-#             container.add(colorbar)
-#             container.bgcolor = "lightgray"
-
-#         firstplot = self.a_plot_with_index()
-#         # connect plots with range tools
-#         if firstplot:
-#             range_tool = RangeSelection(firstplot)
-#             firstplot.tools.append(range_tool)
-#             range_overlay = RangeSelectionOverlay(firstplot,
-#                                                   metadata_name="selections")
-#             firstplot.overlays.append(range_overlay)
-#             range_tool.on_trait_change(self._range_selection_handler,
-#                                        "selection")
-
-#         # add to container and fine tune spacing
-#         spacing = 25
-#         padding = 50
-#         width, height = (1000, 600)
-#         plot_container = VPlotContainer(bgcolor="lightgray",
-#                                         spacing=spacing,
-#                                         padding=padding,
-#                                         fill_padding=False,
-#                                         width=width, height=height,
-#                                         )
-#         if has_img:
-#             plot_container.add(self.miniplot, container)
-#         else:
-#             plot_container.add(self.miniplot, self.mainplot)
-
-#         return plot_container
-
-#     def a_plot_with_index(self):
-#         ''' Find first plot in data with an index or create one from img
-#         '''
-#         plots = self.miniplot.plots.values()
-#         indexplot = None
-#         imgplot = None
-#         for [plot] in plots:
-#             if isinstance(plot, LinePlot) or isinstance(plot, ScatterPlot):
-#                 indexplot = plot
-
-#             elif isinstance(plot, CMapImagePlot):
-#                 imgplot = plot
-#             if indexplot:
-#                 break
-
-#         if not indexplot:
-#             if imgplot:
-#                 array_width = imgplot.value.get_data().shape[1]
-#                 xvalues = np.arange(array_width)
-#                 data = self.miniplot.data
-#                 data.set_data('default plot', xvalues)
-#                 plot = self.miniplot.plot(('default plot'))
-#             else:
-#                 pass  # 'NO SUITABLE PLOTS'
-
-#         return indexplot
-
-#     def _range_selection_handler(self, event):
-#         # The event obj should be a tuple (low, high) in data space
-#         if event is not None:
-#             low, high = event
-#             self.mainplot.index_range.low = low
-#             self.mainplot.index_range.high = high
-#         else:
-#             self.mainplot.index_range.set_bounds("auto", "auto")
+    def plot_core(self, x, plot):
+        y_range = plot.value_range
+        ys = np.array([y_range.low, y_range.high])
+        xs = x + ys * 0
+        line = create_line_plot((xs, ys),  orientation='h', color='black')
+        plot.add(line)
 
 
 class AddDepthLineView(HasTraits):
@@ -683,8 +504,10 @@ class AddDepthLineView(HasTraits):
         buttons=['OK', 'Cancel'],
         resizable=True
     )
+
     def _get_bounds(self):
         return self.core.layer_boundaries
+
 
 class ControlView(HasTraits):
     ''' Define controls and info subview with size control'''
