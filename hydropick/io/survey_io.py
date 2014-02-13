@@ -29,3 +29,6 @@ def read_survey_line_from_hdf(h5file, name):
 
 def read_frequency_data_from_hdf(h5file, name):
     return hdf5.HDF5Backend(h5file).read_frequency_data(name)
+
+def read_sdi_data_unseparated_from_hdf(h5file, name):
+    return hdf5.HDF5Backend(h5file).read_sdi_data_unseparated(name)

@@ -67,25 +67,36 @@ def import_lake(directory):
 def import_sdi(directory, h5file):
     import tables
     from hydropick.model.survey_line_group import SurveyLineGroup
-
     survey_lines = []
     survey_line_groups = []
+    stepd = 0
     for root, dirs, files in os.walk(directory):
         group_lines = []
+        Nd = len(dirs)
+        Nf = len(files)
+        stepf = 0
+        stepd += 1
         for filename in files:
+            stepf += 1
             if os.path.splitext(filename)[1] == '.bin':
                 linename = os.path.splitext(filename)[0]
-                print 'Reading line', linename
+                print 'Reading line{}  ({}/{} of {}/{})'.format(linename,
+                                                                stepf,
+                                                                stepd, Nf, Nd)
                 try:
                     line = read_survey_line_from_hdf(h5file, linename)
                 except (IOError, tables.exceptions.NoSuchNodeError):
                     logger.info("Importing sdi file '%s'", filename)
                     try:
-                        import_survey_line_from_file(os.path.join(root, filename), h5file, linename)
+                        import_survey_line_from_file(os.path.join(root,
+                                                                  filename),
+                                                     h5file, linename)
                         line = read_survey_line_from_hdf(h5file, linename)
                     except Exception as e:
-                        # XXX: blind except to read all the lines that we can for now
-                        msg = 'Reading file {} failed with error "{}"'.format(filename, e)
+                        # XXX: blind except to read all the lines that we
+                        # can for now
+                        s = 'Reading file {} failed with error "{}"'
+                        msg = s.format(filename, e)
                         warnings.warn(msg)
                         logger.warning(msg)
                         break
@@ -115,7 +126,8 @@ def import_survey(directory):
     print hdf5_file
 
     # read in sdi data
-    survey_lines, survey_line_groups = import_sdi(os.path.join(directory, 'SDI_Data'),
+    survey_lines, survey_line_groups = import_sdi(os.path.join(directory,
+                                                               'SDI_Data'),
                                                   hdf5_file)
 
     # read in edits to sdi data

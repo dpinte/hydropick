@@ -89,8 +89,9 @@ class SurveyLinePane(TraitsTaskPane):
 
             self.survey_line_view = SurveyLineView(model=data_session,
                                                    algorithms=self.algorithms)
-            self.survey_line.core_samples = self.survey_line.nearby_core_samples(self.survey.core_samples)
-            print self.survey_line.core_samples
+            all_samples = self.survey.core_samples
+            near_samples = self.survey_line.nearby_core_samples(all_samples)
+            self.survey_line.core_samples = near_samples
             self.show_view = True
 
     view = View(

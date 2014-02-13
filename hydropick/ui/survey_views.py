@@ -41,6 +41,7 @@ from chaco.tools.api import (PanTool, ZoomTool, RangeSelection, LineInspector,
 from ..model.depth_line import DepthLine
 from .survey_tools import InspectorFreezeTool
 from .survey_data_session import SurveyDataSession
+from ..model.core_sample import CoreSample
 
 # global constants
 logger = logging.getLogger(__name__)
@@ -456,7 +457,6 @@ class PlotContainer(HasTraits):
         was changed by the line inspector.  The line inspector sets the
         "x_slice" key in the meta data.  We then retrieve this and use it
         to update the metadata for the intensity plots for all freqs'''
-        print "******** META CHANGED********",obj, name, old, new
         selected_meta = obj.metadata
         slice_meta = selected_meta.get("x_slice", None)
         for key, hplot in self.hplot_dict.items():
@@ -668,16 +668,23 @@ class AddDepthLineView(HasTraits):
     # depth line instance to be edited or displays
     depth_line = Instance(DepthLine)
 
+    # depth line instance to be edited or displays
+    core = Instance(CoreSample)
+    corelist = List
+    bounds = Property(List)
+
     # used in new depth line dialog box to apply choices to make a new line
     apply_button = Button('Apply')
 
     traits_view = View(
-        Group(Item('depth_line'),
+        Group(Item('depth_line'), Item('bounds'), Item('corelist'),
               'apply_button',
               ),
-        buttons=['OK', 'Cancel']
+        buttons=['OK', 'Cancel'],
+        resizable=True
     )
-
+    def _get_bounds(self):
+        return self.core.layer_boundaries
 
 class ControlView(HasTraits):
     ''' Define controls and info subview with size control'''

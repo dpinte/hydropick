@@ -14,6 +14,7 @@ class HDF5Backend(object):
 
     def import_binary_file(self, bin_file):
         data = sdi.binary.read(bin_file)
+        data_raw = sdi.binary.read(bin_file, separate=False)
         x = data['frequencies'][-1]['interpolated_easting']
         y = data['frequencies'][-1]['interpolated_northing']
         coords = np.vstack((x, y)).T
@@ -24,6 +25,17 @@ class HDF5Backend(object):
             f.flush()
 
         self._write_freq_dicts(line_name, data['frequencies'])
+        self._write_raw_sdi_dict(line_name, data_raw)
+
+    def read_sdi_data_unseparated(self, line_name):
+        try:
+            with self._open_file('r') as f:
+                unsep_grp = self._get_sdi_data_unseparated_group(f, line_name)
+                data = [(array.name, array.read()) for array in unsep_grp]
+                sdi_data = dict(data)
+        except tables.FileModeError:
+            raise tables.NoSuchNodeError
+        return sdi_data
 
     def read_frequency_data(self, line_name):
         try:
@@ -68,6 +80,15 @@ class HDF5Backend(object):
             frequency_group = f.createGroup(survey_line_group, 'frequencies')
         return frequency_group
 
+    def _get_sdi_data_unseparated_group(self, f, line_name):
+        """returns the group for the collection of frequency data for a survey line"""
+        survey_line_group = self._get_survey_line_group(f, line_name)
+        try:
+            sdi_data_unseparated_group = f.getNode(survey_line_group, 'sdi_data_unseparated')
+        except tables.NoSuchNodeError:
+            sdi_data_unseparated_group = f.createGroup(survey_line_group, 'sdi_data_unseparated')
+        return sdi_data_unseparated_group
+
     def _get_survey_lines_group(self, f):
         """returns the group for the collection of survey_lines - creating it if necessary"""
         try:
@@ -109,4 +130,16 @@ class HDF5Backend(object):
                 freq_group = self._get_frequency_group(f, line_name, khz)
                 for key, value in freq_dict.iteritems():
                     f.createArray(freq_group, key, value)
+            f.flush()
+
+    def _write_raw_sdi_dict(self, line_name, raw_dict):
+        with self._open_file('a') as f:
+            sdi_unsep_grp = self._get_sdi_data_unseparated_group(f, line_name)
+            for key, value in raw_dict.iteritems():
+                if key is not 'intensity':
+                    if key is 'filepath':
+                        value = str(value)    # to avoid unicode error
+                    if key is 'date':
+                        value = line_name
+                    f.createArray(sdi_unsep_grp, key, value)                
             f.flush()

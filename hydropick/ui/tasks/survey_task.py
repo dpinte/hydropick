@@ -90,8 +90,10 @@ class SurveyTask(Task):
                     id='Open', name='Open'
                 ),
                 SGroup(
-                    TaskAction(name="Save", method='on_save', accelerator='Ctrl+S', enabled_name='dirty'),
-                    TaskAction(name="Save As...", method='on_save_as', accelerator='Ctrl+Shift+S', enabled_name='survey'),
+                    TaskAction(name="Save", method='on_save', accelerator='Ctrl+S',
+                               enabled_name='dirty'),
+                    TaskAction(name="Save As...", method='on_save_as',
+                               accelerator='Ctrl+Shift+S', enabled_name='survey'),
                     id='Save', name='Save'
                 ),
                 id='File', name="&File",

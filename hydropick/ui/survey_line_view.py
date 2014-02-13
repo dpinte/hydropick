@@ -12,15 +12,11 @@ import numpy as np
 
 # ETS imports
 from traits.api import (Instance, Str, Dict, List, Int, Property,
-<<<<<<< HEAD
                         on_trait_change)
 from traitsui.api import ModelView, View, VGroup
-from chaco.api import Plot, ArrayPlotData, PlotComponent, Greys
-=======
-                        on_trait_change, Button)
-from traitsui.api import ModelView, View, HSplit, Group, Item, EnumEditor
-from chaco.api import Plot, ArrayDataSource, ArrayPlotData, LinePlot, LinearMapper, PlotComponent, Greys
->>>>>>> feature/plot_cores
+
+from chaco.api import (Plot, ArrayPlotData, PlotComponent, Greys, LinePlot,
+                       LinearMapper,)
 
 # Local imports
 from ..model.depth_line import DepthLine
@@ -29,9 +25,11 @@ from .survey_tools import TraceTool, LocationTool, DepthTool
 from .survey_views import (ControlView, InstanceUItem, PlotContainer, DataView,
                            ImageAdjustView, AddDepthLineView,
                            HPlotSelectionView)
+from ..model.core_sample import CoreSample
 
 logger = logging.getLogger(__name__)
 EDIT_COLOR = 'black'
+
 
 class SurveyLineView(ModelView):
     """ View Class for working with survey line data to find depth profile.
@@ -105,7 +103,7 @@ class SurveyLineView(ModelView):
 
     # name to give to resulting depth line
     new_line_name = Str
-
+    core = Instance(CoreSample)
     #==========================================================================
     # Define Views
     #==========================================================================
@@ -123,25 +121,24 @@ class SurveyLineView(ModelView):
     #==========================================================================
 
     def _plot_container_default(self):
-<<<<<<< HEAD
         ''' Create initial plot container'''
         container = PlotContainer()
-=======
-        ''' Creat initial plot container'''
-        dist_unit = self.model.survey_line.locations_unit
-        self.mainplot = self.make_plot()
-        self.mainplot.y_axis.title = 'Depth (m)'
-        self.miniplot = self.make_plot(height=self.mini_height)
-        self.miniplot.x_axis.title = 'Distance ({})'.format(dist_unit)
-        container = PlotContainer(mainplot=self.mainplot,
-                                  miniplot=self.miniplot)
-        if self.model.depth_dict:
-            self.add_lines(**self.model.depth_dict)
-        if self.model.frequencies:
-            self.add_images(**self.model.frequencies)
-        if self.model.core_samples:
-            self.add_cores(self.model.core_samples)
->>>>>>> feature/plot_cores
+# =======
+#         ''' Creat initial plot container'''
+#         dist_unit = self.model.survey_line.locations_unit
+#         self.mainplot = self.make_plot()
+#         self.mainplot.y_axis.title = 'Depth (m)'
+#         self.miniplot = self.make_plot(height=self.mini_height)
+#         self.miniplot.x_axis.title = 'Distance ({})'.format(dist_unit)
+#         container = PlotContainer(mainplot=self.mainplot,
+#                                   miniplot=self.miniplot)
+#         if self.model.depth_dict:
+#             self.add_lines(**self.model.depth_dict)
+#         if self.model.frequencies:
+#             self.add_images(**self.model.frequencies)
+#         if self.model.core_samples:
+#             self.add_cores(self.model.core_samples)
+# >>>>>>> feature/plot_cores
         return container
         # dist_unit = self.model.survey_line.locations_unit
         # self.mainplot = self.make_plot()
@@ -203,7 +200,18 @@ class SurveyLineView(ModelView):
         return cv
 
     def _add_depth_line_view_default(self):
-        return AddDepthLineView(depth_line=DepthLine())
+        if len(self.model.core_samples) > 0:
+            core = self.model.core_samples[0]
+        else:
+            core = CoreSample()
+        if self.model.depth_dict:
+            dline = self.model.depth_dict.values()[0]
+        else:
+            dline = DepthLine()
+        return AddDepthLineView(depth_line=dline,
+                                core=core,
+                                corelist=self.model.core_samples
+                                )
 
     def _plot_selection_view_default(self):
         freq_choices = self.model.freq_choices
@@ -320,7 +328,6 @@ class SurveyLineView(ModelView):
         cv.visible_lines = self.model.target_choices
         cv.target_choices = self.model.target_choices
 
-<<<<<<< HEAD
     # def add_lines(self, **kw):
     #     ''' Take arbitrary number of key=array pairs.
     #     Adds them to
@@ -501,7 +508,6 @@ class SurveyLineView(ModelView):
         data = np.clip(data, b2, b3)
         if invert:
             data = 1-data
-        print 'updating ',freq
         self.plot_container.data.update_data({freq: data})
 
 
