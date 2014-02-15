@@ -60,6 +60,8 @@ MINI_PADDING = 15
 CONTRAST_MAX = float(20)
 
 CORE_VISIBILITY_CRITERIA = 200
+CORE_LINE_WIDTH = 2
+
 
 class InstanceUItem(UItem):
     '''Convenience class for inluding instance in view as Item'''
@@ -483,7 +485,6 @@ class PlotContainer(HasTraits):
             x_pos = self.model.distance_array[abs_index]
             for core in self.model.core_samples:
                 loc_index, loc, dist = self.model.core_info_dict[core.core_id]
-                print x_index, y_index, 'x loc',x_pos, loc
                 core_plot_list = self.core_plots_dict[core.core_id]
                 for core_plot in core_plot_list:
                     if np.abs(x_pos - loc) < CORE_VISIBILITY_CRITERIA:
@@ -506,7 +507,7 @@ class PlotContainer(HasTraits):
         ys = np.array([y_range.low, y_range.high])
         xs = ys * 0 + loc
         line = create_line_plot((xs, ys), color='lightgreen',
-                                width=1.0)
+                                width=CORE_LINE_WIDTH)
         line.origin = 'top left'
         line.index_range = main.index_range
         main.add(line)
@@ -516,7 +517,8 @@ class PlotContainer(HasTraits):
         ys = ref_depth + layer_depths
         xs = ys * 0 + loc
         scatter = create_scatter_plot((xs, ys), color='darkgreen',
-                                      marker='circle', marker_size=2)
+                                      marker='circle',
+                                      marker_size=CORE_LINE_WIDTH + 1)
         scatter.origin = 'top left'
         scatter.value_range = main.value_range
         scatter.index_range = main.index_range
@@ -532,7 +534,7 @@ class PlotContainer(HasTraits):
         for boundary in core.layer_boundaries:
             ys = xs * 0 + (ref_depth + boundary)
             line = create_line_plot((xs, ys),  orientation='h',
-                                    color='lightgreen', width=1.0)
+                                    color='lightgreen', width=CORE_LINE_WIDTH)
             line.origin = 'top left'
             line.value_range = slice_plot.index_range
             self.core_plots_dict.setdefault(core.core_id, []).append(line)
@@ -545,25 +547,20 @@ class AddDepthLineView(HasTraits):
     # depth line instance to be edited or displays
     depth_line = Instance(DepthLine)
 
-    # depth line instance to be edited or displays
-    core = Instance(CoreSample)
-    corelist = List
-    bounds = Property(List)
-
+    depth_line_name = Property()
     # used in new depth line dialog box to apply choices to make a new line
     apply_button = Button('Apply')
 
     traits_view = View(
-        Group(Item('depth_line'), Item('bounds'), Item('corelist'),
+        Group(Item('depth_line_name'),
               'apply_button',
               ),
         buttons=['OK', 'Cancel'],
         resizable=True
-    )
+        )
 
-    def _get_bounds(self):
-        return self.core.layer_boundaries
-
+    def _get_depth_line_name(self):
+        return self.depth_line.name
 
 class ControlView(HasTraits):
     ''' Define controls and info subview with size control'''
@@ -574,18 +571,11 @@ class ControlView(HasTraits):
     # chosen key for depth line to edit
     line_to_edit = Str
 
-    # frequency choices for images
-    freq_choices = List()
-
-    # selected freq for which image to view
-    image_freq = Str
-
     # used to explicitly get edit mode
     edit = Enum('Editing', 'Not Editing')     # Button('Not Editing')
 
     traits_view = View(
         HGroup(
-            Item('image_freq', editor=EnumEditor(name='freq_choices')),
             Item('line_to_edit',
                  editor=EnumEditor(name='target_choices'),
                  tooltip='Edit red line with right mouse button'

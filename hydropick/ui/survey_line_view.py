@@ -155,17 +155,11 @@ class SurveyLineView(ModelView):
         return cv
 
     def _add_depth_line_view_default(self):
-        if len(self.model.core_samples) > 0:
-            core = self.model.core_samples[0]
-        else:
-            core = CoreSample()
         if self.model.depth_dict:
             dline = self.model.depth_dict.values()[0]
         else:
             dline = DepthLine()
         return AddDepthLineView(depth_line=dline,
-                                core=core,
-                                corelist=self.model.core_samples
                                 )
 
     def _plot_selection_view_default(self):

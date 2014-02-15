@@ -56,7 +56,7 @@ class DepthLine(HasTraits):
     notes = Str
 
     # lock prevents depth line from being edited.
-    lock = Bool
+    lock = Bool(True)
 
     def distance_array(self, distance_array):
         ''' Creates array for x-axis

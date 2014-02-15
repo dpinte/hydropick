@@ -32,7 +32,6 @@ class TestSurveyDataSession(unittest.TestCase):
             if line.name == survey_name:
                 self.survey_line = line
                 self.survey_line.core_samples = self.core_samples
-        print self.survey_line, self.survey_line.name
 
         ##self.survey_line = SurveyLine(data_file_path=file_path)
         self.survey_line.load_data(hdf5_file_path)

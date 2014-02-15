@@ -14,8 +14,8 @@ import logging
 import numpy as np
 
 # ETS imports
-from traits.api import (Instance, HasTraits, Array, Property, Float, List,
-                        Str, Tuple, Dict, DelegatesTo, Event)
+from traits.api import (Instance, HasTraits, Property, List,
+                        Str, Dict, DelegatesTo, Event)
 
 # Local imports
 from ..model.survey_line import SurveyLine
