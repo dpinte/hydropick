@@ -19,6 +19,7 @@ from traits.api import (Instance, HasTraits, Array, Property, Float, List,
 
 # Local imports
 from ..model.survey_line import SurveyLine
+from ..model.depth_line import DepthLine
 
 logger = logging.getLogger(__name__)
 
@@ -54,14 +55,23 @@ class SurveyDataSession(HasTraits):
     #: relevant core samples
     core_samples = DelegatesTo('survey_line', 'core_samples')
 
+    # dict stores info about each core sample for use by view
+    core_info_dict = Dict
+
     #: depth_line instances representing bottom surface of lake = current surf
     lake_depths = DelegatesTo('survey_line')
+
+    #: final choice for line used as current lake depth for volume calculations
+    final_lake_depth = Instance(DepthLine)
 
     # and event fired when the lake depths are updated
     lake_depths_updated = Event
 
     #: depth_line instances for pre-impoundment surfaces: below sediment
     preimpoundment_depths = DelegatesTo('survey_line', 'preimpoundment_depths')
+
+    #: final choice for pre-impoundment depth to track sedimentation
+    final_pre_imp_depth = Instance(DepthLine)
 
     # and event fired when the lake depth is updated
     preimpoundment_depths_updated = Event
@@ -88,15 +98,6 @@ class SurveyDataSession(HasTraits):
     # Sorted keys of frequencies dictionary.
     freq_choices = Property(List)
 
-    # Selected freq key from frequencies dict for displaying image.
-    # ------------ may be depricated -----------------------------------------
-    #selected_freq = Str
-
-    # Array to be used for x axis.  Length corresponds to depth lines and
-    # image horizontal sizes.  Default is index but may be changed to
-    # various actual distances.  Defines xbounds.
-    #x_array = Property(Array)
-
     # xbounds used for each image display (arguably could be in view class)
     # Dict(freq_key_str, Tuple(min,max))
     xbounds = Property(Dict)
@@ -120,10 +121,26 @@ class SurveyDataSession(HasTraits):
         s.frequencies = {}
         return s
 
-    # def _selected_freq_default(self):
-    #     ''' start with lowest freq so we can change to hightest'''
-    #     minf, maxf = self.get_low_high_freq()
-    #     return minf
+    def _core_info_dict_default(self):
+        ''' make dictionary to store info for each core for ready access by
+        view.  index can be used to dynamically change the absolute depth
+        of boundaries plotted by indexing relevant depth line.
+        '''
+        cdict = {}
+        for core in self.core_samples:
+            i, p, d = self.get_nearest_point_to_core(core)
+            pos_index, position, distance_from_line = i, p, d
+            cdict[core.core_id] = (pos_index, position, distance_from_line)
+        return cdict
+
+    def _final_lake_depth_default(self):
+        ''' currently this does not delegate because user may want to have
+        control over when final choice is saved to survey line'''
+        if self.survey_line.final_lake_depth:
+            line = self.survey_line.final_lake_depth
+        else:
+            line = self.survey_line.lake_depths.get('depth_r1', None)
+        return line
 
     #==========================================================================
     # Notifications
@@ -132,20 +149,23 @@ class SurveyDataSession(HasTraits):
     #==========================================================================
     # Helper functions
     #==========================================================================
-    def get_x_array(self, index_array):
-        ''' Get x values in approx distance for arbitrary index value set'''
-        xarray = self.distance_array[index_array]
-        return xarray
+
+    def get_nearest_point_to_core(self, core):
+        ''' for given core find the closest point in the locations array
+        to the core location and then use that index to get the
+        associated distance along the survey line from the distance array.
+        '''
+        xy_pt = np.array(core.location)
+        diff = self.locations - xy_pt
+        dist_sq_array = np.sum(diff**2, axis=1)
+        loc_index = np.argmin(dist_sq_array)
+        core_location = self.distance_array[loc_index]
+        distance_from_line = np.sqrt(dist_sq_array.min())
+        return loc_index, core_location, distance_from_line
 
     #==========================================================================
     # Get/Set
     #==========================================================================
-    # def get_low_high_freq(self):
-    #     ''' gets lowest/highest freq'''
-    #     freqs = self.frequencies.keys()
-    #     fsorted = sorted(freqs, key=lambda freqs: float(freqs))
-    #     minf, maxf = fsorted[0], fsorted[-1]
-    #     return minf, maxf
 
     def _get_freq_choices(self):
         ''' Get list of available frequencies as (value,string) pair from
