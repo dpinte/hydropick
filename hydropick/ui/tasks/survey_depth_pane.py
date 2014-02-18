@@ -38,7 +38,7 @@ class SurveyDepthPane(TraitsDockPane):
     selected_depth_line_name = DelegatesTo('task')
 
     algoriths = DelegatesTo('task')
-    
+
     show_view = Bool(False)
 
     def _depth_line_view_default(self):
@@ -61,13 +61,8 @@ class SurveyDepthPane(TraitsDockPane):
         data = self.current_data_session
         sanity_check = data.survey_line is self.current_survey_line
         if data and sanity_check:
-            if data.depth_dict:
-                depth = data.depth_dict.values()[0]
-            else:
-                depth = DepthLine()
-            #import ipdb; ipdb.set_trace() ######################################trace
-            #print self.current_survey_line, self.current_data_session
-            view = DepthLineView(model=depth,
+            view = DepthLineView(model=DepthLine(),
+                                 selected_depth_line_name='none',
                                  data_session=self.current_data_session
                                  )
             self.show_view = True
