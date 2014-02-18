@@ -380,6 +380,11 @@ class PlotContainer(HasTraits):
 
         return hpc
 
+    def update_all_line_plots(self):
+        for key in self.model.freq_choices:
+            hpc = self.hplot_dict[key]
+            plot = hpc.components[0]
+            self.update_line_plots(key, plot)
 
     def update_line_plots(self, key, plot):
         ''' takes a Plot object and adds all available line plots to it.

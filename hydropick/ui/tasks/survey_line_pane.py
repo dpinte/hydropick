@@ -18,7 +18,6 @@ from .survey_task import SurveyTask
 from hydropick.model.i_core_sample import ICoreSample
 
 
-
 class SurveyLinePane(TraitsTaskPane):
     """ The dock pane holding the map view of the survey """
 
@@ -31,6 +30,8 @@ class SurveyLinePane(TraitsTaskPane):
     # listener is set up in 'task.create_central_pane' to change line.
 
     survey_line = Instance(ISurveyLine)
+
+    current_data_session = DelegatesTo('task')
 
     core_samples = List(Supports(ICoreSample))
 
@@ -84,8 +85,10 @@ class SurveyLinePane(TraitsTaskPane):
             if data_session is None:
                 # create new datasession object and entry for this surveyline.
                 self.survey_line.load_data(self.survey.hdf5_file)
-                data_session = SurveyDataSession(survey_line=self.survey_line)
+                data_session = SurveyDataSession(survey_line=self.survey_line,
+                                                 algorithms=self.algorithms)
                 self.data_session_dict[self.line_name] = data_session
+                self.current_data_session = data_session
 
             # load relevant core samples into survey line
             # must do this before creating survey line view
@@ -94,8 +97,7 @@ class SurveyLinePane(TraitsTaskPane):
             self.survey_line.core_samples = near_samples
 
             # create survey line view
-            self.survey_line_view = SurveyLineView(model=data_session,
-                                                   algorithms=self.algorithms)
+            self.survey_line_view = SurveyLineView(model=data_session)
             self.show_view = True
 
     view = View(

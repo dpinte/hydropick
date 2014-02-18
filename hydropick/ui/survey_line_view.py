@@ -139,10 +139,11 @@ class SurveyLineView(ModelView):
     def _control_view_default(self):
         ''' Creates ControlView object filled with associated traits'''
 
-        cv = ControlView(target_choices=self.model.target_choices,
+        tgt_choices = self.model.target_choices
+        choices = ['None'] + tgt_choices
+        cv = ControlView(target_choices=choices,
                          line_to_edit=self.model.selected_target,
-                         freq_choices=self.model.freq_choices,
-                         image_freq='',
+                         edit='Not Editing'
                          )
         # set default values for widgets
         cv.image_freq = ''
@@ -151,7 +152,6 @@ class SurveyLineView(ModelView):
         cv.on_trait_change(self.change_target, name='line_to_edit')
         cv.on_trait_change(self.change_image, name='image_freq')
         cv.on_trait_change(self.toggle_edit, name='edit')
-
         return cv
 
     def _add_depth_line_view_default(self):
@@ -274,8 +274,9 @@ class SurveyLineView(ModelView):
 
     def update_control_view(self):
         cv = self.control_view
-        cv.visible_lines = self.model.target_choices
-        cv.target_choices = self.model.target_choices
+        tgt_choices = self.model.target_choices
+        choices = ['None'] + tgt_choices
+        cv.target_choices = choices
 
     #==========================================================================
     # Get/Set methods
@@ -287,6 +288,12 @@ class SurveyLineView(ModelView):
     #==========================================================================
     # Notifications or Callbacks
     #==========================================================================
+
+    def update_control_view(self):
+        cv = self.control_view
+        tgt_choices = self.model.target_choices
+        choices = ['None'] + tgt_choices
+        cv.target_choices = choices
 
     def legend_capture(self, obj, name, old, new):
         ''' stop editing depth line when moving legend (rt mouse button)'''
@@ -305,6 +312,10 @@ class SurveyLineView(ModelView):
     def plot_view_selection_dialog(self):
         ''' called from view menu to edit which plots to view'''
         self.plot_selection_view.configure_traits()
+
+    @on_trait_change('model.depth_lines_updated')
+    def update_lines(self):
+        self.plot_container.update_all_line_plots()
 
     @on_trait_change('plot_selection_view.visible_frequencies')
     def change_visible_frequencies(self):
@@ -387,16 +398,27 @@ class SurveyLineView(ModelView):
         '''update trace tool target line attribute.'''
         self.plot_dict = self.plot_container.plot_dict
         # change colors of lines appropriately
+        print 'chng tgt', object, name, old, new_target
+        if new_target is 'None':
+            self.control_view.edit = 'Not Editing'
+            new_target = None
+
+        # change colors for each freq plot
         for key in self.model.freq_choices:
-            new_plot_key = key + '_' + new_target
-            new_target_line = self.plot_dict[new_plot_key]
-            new_target_line.color = EDIT_COLOR
+            # if new tgt, change its color, else set none
+            if new_target:
+                new_plot_key = key + '_' + new_target
+                new_target_line = self.plot_dict[new_plot_key]
+                new_target_line.color = EDIT_COLOR
+            else:
+                new_target_line = None
+            # if old tgt exists, change back color, else skip
             old_plot_key = key + '_' + old
             old_target_line = self.plot_dict.get(old_plot_key, None)
             if old_target_line:
-                old_color = self.model.depth_dict[new_target].color
+                old_color = self.model.depth_dict[old].color
                 old_target_line.color = old_color
-            # update trace_tool targets.
+            # update trace_tool target for this freq.
             tool = self.trace_tools[key]
             tool.target_line = new_target_line
             tool.key = new_target

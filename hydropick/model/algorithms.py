@@ -19,6 +19,7 @@ ALGORITHM_LIST = [
     'OnesAlgorithm'
 ]
 
+
 @provides(IAlgorithm)
 class ZeroAlgorithm(HasTraits):
     """ A default algorithm for testing or hand drawing a new line
@@ -28,13 +29,15 @@ class ZeroAlgorithm(HasTraits):
     #: a user-friendly name for the algorithm
     name = Str('zeros algorithm')
 
-    def process_line(self, survey_line):
+    def process_line(self, survey_line, *args, **kw):
         """ returns all zeros to provide a blank line to edit.
         Size matches horizontal pixel number of intensity arrays
         """
-        zeros_array = np.zeros_like(survey_line.trace_num)
-        return zeros_array
+        trace_array = survey_line.trace_num
+        zeros_array = np.zeros_like(trace_array)
+        return trace_array, zeros_array
 
+    
 @provides(IAlgorithm)
 class OnesAlgorithm(HasTraits):
     """ A default algorithm for testing or hand drawing a new line
@@ -42,11 +45,12 @@ class OnesAlgorithm(HasTraits):
     """
 
     #: a user-friendly name for the algorithm
-    name = Str('zeros algorithm')
+    name = Str('ones algorithm')
 
-    def process_line(self, survey_line):
+    def process_line(self, survey_line, *args, **kw):
         """ returns all zeros to provide a blank line to edit.
         Size matches horizontal pixel number of intensity arrays
         """
-        ones_array = np.ones_like(survey_line.trace_num)
-        return ones_array
+        trace_array = survey_line.trace_num
+        zeros_array = np.ones_like(trace_array)
+        return trace_array, zeros_array
