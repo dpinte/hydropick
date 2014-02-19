@@ -9,6 +9,7 @@ from __future__ import absolute_import
 
 from traits.api import Interface, Str
 
+
 class IAlgorithm(Interface):
     """ An algorithm for detecting features of a survey line
 
@@ -21,5 +22,10 @@ class IAlgorithm(Interface):
     name = Str
 
     def process_line(self, survey_line):
-        """ Process a line, returning an array of depths """
+        """ Process a line, returning an array of depths and trace_num's
+
+        trace_num array will be used to define the trace numbers on which the
+        line is created (ie use to get the x axis).
+        return depth_array, trace_num_array
+        """
         raise NotImplementedError

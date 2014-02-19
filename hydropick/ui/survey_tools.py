@@ -8,8 +8,9 @@
 import numpy as np
 
 # ETS imports
-from enable.api import BaseTool
-from traits.api import Float, Enum, Int, Bool, Instance
+from enable.api import BaseTool, KeySpec
+from traits.api import (Float, Enum, Int, Bool, Instance, Str, List, Set,
+                        Property)
 from chaco.api import LinePlot
 
 #==============================================================================
@@ -20,14 +21,57 @@ from chaco.api import LinePlot
 class LocationTool(BaseTool):
     ''' Provides index position of cursor for selected image
     '''
-
+    # index of the mouse position for given image
     image_index = Int
 
     def normal_mouse_move(self, event):
+
         index = self.component.map_index((event.x, event.y))[0]
         if index:
             self.image_index = index
-        event.handled = False
+
+
+class DepthTool(BaseTool):
+    ''' Provides index position of cursor for selected image
+    '''
+    # index of the mouse position for given image
+    depth = Float
+
+    def normal_mouse_move(self, event):
+        newx, newy = self.component.map_data((event.x, event.y))
+        self.depth = newy
+
+class InspectorFreezeTool(BaseTool):
+    ''' Provides key for "freezing" line inspector tool so that cursor
+    will remain in place
+    '''
+    tool_set = Set
+    main_key = Str("f")
+    modifier_key = Str("alt")
+    ignore_keys = List(Str, value=['shift'])
+
+    off_key = Instance(KeySpec)
+
+    def _off_key_default(self):
+        self.reset_off_key()
+        self.on_trait_change(self.reset_off_key, ['main_key',
+                                                  'modifier_key',
+                                                  'ignore_keys'])
+        return self.off_key
+
+    def reset_off_key(self):
+        self.off_key = KeySpec(self.main_key,
+                               self.modifier_key,
+                               ignore=self.ignore_keys)
+
+    def normal_key_pressed(self, event):
+        if self.off_key.match(event):
+            for tool in self.tool_set:
+                active = tool.is_interactive
+                if active:
+                    tool.is_interactive = False
+                else:
+                    tool.is_interactive = True
 
 
 class TraceTool(BaseTool):
@@ -40,28 +84,50 @@ class TraceTool(BaseTool):
     """
 
     event_state = Enum('normal', 'edit')
+
+    # determines whether tool is allowed in edit state when mouse pressed
+    edit_allowed = Bool(False)
+
     # these record last mouse position so that new position can be checked for
     # missing points -- i.e. delta_index should be 1
     last_index = Int(np.nan)
     last_y = Float(np.nan)
 
     depth = Float
+
     # when set, subsequent points will be processed for data updating.
+    # when off last_y/index points will be reset to current position when
+    # editing starts.  this could possibly be done with mouse down instead.
     mouse_down = Bool(False)
 
     target_line = Instance(LinePlot)
 
+    # ArrayPlotData object holding all data.  This tool will change this data
+    # which then updates all three freq plots at once.
+
+    data = Property()
+    # line key for this depth line.  from depth_dict, label data in data obj
+    key = Str
+
+    def _get_data(self):
+        return self.target_line.container.data
+
     def normal_right_down(self, event):
-        self.event_state = 'edit'
+        ''' start editing '''
+        if self.edit_allowed:
+            self.event_state = 'edit'
+        else:
+            self.event_state = 'normal'
 
     def edit_right_up(self, event):
+        ''' finish editing'''
         self.event_state = 'normal'
         self.mouse_down = False
 
-    def edit_key_pressed(self, event):
-        # saw this in an example but it doesn't seem to do anything.
-        if event.character == "Esc":
-            self._reset()
+    # def edit_key_pressed(self, event):
+    #     ''' reset '''
+    #     if event.character == "Esc":
+    #         self._reset()
 
     def fill_in_missing_pts(self, current_index, newy, ydata):
         """ Fill in missing points if mouse goes to fast to capture all
@@ -96,7 +162,7 @@ class TraceTool(BaseTool):
         connects only the initial and final point.
         '''
 
-        if isinstance(self.target_line, LinePlot):
+        if isinstance(self.target_line, LinePlot) and self.edit_allowed:
             newx, newy = self.component.map_data((event.x, event.y))
             target = self.target_line
             xdata = target.index.get_data()
@@ -107,7 +173,8 @@ class TraceTool(BaseTool):
                 indices, ys = self.fill_in_missing_pts(current_index,
                                                        newy, ydata)
                 ydata[indices] = ys
-                target.value.set_data(ydata)
+                data_key = self.key + '_y'
+                self.data.set_data(data_key, ydata)
                 self.last_index = indices[-1]
                 self.last_y = ys[-1]
 
@@ -117,5 +184,3 @@ class TraceTool(BaseTool):
                 self.mouse_down = True
                 self.last_index = current_index
                 self.last_y = newy
-
-                

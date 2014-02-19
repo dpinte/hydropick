@@ -32,8 +32,8 @@ class ZeroAlgorithm(HasTraits):
         """ returns all zeros to provide a blank line to edit.
         Size matches horizontal pixel number of intensity arrays
         """
-        N = survey_line.shape[1]
-        return np.zeros(N)
+        zeros_array = np.zeros_like(survey_line.trace_num)
+        return zeros_array
 
 @provides(IAlgorithm)
 class OnesAlgorithm(HasTraits):
@@ -48,5 +48,5 @@ class OnesAlgorithm(HasTraits):
         """ returns all zeros to provide a blank line to edit.
         Size matches horizontal pixel number of intensity arrays
         """
-        N = survey_line.shape[1]
-        return np.ones(N)
+        ones_array = np.ones_like(survey_line.trace_num)
+        return ones_array

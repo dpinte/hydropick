@@ -32,10 +32,9 @@ class SurveyTask(Task):
     id = 'hydropick.survey_task'
     name = 'Survey Editor'
 
+    #### SurveyTask interface #################################################
 
-    #### SurveyTask interface #######################################################
-
-    # XXX perhaps bundle the survey specific things into a survey manager object?
+    # XXX perhaps bundle the survey specific things into survey manager object?
 
     #: the survey object that we are viewing
     survey = Supports(ISurvey)
@@ -91,8 +90,10 @@ class SurveyTask(Task):
                     id='Open', name='Open'
                 ),
                 SGroup(
-                    TaskAction(name="Save", method='on_save', accelerator='Ctrl+S', enabled_name='dirty'),
-                    TaskAction(name="Save As...", method='on_save_as', accelerator='Ctrl+Shift+S', enabled_name='survey'),
+                    TaskAction(name="Save", method='on_save', accelerator='Ctrl+S',
+                               enabled_name='dirty'),
+                    TaskAction(name="Save As...", method='on_save_as',
+                               accelerator='Ctrl+Shift+S', enabled_name='survey'),
                     id='Save', name='Save'
                 ),
                 id='File', name="&File",
@@ -129,6 +130,17 @@ class SurveyTask(Task):
                                accelerator='Ctrl+Left'),
                     id='LineGroup', name='Line Group',
                 ),
+                SGroup(
+                    CentralPaneAction(name='Location Data',
+                               method='on_show_location_data',
+                               enabled_name='show_view',
+                               accelerator='Ctrl+Shift+D'),
+                    CentralPaneAction(name='Plot View Selection',
+                               method='on_show_plot_view_selection',
+                               enabled_name='show_view',
+                               accelerator='Ctrl+Shift+S'),
+                    id='DataGroup', name='Data Group',
+                ),
                 DockPaneToggleGroup(),
                 id='View', name="&View",
             ),
@@ -138,6 +150,10 @@ class SurveyTask(Task):
                                method='on_new_depth_line',
                                enabled_name='show_view',
                                accelerator='Ctrl+Shift+='),
+                    CentralPaneAction(name='Image Adjustment',
+                               method='on_image_adjustment',
+                               enabled_name='show_view',
+                               accelerator='Ctrl+Shift+I'),
                     id='ToolGroup', name='Tool Group',
                 ),
                 id='Tools', name="&Tools",
@@ -149,13 +165,14 @@ class SurveyTask(Task):
         toolbars = [
             SToolBar(
                 TaskAction(name="Import", method='on_import',
-                            image=ImageResource('import')),
+                           image=ImageResource('import')),
                 TaskAction(name="Open", method='on_open',
-                            image=ImageResource('survey')),
+                           image=ImageResource('survey')),
                 TaskAction(name="Save", method='on_save',
-                            enabled_name='dirty',
-                            image=ImageResource('save')),
-                id='File', name="File", show_tool_names=False, image_size=(24,24)
+                           enabled_name='dirty',
+                           image=ImageResource('save')),
+                id='File', name="File", show_tool_names=False,
+                image_size=(24, 24)
             ),
             SToolBar(
                 TaskCommandAction(name='New Group', method='on_new_group',
@@ -174,7 +191,8 @@ class SurveyTask(Task):
                            method='on_next_line',
                            enabled_name='survey.survey_lines',
                            image=ImageResource("arrow-right")),
-                id='Survey', name="Survey", show_tool_names=False, image_size=(24,24)
+                id='Survey', name="Survey", show_tool_names=False,
+                image_size=(24, 24)
             ),
         ]
         return toolbars
@@ -191,7 +209,7 @@ class SurveyTask(Task):
         pane = SurveyLinePane(survey_task=self)
         # listen for changes to the current survey line
         self.on_trait_change(lambda new: setattr(pane, 'survey_line', new),
-                            'current_survey_line')
+                             'current_survey_line')
         return pane
 
     def create_dock_panes(self):
@@ -270,7 +288,8 @@ class SurveyTask(Task):
         from ...model.survey_line_group import SurveyLineGroup
         from ...model.survey_commands import AddSurveyLineGroup
 
-        group = SurveyLineGroup(name='Untitled', survey_lines=self.selected_survey_lines)
+        group = SurveyLineGroup(name='Untitled',
+                                survey_lines=self.selected_survey_lines)
         command = AddSurveyLineGroup(data=self.survey, group=group)
         return command
 
@@ -323,7 +342,6 @@ class SurveyTask(Task):
         names = [cls().name for cls in classes]
         return dict(zip(names, classes))
 
-
     ###########################################################################
     # private interface.
     ###########################################################################
@@ -355,7 +373,8 @@ class SurveyTask(Task):
         raise NotImplementedError
 
     def _get_next_survey_line(self):
-        """ Get the next selected survey line, or the next line if nothing selected """
+        """ Get the next selected survey line,
+            or next line if nothing selected """
         survey_lines = self.selected_survey_lines[:]
         previous_survey_line = self.current_survey_line
 
@@ -370,13 +389,14 @@ class SurveyTask(Task):
 
         if previous_survey_line in survey_lines:
             index = (survey_lines.index(previous_survey_line)+1) % \
-                    len(survey_lines)
+                len(survey_lines)
             return survey_lines[index]
         else:
             return survey_lines[0]
 
     def _get_previous_survey_line(self):
-        """ Get the previous selected survey line, or the previous line if nothing selected """
+        """ Get the previous selected survey line,
+            or previous line if nothing selected """
         survey_lines = self.selected_survey_lines[:]
         previous_survey_line = self.current_survey_line
 
@@ -391,7 +411,7 @@ class SurveyTask(Task):
 
         if previous_survey_line in survey_lines:
             index = (survey_lines.index(previous_survey_line)-1) % \
-                    len(survey_lines)
+                len(survey_lines)
             return survey_lines[index]
         else:
             return survey_lines[-1]
