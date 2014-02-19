@@ -161,8 +161,10 @@ class TraceTool(BaseTool):
         are filled in.  If mouse is moved to the left then a straight line
         connects only the initial and final point.
         '''
-
-        if isinstance(self.target_line, LinePlot) and self.edit_allowed:
+        have_key = self.key != 'None'
+        have_line_plot =  isinstance(self.target_line, LinePlot)
+        
+        if have_line_plot and have_key and self.edit_allowed:
             newx, newy = self.component.map_data((event.x, event.y))
             target = self.target_line
             xdata = target.index.get_data()

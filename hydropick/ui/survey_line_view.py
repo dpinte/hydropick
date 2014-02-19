@@ -22,7 +22,7 @@ from ..model.depth_line import DepthLine
 from .survey_data_session import SurveyDataSession
 from .survey_tools import TraceTool, LocationTool, DepthTool
 from .survey_views import (ControlView, InstanceUItem, PlotContainer, DataView,
-                           ImageAdjustView, AddDepthLineView,
+                           ImageAdjustView, AddDepthLineView, MsgView,
                            HPlotSelectionView)
 from ..model.core_sample import CoreSample
 
@@ -150,7 +150,6 @@ class SurveyLineView(ModelView):
 
         # Add notifications
         cv.on_trait_change(self.change_target, name='line_to_edit')
-        cv.on_trait_change(self.change_image, name='image_freq')
         cv.on_trait_change(self.toggle_edit, name='edit')
         return cv
 
@@ -231,7 +230,10 @@ class SurveyLineView(ModelView):
     #==========================================================================
     # Helper functions
     #==========================================================================
-
+    def message(self, msg='my message'):
+        dialog = MsgView(msg=msg)
+        dialog.configure_traits()
+        
     def create_data_array(self):
         '''want data array to have all data in it :
             3x img    min=1  (1 per hplot)
@@ -315,6 +317,7 @@ class SurveyLineView(ModelView):
 
     @on_trait_change('model.depth_lines_updated')
     def update_lines(self):
+        self.update_control_view()
         self.plot_container.update_all_line_plots()
 
     @on_trait_change('plot_selection_view.visible_frequencies')
@@ -401,12 +404,11 @@ class SurveyLineView(ModelView):
         print 'chng tgt', object, name, old, new_target
         if new_target is 'None':
             self.control_view.edit = 'Not Editing'
-            new_target = None
 
         # change colors for each freq plot
         for key in self.model.freq_choices:
             # if new tgt, change its color, else set none
-            if new_target:
+            if new_target != 'None':
                 new_plot_key = key + '_' + new_target
                 new_target_line = self.plot_dict[new_plot_key]
                 new_target_line.color = EDIT_COLOR

@@ -241,11 +241,7 @@ class SurveyTask(Task):
         self.on_trait_change(lambda new: setattr(map, 'survey', new), 'survey')
 
         depth = SurveyDepthPane()
-        # depth = SurveyDepthPane(current_survey_line=self.current_survey_line)
-        # self.on_trait_change(lambda new: setattr(depth,
-        #                                          'current_survey_line',
-        #                                          new),
-        #                      'current_survey_line')
+        
         return [data, map, depth]
 
     def _survey_changed(self):

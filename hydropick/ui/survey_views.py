@@ -365,8 +365,7 @@ class PlotContainer(HasTraits):
             legend_highlighter = LegendHighlighter(legend,
                                                    drag_button="right")
             legend.tools.append(legend_highlighter)
-            for k, v in self.model.depth_dict.items():
-                legend.plots[k] = main.plots[k]
+            self.update_legend_plots(legend, main)
             legend.visible = False
             self.legend_dict[key] = legend
             main.overlays.append(legend)
@@ -380,11 +379,18 @@ class PlotContainer(HasTraits):
 
         return hpc
 
+    def update_legend_plots(self, legend, plot):
+        for k, v in self.model.depth_dict.items():
+            legend.plots[k] = plot.plots[k]
+
     def update_all_line_plots(self):
+        
         for key in self.model.freq_choices:
             hpc = self.hplot_dict[key]
             plot = hpc.components[0]
             self.update_line_plots(key, plot)
+            legend = self.legend_dict[key]
+            self.update_legend_plots(legend, plot)
 
     def update_line_plots(self, key, plot):
         ''' takes a Plot object and adds all available line plots to it.
@@ -673,6 +679,15 @@ class DataView(HasTraits):
         Item('gain'),
         resizable=True
         )
+
+
+class MsgView(HasTraits):
+    msg = Str('my msg')
+    traits_view = View('msg',
+                       buttons=['OK', 'Cancel'],
+                       kind='modal',
+                       resizable=True
+                       )
 
 
 if __name__ == '__main__':

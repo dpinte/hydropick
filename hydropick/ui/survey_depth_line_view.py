@@ -14,14 +14,16 @@ import numpy as np
 # ETS imports
 from traits.api import (Instance, Str, Dict, Property, HasTraits, Enum, Int,
                         on_trait_change, Button, DelegatesTo)
-from traitsui.api import (ModelView, View, VGroup, HGroup, Item, EnumEditor,
-                         TextEditor)
+from traitsui.api import (View, VGroup, HGroup, Item, EnumEditor, TextEditor)
 
 # Local imports
 from ..model.depth_line import DepthLine
 from .survey_data_session import SurveyDataSession
+from .survey_views import MsgView
 
 logger = logging.getLogger(__name__)
+
+ARG_TOOLTIP = 'comma separated keyword args -- x=1,all=True,s="Tom"'
 
 
 #class DepthLineView(ModelView):
@@ -40,7 +42,10 @@ class DepthLineView(HasTraits):
     data_session = Instance(SurveyDataSession)
 
     # name of current line in editor
-    survey_line_name = Property(depends_on='data_session')
+    survey_line_name = Property(depends_on=['data_session',
+                                            'data_session.depth_lines_updated']
+                                )
+
     # list of available depth lines extracted from survey line
     depth_lines = Property(depends_on='data_session')
 
@@ -49,18 +54,7 @@ class DepthLineView(HasTraits):
 
     # current depth line object
     model = Instance(DepthLine)
-    ##### these traits will be model traits that can be edited in UI
-    # survey_line = Property(depends_on=['model.survey_line_name, model'])
-    # name = Property(depends_on=['model.name, model'])
-    # line_type = Property(depends_on=['model.line_type, model'])
-    # source = Property(depends_on=['model.source, model'])
-    # args = Property(depends_on=['model.args, model'])
-    # index_array_size = Property(depends_on='model.index_array, model')
-    # depth_array_size = Property(depends_on='model.depth_array, model')
-    # edited = Property(depends_on='model.edited, model')
-    # color = Property(depends_on=['model.color, model'])
-    # notes = Property(depends_on=['model.notes, model'])
-    # lock = Property(depends_on='model.lock, model')
+
     args = Property(Str, depends_on=['model.args', 'model'])
     index_array_size = Property(Int, depends_on=['model.index_array, model'])
     depth_array_size = Property(Int, depends_on=['model.depth_array, model'])
@@ -82,7 +76,7 @@ class DepthLineView(HasTraits):
         Item('selected_depth_line_name', label='View Depth Line',
              editor=EnumEditor(name='depth_lines')),
         Item('_'),
-        VGroup(Item('object.model.survey_line_name'),
+        VGroup(Item('object.model.survey_line_name', style='readonly'),
                Item('object.model.name'),
                Item('object.model.line_type'),
                Item('object.model.source'),
@@ -90,6 +84,8 @@ class DepthLineView(HasTraits):
                     editor=EnumEditor(name='source_names')),
                Item('args',
                     editor=TextEditor(auto_set=False, enter_set=False),
+                    tooltip=ARG_TOOLTIP,
+                    visible_when='object.model.source=="algorithm"'
                     ),
                Item('index_array_size', style='readonly'),
                Item('depth_array_size', style='readonly'),
@@ -118,13 +114,15 @@ class DepthLineView(HasTraits):
     #==========================================================================
     # Notifications or Callbacks
     #==========================================================================
-    @on_trait_change('model.color')
     def update_plot(self):
         self.data_session.depth_lines_updated = True
 
     @on_trait_change('new_button')
     def load_new_blank_line(self):
-        self.change_depth_line(new='none')
+        if self.selected_depth_line_name == 'none':
+            self.change_depth_line(new='none')
+        else:
+            self.selected_depth_line_name = 'none'
 
     def create_new_line(self):
         new_dline = DepthLine(
@@ -143,8 +141,11 @@ class DepthLineView(HasTraits):
         ''' apply appropriate method to fill line'''
         model = self.model
         if model.lock:
+            'locked so cannot change anything'
             return
         success = True
+        # if line is none then this is a new line 'added line'
+        # not a changed line
         if self.selected_depth_line_name == 'none':
             if model.source == 'algorithm':
                 alg_name = model.source_name
@@ -157,11 +158,16 @@ class DepthLineView(HasTraits):
                 self.make_from_depth_line(line_name)
 
             else:
+                # source is sdi line.  create only from sdi data
                 logger.error('sdi source only available at survey load')
                 return
-            
+
+            # if selected line not none then we will apply changes and
+            # save to saved lines with same name (changed line)
+
         # add to survey line depth line dictionary
         if success:
+            print 'saving line'
             ds = self.data_session
             if model.line_type == 'current surface':
                 ds.lake_depths[self.model.name] = model
@@ -170,7 +176,9 @@ class DepthLineView(HasTraits):
                 ds.preimpoundment_depths[self.model.name] = model
                 key = 'PRE_' + model.name
             # set form to new line
+            self._get_survey_line_name()
             self.selected_depth_line_name = key
+            self.update_plot()
         else:
             return
 
@@ -190,10 +198,13 @@ class DepthLineView(HasTraits):
         self.model.source_name = self.source_name
         print 'updated source name',self.model.source_name
 
-
     #==========================================================================
     # Helper functions
     #==========================================================================
+    def message(self, msg='my message'):
+        dialog = MsgView(msg=msg)
+        dialog.configure_traits()
+
     def make_from_algorithm(self, alg_name, args):
         algorithm = self.data_session.algorithms[alg_name]()
         survey_line = self.data_session.survey_line
@@ -201,8 +212,9 @@ class DepthLineView(HasTraits):
 
         trace_array, depth_array = algorithm.process_line(survey_line,
                                                           **args)
-        self.model.index_array = np.asarray(trace_array) - 1
-        self.model.depth_array = depth_array
+        print trace_array, depth_array, algorithm
+        self.model.index_array = np.asarray(trace_array, dtype=np.int32) - 1
+        self.model.depth_array = np.asarray(depth_array, dtype=np.float32)
 
     def make_from_depth_line(self, line_name):
         source_line = self.data_session.depth_dict[line_name]
@@ -268,12 +280,16 @@ class DepthLineView(HasTraits):
 
     def _set_args(self, args):
         print 'set args', args
-        d = eval('Dict({})'.format(args))
+        s='dict({})'.format(args)
+        d = eval('dict({})'.format(args))
         print d
         mod_args = self.model.args
         if isinstance(d, dict):
             if mod_args != d:
                 self.model.args = d
         else:
+            s = '''Cannot make dictionary out of these arguments,
+            Please check the format -- x=1, key=True, ...'''
+            self.message(s)
             if mod_args != {}:
                 self.model.args = {}
