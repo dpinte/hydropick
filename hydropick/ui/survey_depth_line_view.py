@@ -159,13 +159,15 @@ class DepthLineView(HasTraits):
             else:
                 logger.error('sdi source only available at survey load')
                 return
-            # add to survey line dictionary
+            
+        # add to survey line depth line dictionary
         if success:
+            ds = self.data_session
             if model.line_type == 'current surface':
-                self.data_session.lake_depths[self.model.name] = model
+                ds.lake_depths[self.model.name] = model
                 key = 'POST_' + model.name
             else:
-                self.model.preimpoundment_depths[self.model.name] = model
+                ds.preimpoundment_depths[self.model.name] = model
                 key = 'PRE_' + model.name
             # set form to new line
             self.selected_depth_line_name = key
