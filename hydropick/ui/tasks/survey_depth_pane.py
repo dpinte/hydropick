@@ -75,6 +75,7 @@ class SurveyDepthPane(TraitsDockPane):
         Item('depth_line_view',
              style='custom',
              visible_when='show_view',
-             show_label=False),
+             show_label=False
+             ),
         kind='nonmodal'
         )

@@ -88,14 +88,17 @@ class DepthLineView(HasTraits):
                Item('object.model.source'),
                Item('source_name',
                     editor=EnumEditor(name='source_names')),
-               Item('args'),
+               Item('args',
+                    editor=TextEditor(auto_set=False, enter_set=False),
+                    ),
                Item('index_array_size', style='readonly'),
                Item('depth_array_size', style='readonly'),
                Item('object.model.edited', style='readonly'),
                Item('object.model.color'),
                Item('object.model.notes',
                     editor=TextEditor(auto_set=False, enter_set=False),
-                    style='custom'
+                    style='custom',
+                    height=75, resizable=True
                     ),
                Item('object.model.lock'),
                ),
@@ -120,6 +123,9 @@ class DepthLineView(HasTraits):
         self.data_session.depth_lines_updated = True
 
     @on_trait_change('new_button')
+    def load_new_blank_line(self):
+        self.change_depth_line(new='none')
+
     def create_new_line(self):
         new_dline = DepthLine(
             survey_line_name=self.survey_line_name,
@@ -129,15 +135,15 @@ class DepthLineView(HasTraits):
             edited=False,
             lock=False
             )
-        logger.info('creating new depthline')
-        self.selected_depth_line_name = 'none'
-        self.model = new_dline
-        print 'newline',self.model.name, self.name
+        logger.info('creating new depthline template')
+        return new_dline
 
     @on_trait_change('apply_button')
     def apply(self, new):
         ''' apply appropriate method to fill line'''
         model = self.model
+        if model.lock:
+            return
         success = True
         if self.selected_depth_line_name == 'none':
             if model.source == 'algorithm':
@@ -168,14 +174,14 @@ class DepthLineView(HasTraits):
 
     @on_trait_change('selected_depth_line_name')
     def change_depth_line(self, new):
-        #import ipdb; ipdb.set_trace()##################################### #trace
         if new != 'none':
             new_line = self.data_session.depth_dict[new]
             selected_line = deepcopy(new_line)
         else:
-            selected_line = self._depth_line_default()
+            selected_line = self.create_new_line()
         self.model = selected_line
-        print 'changed lines',self.model,self.model.name
+        self.source_name = selected_line.source_name
+        print 'changed lines',self.model,self.model.name, selected_line.source_name, self.source_name
 
     @on_trait_change('source_name')
     def _update_source_name(self):
@@ -193,7 +199,7 @@ class DepthLineView(HasTraits):
 
         trace_array, depth_array = algorithm.process_line(survey_line,
                                                           **args)
-        self.model.index_array = np.asarry(trace_array) - 1
+        self.model.index_array = np.asarray(trace_array) - 1
         self.model.depth_array = depth_array
 
     def make_from_depth_line(self, line_name):
@@ -217,7 +223,8 @@ class DepthLineView(HasTraits):
             names = self.data_session.depth_dict.keys()
             print self.data_session.depth_dict.keys()
         else:
-            names = []
+            # if source is sdi the source name is just the file it came from
+            names = [self.model.source_name]
         return names
 
     def _get_survey_line_name(self):
@@ -260,8 +267,11 @@ class DepthLineView(HasTraits):
     def _set_args(self, args):
         print 'set args', args
         d = eval('Dict({})'.format(args))
+        print d
+        mod_args = self.model.args
         if isinstance(d, dict):
-            self.model.args = d
+            if mod_args != d:
+                self.model.args = d
         else:
-            self.model.args = {}
-            self.args = args
+            if mod_args != {}:
+                self.model.args = {}
