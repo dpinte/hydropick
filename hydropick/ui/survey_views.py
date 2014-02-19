@@ -59,7 +59,7 @@ MINI_PADDING = 15
 
 CONTRAST_MAX = float(20)
 
-CORE_VISIBILITY_CRITERIA = 200
+CORE_VISIBILITY_CRITERIA = 200.0
 CORE_LINE_WIDTH = 2
 
 
@@ -208,7 +208,8 @@ class PlotContainer(HasTraits):
                     main.x_axis.visible = False
                     hpc.padding_bottom = MAIN_PADDING_BOTTOM
 
-                legend = self.legend_dict.get(freq, None)
+                legend, highlighter = self.legend_dict.get(freq, [None,None])
+                print 'legends',legend,highlighter
                 if legend:
                     legend.visible = (freq == top)
 
@@ -294,7 +295,7 @@ class PlotContainer(HasTraits):
 
         # add line plots: use method since these may change
         #************************************************************
-        self.update_line_plots(key, main)
+        self.update_line_plots(key, main, update=True)
 
         # set slice plot index range to follow main plot value range
         #************************************************************
@@ -367,7 +368,8 @@ class PlotContainer(HasTraits):
             legend.tools.append(legend_highlighter)
             self.update_legend_plots(legend, main)
             legend.visible = False
-            self.legend_dict[key] = legend
+            self.legend_dict[key] = [legend, legend_highlighter]
+            print self.legend_dict
             main.overlays.append(legend)
 
             # add main and slice plot to hplot container and dict
@@ -383,31 +385,41 @@ class PlotContainer(HasTraits):
         for k, v in self.model.depth_dict.items():
             legend.plots[k] = plot.plots[k]
 
-    def update_all_line_plots(self):
-        
+    def update_all_line_plots(self, update=False):
+
         for key in self.model.freq_choices:
             hpc = self.hplot_dict[key]
             plot = hpc.components[0]
-            self.update_line_plots(key, plot)
-            legend = self.legend_dict[key]
+            self.update_line_plots(key, plot, update=update)
+            legend, highlighter = self.legend_dict[key]
             self.update_legend_plots(legend, plot)
+            legend_highlighter = LegendHighlighter(legend,
+                                                   drag_button="right")
+            if highlighter in legend.tools:
+                legend.tools.remove(highlighter)
+            legend.tools.append(legend_highlighter)
+            plot.invalidate_and_redraw()
 
-    def update_line_plots(self, key, plot):
+    def update_line_plots(self, key, plot, update=False):
         ''' takes a Plot object and adds all available line plots to it.
         Each Plot.plots has one img plot labeled by freq key and the rest are
         line plots.  When depth_dict is updated, check all keys to see all
-        lines are plotted'''
+        lines are plotted.  Update=True will replot all lines even if already
+        there (for style changes)'''
 
         for line_key, depth_line in self.model.depth_dict.items():
+            print 'update lines - color', line_key, depth_line.color
+            print plot.plots
             not_plotted = line_key not in plot.plots
             not_image = line_key not in self.model.freq_choices
-            if not_plotted and not_image:
+            if (not_plotted or update) and not_image:
                 line_plot = self.plot_depth_line(key, line_key,
                                                  depth_line, plot)
                 # note: plot dict needs 3 entries for every line since each
                 # freq has a copy using the same plotdata source
                 plot_key = key + '_' + line_key
                 self.plot_dict[plot_key] = line_plot
+            print plot.plots
 
     def plot_depth_line(self, key, line_key, depth_line, plot):
         ''' plot a depth_line using a depth line object'''
@@ -493,15 +505,22 @@ class PlotContainer(HasTraits):
             # check if cursor is 'near' core, and set visibility in sliceplot
             x_index, y_index = slice_meta
             abs_index = self.model.freq_trace_num[key][x_index]
-            x_pos = self.model.distance_array[abs_index]
+            try:
+                x_pos = self.model.distance_array[abs_index]
+            except IndexError:
+                x_pos = 0
             for core in self.model.core_samples:
                 loc_index, loc, dist = self.model.core_info_dict[core.core_id]
                 core_plot_list = self.core_plots_dict[core.core_id]
                 for core_plot in core_plot_list:
-                    if np.abs(x_pos - loc) < CORE_VISIBILITY_CRITERIA:
-                        core_plot.visible = True
-                    else:
-                        core_plot.visible = False
+                    try:
+                        if np.abs(x_pos - loc) < CORE_VISIBILITY_CRITERIA:
+                            core_plot.visible = True
+                        else:
+                            core_plot.visible = False
+                    except ValueError:
+                        debug = 'core dist check xpos, loc, abs(x-l)\n={},{},{}'
+                        logger.debug(debug.format(x_pos, loc, np.abs(x_pos-loc)))
 
             # now updata data array which will updata slice plot
             # try might not be necessary depending on inspect tool
@@ -587,13 +606,13 @@ class ControlView(HasTraits):
 
     traits_view = View(
         HGroup(
+            UItem('edit',
+                 tooltip='Toggle between "not editing" and \
+                          "editing" selected line'
+                 ),
             Item('line_to_edit',
                  editor=EnumEditor(name='target_choices'),
                  tooltip='Edit red line with right mouse button'
-                 ),
-            Item('edit',
-                 tooltip='Toggle between "not editing" and \
-                          "editing" selected line'
                  ),
             ),
         resizable=True

@@ -27,7 +27,10 @@ from .survey_views import (ControlView, InstanceUItem, PlotContainer, DataView,
 from ..model.core_sample import CoreSample
 
 logger = logging.getLogger(__name__)
+
 EDIT_COLOR = 'black'
+EDIT_OFF_ON_CHANGE = True
+AUTOSAVE_EDIT_ON_CHANGE = True
 
 
 class SurveyLineView(ModelView):
@@ -233,7 +236,7 @@ class SurveyLineView(ModelView):
     def message(self, msg='my message'):
         dialog = MsgView(msg=msg)
         dialog.configure_traits()
-        
+
     def create_data_array(self):
         '''want data array to have all data in it :
             3x img    min=1  (1 per hplot)
@@ -318,7 +321,7 @@ class SurveyLineView(ModelView):
     @on_trait_change('model.depth_lines_updated')
     def update_lines(self):
         self.update_control_view()
-        self.plot_container.update_all_line_plots()
+        self.plot_container.update_all_line_plots(update=True)
 
     @on_trait_change('plot_selection_view.visible_frequencies')
     def change_visible_frequencies(self):
@@ -398,32 +401,40 @@ class SurveyLineView(ModelView):
         self.data_view.depth = depth
 
     def change_target(self, object, name, old, new_target):
-        '''update trace tool target line attribute.'''
+        '''update trace tool target line attribute.
+
+        Change line colors back and set edit flag and save data as requrire
+        '''
+
         self.plot_dict = self.plot_container.plot_dict
-        # change colors of lines appropriately
-        print 'chng tgt', object, name, old, new_target
-        if new_target is 'None':
+        if new_target is 'None' or EDIT_OFF_ON_CHANGE:
             self.control_view.edit = 'Not Editing'
 
-        # change colors for each freq plot
+        # change colors and tool tgt for each freq plot
         for key in self.model.freq_choices:
             # if new tgt, change its color, else set none
             if new_target != 'None':
                 new_plot_key = key + '_' + new_target
-                new_target_line = self.plot_dict[new_plot_key]
-                new_target_line.color = EDIT_COLOR
+                new_target_plot = self.plot_dict[new_plot_key]
+                new_target_plot.color = EDIT_COLOR
             else:
-                new_target_line = None
+                new_target_plot = None
             # if old tgt exists, change back color, else skip
             old_plot_key = key + '_' + old
-            old_target_line = self.plot_dict.get(old_plot_key, None)
-            if old_target_line:
-                old_color = self.model.depth_dict[old].color
-                old_target_line.color = old_color
+            old_target_plot = self.plot_dict.get(old_plot_key, None)
+            if old_target_plot:
+                old_target_depth_line = self.model.depth_dict[old]
+                old_color = old_target_depth_line.color
+                old_target_plot.color = old_color
             # update trace_tool target for this freq.
             tool = self.trace_tools[key]
-            tool.target_line = new_target_line
+            tool.target_line = new_target_plot
             tool.key = new_target
+
+        if AUTOSAVE_EDIT_ON_CHANGE and old_target_plot:
+            edited_data = old_target_plot.value.get_data()
+            old_target_depth_line.depth_array = edited_data
+
         self.plot_container.vplot_container.invalidate_and_redraw()
 
     def change_image(self, old, new):

@@ -13,8 +13,9 @@ import numpy as np
 
 # ETS imports
 from traits.api import (Instance, Str, Dict, Property, HasTraits, Enum, Int,
-                        on_trait_change, Button, DelegatesTo)
-from traitsui.api import (View, VGroup, HGroup, Item, EnumEditor, TextEditor)
+                        on_trait_change, Button, DelegatesTo, Bool)
+from traitsui.api import (View, VGroup, HGroup, Item, UItem, EnumEditor,
+                          TextEditor)
 
 # Local imports
 from ..model.depth_line import DepthLine
@@ -42,12 +43,13 @@ class DepthLineView(HasTraits):
     data_session = Instance(SurveyDataSession)
 
     # name of current line in editor
-    survey_line_name = Property(depends_on=['data_session',
-                                            'data_session.depth_lines_updated']
+    survey_line_name = Property(depends_on=['data_session']
                                 )
 
     # list of available depth lines extracted from survey line
-    depth_lines = Property(depends_on='data_session')
+    depth_lines = Property(depends_on=['data_session',
+                                       'data_session.depth_lines_updated']
+                           )
 
     # name of depth_line to view chosen from pulldown of all available lines.
     selected_depth_line_name = Str
@@ -62,11 +64,17 @@ class DepthLineView(HasTraits):
     # changes model to empty DepthLine for creating new line
     new_button = Button('New Line')
 
+    # updates the data arrays for the selected line.  Apply does not do this
+    update_arrays_button = Button('Update Data')
+
     # applys settings to  DepthLine updating object and updating survey line
     apply_button = Button('Apply')
 
     source_name = Str
-    source_names = Property(depends_on=['model.source, model'])
+    source_names = Property(depends_on=['model.source'])
+
+    # flag allows line creation/edit to continue in apply method
+    no_problem = Bool
     #==========================================================================
     # Define Views
     #==========================================================================
@@ -98,7 +106,12 @@ class DepthLineView(HasTraits):
                     ),
                Item('object.model.lock'),
                ),
-        HGroup('new_button', 'apply_button'),
+        HGroup(UItem('new_button'),
+               UItem('update_arrays_button',
+                     tooltip='updates array data in form but does not apply to line'),
+               UItem('apply_button',
+                     tooltip='applies current setting to line, but does not update data')
+               ),
         height=500,
         resizable=True,
     )
@@ -136,22 +149,45 @@ class DepthLineView(HasTraits):
         logger.info('creating new depthline template')
         return new_dline
 
-    @on_trait_change('apply_button')
-    def apply(self, new):
-        ''' apply appropriate method to fill line'''
+    def depth_line_name_new(self, proposed_line):
+        '''check that name is not in survey line depth lines already.
+        Allow same name for PRE and POST lists since these are separate
+        '''
+        p = proposed_line
+        if p.line_type == 'current surface':
+            used = p.name in self.data_session.lake_depths.keys()
+        elif p.line_type == 'pre-impoundment surface':
+            used = p.name in self.data_session.preimpoundment_depths.keys()
+        else:
+            self.log_problem('problem checking depth_line_name_new')
+            used = True
+        if used:
+            s = 'name already used. Unlock to edit existing line'
+            self.log_problem(s)
+            self.model.lock = True
+        return not used
+
+    @on_trait_change('update_arrays_button')
+    def update_arrays(self, new):
+        ''' apply chosen method to fill line arrays
+        '''
         model = self.model
+        self.no_problem = True
         if model.lock:
-            'locked so cannot change anything'
-            return
-        success = True
-        # if line is none then this is a new line 'added line'
-        # not a changed line
+            self.log_problem('locked so cannot change/create anything')
+
+        # if line is 'none' then this is a new line --'added line'--
+        # not a changed line. check name is new
         if self.selected_depth_line_name == 'none':
+            self.depth_line_name_new(model)
+
+        if self.no_problem:
+            # name valid.  Try to update data.
             if model.source == 'algorithm':
                 alg_name = model.source_name
                 args = model.args
-                self.make_from_algorithm(alg_name, args)
                 logger.info('applying algorithm : {}'.format(alg_name))
+                self.make_from_algorithm(alg_name, args)
 
             elif model.source == 'previous depth line':
                 line_name = model.source_name
@@ -159,15 +195,19 @@ class DepthLineView(HasTraits):
 
             else:
                 # source is sdi line.  create only from sdi data
-                logger.error('sdi source only available at survey load')
-                return
+                s = 'source "sdi" only available at survey load'
+                self.log_problem(s)
 
-            # if selected line not none then we will apply changes and
-            # save to saved lines with same name (changed line)
-
-        # add to survey line depth line dictionary
-        if success:
-            print 'saving line'
+    @on_trait_change('apply_button')
+    def apply(self, new):
+        ''' save current setting and data to current line'''
+        model = self.model
+        self.no_problem = True
+        if model.lock:
+            self.log_problem('locked so cannot change/create anything')
+        # add to the survey line's appropriate dictionary
+        if self.no_problem:
+            logger.info('saving new line')
             ds = self.data_session
             if model.line_type == 'current surface':
                 ds.lake_depths[self.model.name] = model
@@ -176,11 +216,11 @@ class DepthLineView(HasTraits):
                 ds.preimpoundment_depths[self.model.name] = model
                 key = 'PRE_' + model.name
             # set form to new line
-            self._get_survey_line_name()
             self.selected_depth_line_name = key
             self.update_plot()
         else:
-            return
+            s = 'could not make new line.  Check log for details'
+            self.log_problem(s)
 
     @on_trait_change('selected_depth_line_name')
     def change_depth_line(self, new):
@@ -205,14 +245,18 @@ class DepthLineView(HasTraits):
         dialog = MsgView(msg=msg)
         dialog.configure_traits()
 
+    def log_problem(self, msg):
+        ''' if there is a problem with any part of creating/updating a line,
+        log it and notify user and set no_problem flag false'''
+        self.no_problem = False
+        logger.error(msg)
+        self.message(msg)
+
     def make_from_algorithm(self, alg_name, args):
         algorithm = self.data_session.algorithms[alg_name]()
         survey_line = self.data_session.survey_line
-        print 'args are', args, type(args)
-
         trace_array, depth_array = algorithm.process_line(survey_line,
                                                           **args)
-        print trace_array, depth_array, algorithm
         self.model.index_array = np.asarray(trace_array, dtype=np.int32) - 1
         self.model.depth_array = np.asarray(depth_array, dtype=np.float32)
 
@@ -227,15 +271,10 @@ class DepthLineView(HasTraits):
     def _get_source_names(self):
         source = self.model.source
         print 'new source is', source
-        print source, source == 'previous depth line'
         if source == 'algorithm':
             names = self.data_session.algorithms.keys()
-            print self.data_session.algorithms
         elif source == 'previous depth line':
-            print 'prev'
-            print self.data_session.depth_dict.keys()
             names = self.data_session.depth_dict.keys()
-            print self.data_session.depth_dict.keys()
         else:
             # if source is sdi the source name is just the file it came from
             names = [self.model.source_name]
@@ -275,14 +314,11 @@ class DepthLineView(HasTraits):
     def _get_args(self):
         d = self.model.args
         s = ','.join(['{}={}'.format(k, v) for k, v in d.items()])
-        print 'args',d,s
         return s
 
     def _set_args(self, args):
-        print 'set args', args
         s='dict({})'.format(args)
         d = eval('dict({})'.format(args))
-        print d
         mod_args = self.model.args
         if isinstance(d, dict):
             if mod_args != d:
@@ -290,6 +326,6 @@ class DepthLineView(HasTraits):
         else:
             s = '''Cannot make dictionary out of these arguments,
             Please check the format -- x=1, key=True, ...'''
-            self.message(s)
+            self.log_problem(s)
             if mod_args != {}:
                 self.model.args = {}
