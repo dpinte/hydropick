@@ -87,11 +87,15 @@ class SurveyLinePane(TraitsTaskPane):
                 data_session = SurveyDataSession(survey_line=self.survey_line)
                 self.data_session_dict[self.line_name] = data_session
 
-            self.survey_line_view = SurveyLineView(model=data_session,
-                                                   algorithms=self.algorithms)
+            # load relevant core samples into survey line
+            # must do this before creating survey line view
             all_samples = self.survey.core_samples
             near_samples = self.survey_line.nearby_core_samples(all_samples)
             self.survey_line.core_samples = near_samples
+
+            # create survey line view
+            self.survey_line_view = SurveyLineView(model=data_session,
+                                                   algorithms=self.algorithms)
             self.show_view = True
 
     view = View(

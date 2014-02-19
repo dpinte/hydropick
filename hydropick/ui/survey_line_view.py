@@ -102,7 +102,6 @@ class SurveyLineView(ModelView):
 
     # name to give to resulting depth line
     new_line_name = Str
-    core = Instance(CoreSample)
     #==========================================================================
     # Define Views
     #==========================================================================
@@ -131,6 +130,7 @@ class SurveyLineView(ModelView):
         c.plot_dict = self.plot_dict
         c.data = self.plotdata
         c.model = self.model
+        logger.info('cores={}'.format(self.model.core_samples))
         # need to call tools to activate defaults
         start_tools = self.location_tools
         start_tools = self.depth_tools
@@ -155,17 +155,11 @@ class SurveyLineView(ModelView):
         return cv
 
     def _add_depth_line_view_default(self):
-        if len(self.model.core_samples) > 0:
-            core = self.model.core_samples[0]
-        else:
-            core = CoreSample()
         if self.model.depth_dict:
             dline = self.model.depth_dict.values()[0]
         else:
             dline = DepthLine()
         return AddDepthLineView(depth_line=dline,
-                                core=core,
-                                corelist=self.model.core_samples
                                 )
 
     def _plot_selection_view_default(self):
