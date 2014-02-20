@@ -60,6 +60,10 @@ class SurveyLinePane(TraitsTaskPane):
     def on_image_adjustment(self):
         ''' Open dialog to adjust image (B&C : task menu)'''
         self.survey_line_view.image_adjustment_dialog()
+        
+    def on_change_colormap(self):
+        ''' Open dialog to adjust image (B&C : task menu)'''
+        self.survey_line_view.cmap_edit_dialog()
 
     def on_show_location_data(self):
         ''' Open dialog to show location data (task menu)'''

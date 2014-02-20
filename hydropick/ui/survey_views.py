@@ -26,9 +26,9 @@ import numpy as np
 from enable.api import ComponentEditor
 from traits.api import (Instance, Str, List, HasTraits, Float, Property,
                         Enum, Bool, Dict, on_trait_change, Trait,
-                        Callable, Tuple, CFloat)
+                        Callable, Tuple, CFloat, Button)
 from traitsui.api import (View, Item, EnumEditor, UItem, InstanceEditor,
-                          RangeEditor, Label, HGroup, CheckListEditor)
+                          RangeEditor, Label, HGroup, CheckListEditor, Group)
 from chaco import default_colormaps
 from chaco.api import (Plot, ArrayPlotData, VPlotContainer, HPlotContainer,
                        Legend, create_scatter_plot, PlotComponent,
@@ -66,6 +66,19 @@ class InstanceUItem(UItem):
 
     style = Str('custom')
     editor = Instance(InstanceEditor, ())
+
+
+class ColormapEditView(HasTraits):
+    ''' provides dialog box to select colormap'''
+
+    colormap = Enum(COLORMAPS)
+
+    plot_edit_view = View(
+        Group(Label('Frequency to Edit'),
+              Item('colormap')
+              ),
+        buttons=["OK", "Cancel"]
+        )
 
 
 class PlotContainer(HasTraits):
@@ -137,13 +150,17 @@ class PlotContainer(HasTraits):
                                    )
         return tool
 
-    def _colormap_changed(self):
-        self._cmap = default_colormaps.color_map_name_dict[self.colormap]
-
     def _core_plot_dict_default(self):
         d = {}
         for core in self.model.core_samples:
             d[core.core_id] = []
+
+    def __cmap_default(self):
+        cm = default_colormaps.color_map_name_dict[self.img_colormap]
+        return cm
+
+    def _img_colormap_default(self):
+        return DEFAULT_COLORMAP
 
     #==========================================================================
     # Helper functions
@@ -568,6 +585,20 @@ class PlotContainer(HasTraits):
             line.value_range = slice_plot.index_range
             self.core_plots_dict.setdefault(core.core_id, []).append(line)
             slice_plot.add(line)
+
+    def _img_colormap_changed(self):
+        ''' updates colormap in images when img_colormap changes'''
+        self._cmap = default_colormaps.color_map_name_dict[self.img_colormap]
+        for key, hpc in self.hplot_dict.items():
+            main = hpc.components[0]
+            if key == 'mini':
+                key = self.model.freq_choices[-1]
+            img_plot = main.plots[key][0]
+            if img_plot is not None:
+                value_range = img_plot.color_mapper.range
+                img_plot.color_mapper = self._cmap(value_range)
+            print 'redraw', key
+            main.invalidate_and_redraw()
 
 
 class ControlView(HasTraits):
