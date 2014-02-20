@@ -7,16 +7,15 @@
 
 from __future__ import absolute_import
 
-from traits.api import DelegatesTo, Instance, Property, Bool, Dict, List, Str, Supports, DelegatesTo
+from traits.api import (DelegatesTo, Instance, Property, Bool, Dict, List, Str,
+                        Supports)
 from traitsui.api import View, Item
 from pyface.tasks.api import TraitsTaskPane
 
 from ...model.i_survey_line import ISurveyLine
 from ..survey_data_session import SurveyDataSession
 from ..survey_line_view import SurveyLineView
-from .survey_task import SurveyTask
 from hydropick.model.i_core_sample import ICoreSample
-
 
 
 class SurveyLinePane(TraitsTaskPane):
@@ -31,6 +30,8 @@ class SurveyLinePane(TraitsTaskPane):
     # listener is set up in 'task.create_central_pane' to change line.
 
     survey_line = Instance(ISurveyLine)
+
+    current_data_session = DelegatesTo('task')
 
     core_samples = List(Supports(ICoreSample))
 
@@ -64,10 +65,6 @@ class SurveyLinePane(TraitsTaskPane):
         ''' Open dialog to show location data (task menu)'''
         self.survey_line_view.show_data_dialog()
 
-    def on_new_depth_line(self):
-        ''' Open dialog to create new depth line (task menu)'''
-        self.survey_line_view.new_algorithm_line_dialog()
-
     def on_show_plot_view_selection(self):
         ''' Open dialog to change which plots to view (task menu)'''
         self.survey_line_view.plot_view_selection_dialog()
@@ -84,8 +81,10 @@ class SurveyLinePane(TraitsTaskPane):
             if data_session is None:
                 # create new datasession object and entry for this surveyline.
                 self.survey_line.load_data(self.survey.hdf5_file)
-                data_session = SurveyDataSession(survey_line=self.survey_line)
+                data_session = SurveyDataSession(survey_line=self.survey_line,
+                                                 algorithms=self.algorithms)
                 self.data_session_dict[self.line_name] = data_session
+                self.current_data_session = data_session
 
             # load relevant core samples into survey line
             # must do this before creating survey line view
@@ -94,8 +93,7 @@ class SurveyLinePane(TraitsTaskPane):
             self.survey_line.core_samples = near_samples
 
             # create survey line view
-            self.survey_line_view = SurveyLineView(model=data_session,
-                                                   algorithms=self.algorithms)
+            self.survey_line_view = SurveyLineView(model=data_session)
             self.show_view = True
 
     view = View(

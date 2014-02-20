@@ -21,11 +21,12 @@ class IAlgorithm(Interface):
     #: a user-friendly name for the algorithm
     name = Str
 
-    def process_line(self, survey_line):
+    def process_line(self, survey_line, *args, **kw):
         """ Process a line, returning an array of depths and trace_num's
 
         trace_num array will be used to define the trace numbers on which the
         line is created (ie use to get the x axis).
-        return depth_array, trace_num_array
+        
+        return trace_num_array, depth_array
         """
         raise NotImplementedError

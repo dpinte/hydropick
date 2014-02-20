@@ -75,6 +75,8 @@ class SurveyDataSession(HasTraits):
 
     # and event fired when the lake depth is updated
     preimpoundment_depths_updated = Event
+    
+    depth_lines_updated = Event
 
     # two values used to map image vertical pixel to actual depth.
     pixel_depth_offset = DelegatesTo('survey_line', 'draft')
@@ -111,6 +113,9 @@ class SurveyDataSession(HasTraits):
 
     # cumulative distance along path based on locations array.
     cumulative_distance = Property()
+
+    # dictionary of algorithms filled by the pane when new survey line selected
+    algorithms = Dict
 
     #==========================================================================
     # Defaults

@@ -22,7 +22,8 @@ class TestAlgorithms(unittest.TestCase):
         self.tempdir = tempfile.mkdtemp()
         self.h5file = os.path.join(self.tempdir, 'test.h5')
         survey_io.import_survey_line_from_file(filename, self.h5file, linename)
-        self.survey_line = survey_io.read_survey_line_from_hdf(self.h5file, linename)
+        self.survey_line = survey_io.read_survey_line_from_hdf(self.h5file,
+                                                               linename)
         self.survey_line.load_data(self.h5file)
 
     def tearDown(self):
@@ -52,16 +53,17 @@ class TestAlgorithms(unittest.TestCase):
         except AttributeError as err:
             self.assertTrue(False, msg='undefined: {}'.format(err))
 
-
     def test_process_line(self):
-        ''' check the process_line returns an array'''
+        ''' check the process_line returns correct arrays for all algorithms'''
         try:
             class_list = self.get_classes()
             for cls in class_list:
-                line = cls().process_line(self.survey_line)
-                array = np.asarray(line)
-                self.assertIsInstance(array, np.ndarray,
+                trace_array, depth_array = cls().process_line(self.survey_line)
+                self.assertIsInstance(np.asarray(trace_array), np.ndarray,
                                     msg='cannot convert to array')
+                self.assertIsInstance(np.asarray(depth_array), np.ndarray,
+                                    msg='cannot convert to array')
+                self.assertEqual(len(trace_array),len(depth_array))
         except AttributeError as err:
             self.assertTrue(False, msg='undefined: {}'.format(err))
 
