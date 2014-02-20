@@ -91,7 +91,7 @@ class SurveyMapView(ModelView):
     line_select_tool = Instance(BaseTool)
 
     #: distance tolerance in data units on map (feet by default)
-    tol = Float(100)
+    tol = Float(200)
 
     #: proxy for the task's current survey line
     current_survey_line = Instance(ISurveyLine)
@@ -134,8 +134,6 @@ class SurveyMapView(ModelView):
 
     #: The Chaco plot object
     plot = Instance(Plot)
-
-    #line_selected_by_map = Instance(ISurveyLine)
 
     def _plot_default(self):
         plotdata = ArrayPlotData()
@@ -213,8 +211,7 @@ class SurveyMapView(ModelView):
         for line in self.survey_lines:
             if line.navigation_line.distance(p) < self.tol:
                 self.current_survey_line = line
-                #                self._current_line(line)
-                # never want to set more than one line to current
+                # never want to set more than one line to current so break now
                 break
 
     def _select_line(self, line):
@@ -223,7 +220,3 @@ class SurveyMapView(ModelView):
             self.selected_survey_lines.remove(line)
         else:
             self.selected_survey_lines.append(line)
-
-    # def _current_line(self, line):
-    #     print 'set current to', line.name
-    #     self.current_survey_line = line
