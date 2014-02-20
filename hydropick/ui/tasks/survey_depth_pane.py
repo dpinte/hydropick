@@ -37,7 +37,8 @@ class SurveyDepthPane(TraitsDockPane):
     #: proxy for the editor's current depth line
     selected_depth_line_name = DelegatesTo('task')
 
-    algoriths = DelegatesTo('task')
+    # dict of algorithms though currently not use since datasession has it.
+    algorithms = DelegatesTo('task')
 
     show_view = Bool(False)
 
@@ -49,11 +50,9 @@ class SurveyDepthPane(TraitsDockPane):
         d = self.current_data_session.depth_dict[self.selected_depth_line_name]
         self.depth_line_view.model = d
         self.depth_line_view.selected_depth_line_name = name
-        print 'new dline', self.depth_line_view.model.name,self.depth_line_view.model.name
 
     @on_trait_change('current_data_session')
     def _set_depth_line_view(self):
-        print 'survey line changed in depth'
         if self.current_data_session:
             self.depth_line_view = self._get_depth_line_view()
 

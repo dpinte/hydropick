@@ -12,8 +12,8 @@ import logging
 import numpy as np
 
 # ETS imports
-from traits.api import (Instance, Str, Dict, Property, HasTraits, Enum, Int,
-                        on_trait_change, Button, DelegatesTo, Bool)
+from traits.api import (Instance, Str, Property, HasTraits, Int,
+                        on_trait_change, Button, Bool)
 from traitsui.api import (View, VGroup, HGroup, Item, UItem, EnumEditor,
                           TextEditor)
 
@@ -25,9 +25,12 @@ from .survey_views import MsgView
 logger = logging.getLogger(__name__)
 
 ARG_TOOLTIP = 'comma separated keyword args -- x=1,all=True,s="Tom"'
+UPDATE_ARRAYS_TOOLTIP = \
+    'updates array data in form but does not apply to line'
+APPLY_TOOLTIP = \
+    'applies current setting to line, but does not update data'
 
 
-#class DepthLineView(ModelView):
 class DepthLineView(HasTraits):
     """ View Class for working with survey line data to find depth profile.
 
@@ -57,7 +60,10 @@ class DepthLineView(HasTraits):
     # current depth line object
     model = Instance(DepthLine)
 
+    # set of arguments for algorithms.  Assume keyword.  makes dict
     args = Property(Str, depends_on=['model.args', 'model'])
+
+    # arrays to plot
     index_array_size = Property(Int, depends_on=['model.index_array, model'])
     depth_array_size = Property(Int, depends_on=['model.depth_array, model'])
 
@@ -108,9 +114,9 @@ class DepthLineView(HasTraits):
                ),
         HGroup(UItem('new_button'),
                UItem('update_arrays_button',
-                     tooltip='updates array data in form but does not apply to line'),
+                     tooltip=UPDATE_ARRAYS_TOOLTIP),
                UItem('apply_button',
-                     tooltip='applies current setting to line, but does not update data')
+                     tooltip=APPLY_TOOLTIP)
                ),
         height=500,
         resizable=True,
@@ -136,18 +142,6 @@ class DepthLineView(HasTraits):
             self.change_depth_line(new='none')
         else:
             self.selected_depth_line_name = 'none'
-
-    def create_new_line(self):
-        new_dline = DepthLine(
-            survey_line_name=self.survey_line_name,
-            name='Type New Name',
-            line_type='pre-impoundment surface',
-            source='algorithm',
-            edited=False,
-            lock=False
-            )
-        logger.info('creating new depthline template')
-        return new_dline
 
     def depth_line_name_new(self, proposed_line):
         '''check that name is not in survey line depth lines already.
@@ -231,12 +225,10 @@ class DepthLineView(HasTraits):
             selected_line = self.create_new_line()
         self.model = selected_line
         self.source_name = selected_line.source_name
-        print 'changed lines',self.model,self.model.name, selected_line.source_name, self.source_name
 
     @on_trait_change('source_name')
     def _update_source_name(self):
         self.model.source_name = self.source_name
-        print 'updated source name',self.model.source_name
 
     #==========================================================================
     # Helper functions
@@ -265,12 +257,23 @@ class DepthLineView(HasTraits):
         self.model.index_array = source_line.index_array
         self.model.depth_array = source_line.depth_array
 
+    def create_new_line(self):
+        new_dline = DepthLine(
+            survey_line_name=self.survey_line_name,
+            name='Type New Name',
+            line_type='pre-impoundment surface',
+            source='algorithm',
+            edited=False,
+            lock=False
+            )
+        logger.info('creating new depthline template')
+        return new_dline
+
     #==========================================================================
     # Get/Set methods
     #==========================================================================
     def _get_source_names(self):
         source = self.model.source
-        print 'new source is', source
         if source == 'algorithm':
             names = self.data_session.algorithms.keys()
         elif source == 'previous depth line':
@@ -288,7 +291,7 @@ class DepthLineView(HasTraits):
         return name
 
     def _get_depth_lines(self):
-        # get lisyyt of names of depthlines for the UI
+        # get list of names of depthlines for the UI
         if self.data_session:
             lines = ['none'] + self.data_session.depth_dict.keys()
         else:
@@ -317,7 +320,7 @@ class DepthLineView(HasTraits):
         return s
 
     def _set_args(self, args):
-        s='dict({})'.format(args)
+        s = 'dict({})'.format(args)
         d = eval('dict({})'.format(args))
         mod_args = self.model.args
         if isinstance(d, dict):

@@ -114,6 +114,7 @@ class SurveyDataSession(HasTraits):
     # cumulative distance along path based on locations array.
     cumulative_distance = Property()
 
+    # dictionary of algorithms filled by the pane when new survey line selected
     algorithms = Dict
 
     #==========================================================================
