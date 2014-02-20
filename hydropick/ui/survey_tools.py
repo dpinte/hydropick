@@ -20,6 +20,9 @@ from chaco.api import LinePlot
 
 class LocationTool(BaseTool):
     ''' Provides index position of cursor for selected image
+    Different from Depth tool because this uses index on image in order
+    to extract location values from arrays by index.  Depth can be
+    taken directly from plot data.
     '''
     # index of the mouse position for given image
     image_index = Int
@@ -33,6 +36,8 @@ class LocationTool(BaseTool):
 
 class DepthTool(BaseTool):
     ''' Provides index position of cursor for selected image
+    Different from Location tool because this uses data on Plot in order
+    to extract depth values.  Location tool needs index.
     '''
     # index of the mouse position for given image
     depth = Float
@@ -163,7 +168,7 @@ class TraceTool(BaseTool):
         '''
         have_key = self.key != 'None'
         have_line_plot =  isinstance(self.target_line, LinePlot)
-        
+
         if have_line_plot and have_key and self.edit_allowed:
             newx, newy = self.component.map_data((event.x, event.y))
             target = self.target_line

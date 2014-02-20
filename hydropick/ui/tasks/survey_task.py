@@ -161,10 +161,6 @@ class SurveyTask(Task):
             ),
             SMenu(
                 SGroup(
-                    CentralPaneAction(name='New Depth Line',
-                               method='on_new_depth_line',
-                               enabled_name='show_view',
-                               accelerator='Ctrl+Shift+='),
                     CentralPaneAction(name='Image Adjustment',
                                method='on_image_adjustment',
                                enabled_name='show_view',

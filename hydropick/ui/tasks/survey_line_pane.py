@@ -7,14 +7,14 @@
 
 from __future__ import absolute_import
 
-from traits.api import DelegatesTo, Instance, Property, Bool, Dict, List, Str, Supports, DelegatesTo
+from traits.api import (DelegatesTo, Instance, Property, Bool, Dict, List, Str,
+                        Supports)
 from traitsui.api import View, Item
 from pyface.tasks.api import TraitsTaskPane
 
 from ...model.i_survey_line import ISurveyLine
 from ..survey_data_session import SurveyDataSession
 from ..survey_line_view import SurveyLineView
-from .survey_task import SurveyTask
 from hydropick.model.i_core_sample import ICoreSample
 
 
@@ -64,10 +64,6 @@ class SurveyLinePane(TraitsTaskPane):
     def on_show_location_data(self):
         ''' Open dialog to show location data (task menu)'''
         self.survey_line_view.show_data_dialog()
-
-    def on_new_depth_line(self):
-        ''' Open dialog to create new depth line (task menu)'''
-        self.survey_line_view.new_algorithm_line_dialog()
 
     def on_show_plot_view_selection(self):
         ''' Open dialog to change which plots to view (task menu)'''

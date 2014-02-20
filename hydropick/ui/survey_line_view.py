@@ -24,7 +24,6 @@ from .survey_tools import TraceTool, LocationTool, DepthTool
 from .survey_views import (ControlView, InstanceUItem, PlotContainer, DataView,
                            ImageAdjustView, AddDepthLineView, MsgView,
                            HPlotSelectionView)
-from ..model.core_sample import CoreSample
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +50,15 @@ class SurveyLineView(ModelView):
     # Defines view for all the plots.  Place beside control view
     plot_container = Instance(PlotContainer)
 
+    # plotdata is the ArrayPlotData instance holding the plot data.
+    # for now it contains available images and multiple line plots for depths.
+    plotdata = Instance(ArrayPlotData)
+
+    # dict to remember image control (b&c) settings for each freq
+    image_settings = Dict
+
+    ############## View classes used by editor ########################
+
     # Defines view for all the plot controls and info. Sits by plot container.
     control_view = Instance(ControlView)
 
@@ -66,45 +74,21 @@ class SurveyLineView(ModelView):
     # defines popup window for new depth line creation
     add_depth_line_view = Instance(AddDepthLineView)
 
-    # Dictionary of plots kept for legend and for tools.
-    # Will contain all depth lines at least.  This contains components as
-    # opposed to the depth_dict{str:array} in the model.
-    plot_dict = Dict(Str, PlotComponent)
+    ######## SAVE FOR NOW - MAY GO BACK TO THIS ########
+    # List of which lines are visible in plots
+    visible_lines = List([])
+
+    ############## Tools used by editor ########################
 
     # Custom tool for editing depth lines
     trace_tools = Dict
 
-    # Custom tool for showing coordinates and other info at mouse position
+    # Custom tool for showing location info at mouse position for each freq
     location_tools = Dict
 
-    # Custom tool for showing depth values at mouse position
+    # Custom tool for showing depth values at mouse position for each freq
     depth_tools = Dict
 
-    # List of which lines are visible in plots
-    visible_lines = List([])
-
-    # plotdata is the ArrayPlotData instance holding the plot data.
-    # for now it contains available images and multiple line plots for depths.
-    plotdata = Instance(ArrayPlotData)
-
-    # dict to remember image control (b&c) settings for each freq
-    image_settings = Dict
-
-    # Pair of combined plots:  main for editing; mini for scanning
-    mainplot = Instance(Plot)
-    miniplot = Instance(Plot)
-    mini_height = Int(100)
-
-    # traits for adding new lines based on algoriths
-    # dictionary of available algoritms
-    algorithms = Dict
-    algorithm_list = Property(depends_on='algorithms')
-
-    # name chosen from UI to apply
-    algorithm_name = Str
-
-    # name to give to resulting depth line
-    new_line_name = Str
     #==========================================================================
     # Define Views
     #==========================================================================
@@ -126,18 +110,11 @@ class SurveyLineView(ModelView):
         container = PlotContainer()
         return container
 
-    @on_trait_change('model')
-    def update_plot_container(self):
-        self.create_data_array()
-        c = self.plot_container
-        c.plot_dict = self.plot_dict
-        c.data = self.plotdata
-        c.model = self.model
-        logger.info('cores={}'.format(self.model.core_samples))
-        # need to call tools to activate defaults
-        start_tools = self.location_tools
-        start_tools = self.depth_tools
-        c.vplot_container.invalidate_and_redraw()
+    def _plotdata_default(self):
+        ''' Provides initial plotdata object'''
+        return ArrayPlotData()
+
+    ############## View defaults ########################
 
     def _control_view_default(self):
         ''' Creates ControlView object filled with associated traits'''
@@ -153,16 +130,8 @@ class SurveyLineView(ModelView):
 
         # Add notifications
         cv.on_trait_change(self.change_target, name='line_to_edit')
-        cv.on_trait_change(self.toggle_edit, name='edit')
+        cv.on_trait_change(self.set_edit_enabled, name='edit')
         return cv
-
-    def _add_depth_line_view_default(self):
-        if self.model.depth_dict:
-            dline = self.model.depth_dict.values()[0]
-        else:
-            dline = DepthLine()
-        return AddDepthLineView(depth_line=dline,
-                                )
 
     def _plot_selection_view_default(self):
         freq_choices = self.model.freq_choices
@@ -171,17 +140,18 @@ class SurveyLineView(ModelView):
                                   intensity_profile=True
                                   )
 
-    def toggle_edit(self):
-        ''' enables editing tool based on ui edit selector'''
-        for tool in self.trace_tools.values():
-            if self.control_view.edit == 'Editing':
-                tool.edit_allowed = True
-            else:
-                tool.edit_allowed = False
+    def _data_view_default(self):
+        return DataView()
 
-    def _plotdata_default(self):
-        ''' Provides initial plotdata object'''
-        return ArrayPlotData()
+    def _image_adjust_view_default(self):
+        iav = ImageAdjustView()
+        iav.freq_choices = self.model.freq_choices
+        iav.on_trait_change(self.adjust_image, name='contrast_brightness')
+        iav.on_trait_event(self.adjust_image, name='invert')
+        iav.on_trait_event(self.adjust_image, name='frequency')
+        return iav
+
+    ############## Tool defaults ########################
 
     def _trace_tools_default(self):
         ''' Sets up trace tool for editing lines'''
@@ -218,17 +188,6 @@ class SurveyLineView(ModelView):
                 main.tools.append(tool)
                 tools[key] = tool
         return tools
-
-    def _data_view_default(self):
-        return DataView()
-
-    def _image_adjust_view_default(self):
-        iav = ImageAdjustView()
-        iav.freq_choices = self.model.freq_choices
-        iav.on_trait_change(self.adjust_image, name='contrast_brightness')
-        iav.on_trait_event(self.adjust_image, name='invert')
-        iav.on_trait_event(self.adjust_image, name='frequency')
-        return iav
 
     #==========================================================================
     # Helper functions
@@ -274,27 +233,39 @@ class SurveyLineView(ModelView):
                 key_x, key_y = line_key + '_x',  line_key + '_y'
                 kw = {key_x: x, key_y: y}
                 d.update_data(**kw)
-
         return d
-
-    def update_control_view(self):
-        cv = self.control_view
-        tgt_choices = self.model.target_choices
-        choices = ['None'] + tgt_choices
-        cv.target_choices = choices
 
     #==========================================================================
     # Get/Set methods
     #==========================================================================
 
-    def _get_algorithm_list(self):
-        ''' provides list of choice for available algorithms to UI'''
-        return tuple(self.algorithms.keys())
     #==========================================================================
-    # Notifications or Callbacks
+    # Notifications, Handlers or Callbacks
     #==========================================================================
 
+    def set_edit_enabled(self):
+        ''' enables editing tool based on ui edit selector'''
+        for tool in self.trace_tools.values():
+            if self.control_view.edit == 'Editing':
+                tool.edit_allowed = True
+            else:
+                tool.edit_allowed = False
+
+    @on_trait_change('model')
+    def update_plot_container(self):
+        ''' makes plot container.  usually called ones per survey line'''
+        self.create_data_array()
+        c = self.plot_container
+        c.data = self.plotdata
+        c.model = self.model
+        logger.info('cores={}'.format(self.model.core_samples))
+        # need to call tools to activate defaults
+        start_tools = self.location_tools
+        start_tools = self.depth_tools
+        c.vplot_container.invalidate_and_redraw()
+
     def update_control_view(self):
+        ''' update controls when new line added'''
         cv = self.control_view
         tgt_choices = self.model.target_choices
         choices = ['None'] + tgt_choices
@@ -303,6 +274,8 @@ class SurveyLineView(ModelView):
     def legend_capture(self, obj, name, old, new):
         ''' stop editing depth line when moving legend (rt mouse button)'''
         self.control_view.edit = 'Not Editing'
+
+    ##############  open dialogs when requestion by user  #################
 
     def image_adjustment_dialog(self):
         self.image_adjust_view.configure_traits()
@@ -365,7 +338,8 @@ class SurveyLineView(ModelView):
         from 0 to CONTRAST_MAX, 0 to 1
         if frequency is changed, update view which will update plots.
         if other values are changed and there is a freq, it will
-        update data with new values and save settings'''
+        update data with new values and save settings
+        '''
         iav = self.image_adjust_view
         if name is 'frequency':
             # changed freq : update settings
@@ -385,7 +359,9 @@ class SurveyLineView(ModelView):
     def apply_image_settings(self, freq):
         ''' apply saved image settings to this freq (or set default).
         always reapply changes from original data.
-        apply to plot data'''
+        apply to plot data
+        called by adjust image
+        '''
         c, b, invert = self.image_settings.setdefault(freq, [1, 0, True])
         data = self.model.frequencies[freq]
         data = c * data
@@ -401,12 +377,10 @@ class SurveyLineView(ModelView):
         self.data_view.depth = depth
 
     def change_target(self, object, name, old, new_target):
-        '''update trace tool target line attribute.
-
-        Change line colors back and set edit flag and save data as requrire
+        ''' update trace tool target line attribute.
+        change line colors back and set edit flag and save data as requrire
         '''
-
-        self.plot_dict = self.plot_container.plot_dict
+        plot_dict = self.plot_container.plot_dict
         if new_target is 'None' or EDIT_OFF_ON_CHANGE:
             self.control_view.edit = 'Not Editing'
 
@@ -415,13 +389,13 @@ class SurveyLineView(ModelView):
             # if new tgt, change its color, else set none
             if new_target != 'None':
                 new_plot_key = key + '_' + new_target
-                new_target_plot = self.plot_dict[new_plot_key]
+                new_target_plot = plot_dict[new_plot_key]
                 new_target_plot.color = EDIT_COLOR
             else:
                 new_target_plot = None
             # if old tgt exists, change back color, else skip
             old_plot_key = key + '_' + old
-            old_target_plot = self.plot_dict.get(old_plot_key, None)
+            old_target_plot = plot_dict.get(old_plot_key, None)
             if old_target_plot:
                 old_target_depth_line = self.model.depth_dict[old]
                 old_color = old_target_depth_line.color
@@ -437,23 +411,8 @@ class SurveyLineView(ModelView):
 
         self.plot_container.vplot_container.invalidate_and_redraw()
 
-    def change_image(self, old, new):
-        ''' Called by changing selected freq.
-        Loads new image and recalls saved B&C '''
-        iav = self.image_adjust_view
-        if old:
-            self.image_settings[old] = [iav.contrast,
-                                        iav.brightness,
-                                        iav.invert]
-        self.model.selected_freq = new
-        c, b, i = self.image_settings.get(new, [1, 0, True])
-        iav.contrast, iav.brightness, iav.invert = c, b, i
-        if old in self.plot_dict:
-            self.update_main_mini_image([new], remove=old)
-        else:
-            self.update_main_mini_image([new])
-
     def select_line(self, object, name, old, visible_lines):
+        #### KEEP THIS BECAUSE WE MAY GO BACK TO IT FOR VISIBILITY  #########
         ''' Called when controlview.visible_lines changes in order to actually
         change the visibility of the lines.  Need to make sure the new list
         includes the selected lines which means if someone unchecks it we have
