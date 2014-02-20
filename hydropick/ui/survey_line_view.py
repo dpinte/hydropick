@@ -22,7 +22,7 @@ from ..model.depth_line import DepthLine
 from .survey_data_session import SurveyDataSession
 from .survey_tools import TraceTool, LocationTool, DepthTool
 from .survey_views import (ControlView, InstanceUItem, PlotContainer, DataView,
-                           ImageAdjustView, AddDepthLineView, MsgView,
+                           ImageAdjustView, MsgView,
                            HPlotSelectionView)
 
 logger = logging.getLogger(__name__)
@@ -70,9 +70,6 @@ class SurveyLineView(ModelView):
 
     # Defines view for pop up image adjustments window
     image_adjust_view = Instance(ImageAdjustView)
-
-    # defines popup window for new depth line creation
-    add_depth_line_view = Instance(AddDepthLineView)
 
     ######## SAVE FOR NOW - MAY GO BACK TO THIS ########
     # List of which lines are visible in plots

@@ -25,9 +25,9 @@ import numpy as np
 # ETS imports
 from enable.api import ComponentEditor
 from traits.api import (Instance, Str, List, HasTraits, Float, Property,
-                        Button, Enum, Bool, Dict, on_trait_change, Trait,
+                        Enum, Bool, Dict, on_trait_change, Trait,
                         Callable, Tuple, CFloat)
-from traitsui.api import (View, Group, Item, EnumEditor, UItem, InstanceEditor,
+from traitsui.api import (View, Item, EnumEditor, UItem, InstanceEditor,
                           RangeEditor, Label, HGroup, CheckListEditor)
 from chaco import default_colormaps
 from chaco.api import (Plot, ArrayPlotData, VPlotContainer, HPlotContainer,
@@ -37,10 +37,8 @@ from chaco.tools.api import (PanTool, ZoomTool, RangeSelection, LineInspector,
                              RangeSelectionOverlay, LegendHighlighter)
 
 # Local imports
-from ..model.depth_line import DepthLine
 from .survey_tools import InspectorFreezeTool
 from .survey_data_session import SurveyDataSession
-from ..model.core_sample import CoreSample
 
 # global constants
 # these still need to be tweaked to get the right look
@@ -208,8 +206,7 @@ class PlotContainer(HasTraits):
                     main.x_axis.visible = False
                     hpc.padding_bottom = MAIN_PADDING_BOTTOM
 
-                legend, highlighter = self.legend_dict.get(freq, [None,None])
-                print 'legends',legend,highlighter
+                legend, highlighter = self.legend_dict.get(freq, [None, None])
                 if legend:
                     legend.visible = (freq == top)
 
@@ -316,7 +313,7 @@ class PlotContainer(HasTraits):
         #************************************************************
         if mini:
             # add range selection tool only
-            # first add a reference line to attache it to
+            # first add a reference line to attach it to
             reference = self.make_reference_plot()
             main.add(reference)
             # attache range selector to this plot
@@ -369,7 +366,6 @@ class PlotContainer(HasTraits):
             self.update_legend_plots(legend, main)
             legend.visible = False
             self.legend_dict[key] = [legend, legend_highlighter]
-            print self.legend_dict
             main.overlays.append(legend)
 
             # add main and slice plot to hplot container and dict
@@ -382,11 +378,12 @@ class PlotContainer(HasTraits):
         return hpc
 
     def update_legend_plots(self, legend, plot):
+        ''' update legend if lines added or changed'''
         for k, v in self.model.depth_dict.items():
             legend.plots[k] = plot.plots[k]
 
     def update_all_line_plots(self, update=False):
-
+        ''' reload all line plots when added or changed'''
         for key in self.model.freq_choices:
             hpc = self.hplot_dict[key]
             plot = hpc.components[0]
@@ -408,8 +405,6 @@ class PlotContainer(HasTraits):
         there (for style changes)'''
 
         for line_key, depth_line in self.model.depth_dict.items():
-            print 'update lines - color', line_key, depth_line.color
-            print plot.plots
             not_plotted = line_key not in plot.plots
             not_image = line_key not in self.model.freq_choices
             if (not_plotted or update) and not_image:
@@ -419,7 +414,6 @@ class PlotContainer(HasTraits):
                 # freq has a copy using the same plotdata source
                 plot_key = key + '_' + line_key
                 self.plot_dict[plot_key] = line_plot
-            print plot.plots
 
     def plot_depth_line(self, key, line_key, depth_line, plot):
         ''' plot a depth_line using a depth line object'''
@@ -442,6 +436,7 @@ class PlotContainer(HasTraits):
         return line_plot
 
     def make_reference_plot(self):
+        ''' make reference plot for mini plot range selector'''
         x_pts = np.array([self.model.distance_array.min(),
                           self.model.distance_array.max()
                           ]
@@ -457,10 +452,13 @@ class PlotContainer(HasTraits):
 
     @on_trait_change('model')
     def update(self):
+        ''' make new vplot when a new survey line is selected'''
         self.create_vplot()
 
     def _range_selection_handler(self, event):
-        # The event obj should be a tuple (low, high) in data space
+        ''' updates the main plots when the range selector in the mini plot is
+        adjusted.  The event obj should be a tuple (low, high) in data space
+        '''
         if event is not None:
             #adjust index range for main plots
             low, high = event
@@ -519,8 +517,9 @@ class PlotContainer(HasTraits):
                         else:
                             core_plot.visible = False
                     except ValueError:
-                        debug = 'core dist check xpos, loc, abs(x-l)\n={},{},{}'
-                        logger.debug(debug.format(x_pos, loc, np.abs(x_pos-loc)))
+                        debug = 'core dist check xpos,loc,abs(x-l)\n={},{},{}'
+                        absdiff = np.abs(x_pos-loc)
+                        logger.debug(debug.format(x_pos, loc, absdiff))
 
             # now updata data array which will updata slice plot
             # try might not be necessary depending on inspect tool
@@ -571,27 +570,6 @@ class PlotContainer(HasTraits):
             slice_plot.add(line)
 
 
-class AddDepthLineView(HasTraits):
-    ''' Defines popup window for adding new depthline'''
-
-    # depth line instance to be edited or displays
-    depth_line = Instance(DepthLine)
-
-    depth_line_name = Property()
-    # used in new depth line dialog box to apply choices to make a new line
-    apply_button = Button('Apply')
-
-    traits_view = View(
-        Group(Item('depth_line_name'),
-              'apply_button',
-              ),
-        buttons=['OK', 'Cancel'],
-        resizable=True
-        )
-
-    def _get_depth_line_name(self):
-        return self.depth_line.name
-
 class ControlView(HasTraits):
     ''' Define controls and info subview with size control'''
 
@@ -607,9 +585,9 @@ class ControlView(HasTraits):
     traits_view = View(
         HGroup(
             UItem('edit',
-                 tooltip='Toggle between "not editing" and \
+                  tooltip='Toggle between "not editing" and \
                           "editing" selected line'
-                 ),
+                  ),
             Item('line_to_edit',
                  editor=EnumEditor(name='target_choices'),
                  tooltip='Edit red line with right mouse button'
