@@ -45,6 +45,18 @@ class SurveyMapPane(TraitsDockPane):
     def _survey_map_view_default(self):
         return self._get_survey_map_view()
 
+    # @on_trait_change('survey_map_view.newline')
+    # def map_selection_changed(self, new):
+    #     if new:
+    #         print 'map selection changed to', new, new.name
+    #         self.current_survey_line = new
+
+    @on_trait_change('survey_map_view.current_survey_line')
+    def map_selection_changed(self, new):
+        if new:
+            print 'map selection changed to', new, new.name
+            self.current_survey_line = new
+
     @on_trait_change('survey')
     def _set_survey_map_view(self):
         self.survey_map_view = self._get_survey_map_view()

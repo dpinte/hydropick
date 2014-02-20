@@ -135,6 +135,8 @@ class SurveyMapView(ModelView):
     #: The Chaco plot object
     plot = Instance(Plot)
 
+    #line_selected_by_map = Instance(ISurveyLine)
+
     def _plot_default(self):
         plotdata = ArrayPlotData()
         plot = MapPlot(plotdata,
@@ -210,7 +212,8 @@ class SurveyMapView(ModelView):
         p = Point(event)
         for line in self.survey_lines:
             if line.navigation_line.distance(p) < self.tol:
-                self._current_line(line)
+                self.current_survey_line = line
+                #                self._current_line(line)
                 # never want to set more than one line to current
                 break
 
@@ -221,6 +224,6 @@ class SurveyMapView(ModelView):
         else:
             self.selected_survey_lines.append(line)
 
-    def _current_line(self, line):
-        print 'set current to', line.name
-        self.current_survey_line = line
+    # def _current_line(self, line):
+    #     print 'set current to', line.name
+    #     self.current_survey_line = line
