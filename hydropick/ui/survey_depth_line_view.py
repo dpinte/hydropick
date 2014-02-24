@@ -12,13 +12,15 @@ import logging
 import numpy as np
 
 # ETS imports
-from traits.api import (Instance, Str, Property, HasTraits, Int,
-                        on_trait_change, Button, Bool)
+from traits.api import (Instance, Str, Property, HasTraits, Int, List,
+                        on_trait_change, Button, Bool, Supports)
 from traitsui.api import (View, VGroup, HGroup, Item, UItem, EnumEditor,
-                          TextEditor)
+                          TextEditor, ListEditor)
 
 # Local imports
 from ..model.depth_line import DepthLine
+from ..model.i_survey_line_group import ISurveyLineGroup
+from ..model.i_survey_line import ISurveyLine
 from .survey_data_session import SurveyDataSession
 from .survey_views import MsgView
 
@@ -76,17 +78,41 @@ class DepthLineView(HasTraits):
     # applys settings to  DepthLine updating object and updating survey line
     apply_button = Button('Apply')
 
+    # applys settings each survey line in selected lines
+    apply_to_group = Button('Apply to Group')
+
     source_name = Str
     source_names = Property(depends_on=['model.source'])
 
     # flag allows line creation/edit to continue in apply method
     no_problem = Bool
+
+    # determines whether to show the list of selected groups and lines
+    show_selected = Bool(False)
+
+    # list of selected groups and lines by name str for information only
+    selected = Property(List, depends_on=['current_survey_line_group',
+                                    'selected_survey_lines'])
+
+    # currently selected group
+    current_survey_line_group = Supports(ISurveyLineGroup)
+
+    # Set of selected survey lines (including groups) to apply algorithm to
+    selected_survey_lines = List(Supports(ISurveyLine))
+
     #==========================================================================
     # Define Views
     #==========================================================================
 
     traits_view = View(
         'survey_line_name',
+        HGroup(
+            Item('show_selected', label='Selected(show)'),
+            UItem('selected',
+                  editor=ListEditor(style='readonly'),
+                  style='readonly',
+                  visible_when='show_selected')
+                   ),
         Item('selected_depth_line_name', label='View Depth Line',
              editor=EnumEditor(name='depth_lines')),
         Item('_'),
@@ -116,6 +142,8 @@ class DepthLineView(HasTraits):
                UItem('update_arrays_button',
                      tooltip=UPDATE_ARRAYS_TOOLTIP),
                UItem('apply_button',
+                     tooltip=APPLY_TOOLTIP),
+               UItem('apply_to_group',
                      tooltip=APPLY_TOOLTIP)
                ),
         height=500,
@@ -127,7 +155,7 @@ class DepthLineView(HasTraits):
     #==========================================================================
 
     def _selected_depth_line_name_default(self):
-        ''' Create initial plot container'''
+        ''' provide initial value for selected depth line in view'''
         return 'none'
 
     #==========================================================================
@@ -332,3 +360,15 @@ class DepthLineView(HasTraits):
             self.log_problem(s)
             if mod_args != {}:
                 self.model.args = {}
+
+    def _get_selected(self):
+        '''make list of selected lines with selected group on top and all lines
+        '''
+        group_string = 'No Group Selected'
+        all_lines = []
+        if self.current_survey_line_group:
+            group_name = self.current_survey_line_group.name
+            group_string = 'GROUP: ' + group_name
+        if self.selected_survey_lines:
+            all_lines = [line.name for line in self.selected_survey_lines]
+        return [group_string] + ['LINES:'] + all_lines

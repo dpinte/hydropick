@@ -26,7 +26,7 @@ def get_name(directory):
     grandparent, parent_name = os.path.split(parent)
     great_grandparent, grandparent_name = os.path.split(grandparent)
     if parent_name and grandparent_name:
-        name = grandparent_name + ' ' + parent_name
+        name = grandparent_name + '_' + parent_name
     elif parent_name:
         name = parent_name
     else:

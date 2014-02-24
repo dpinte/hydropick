@@ -648,7 +648,8 @@ class ImageAdjustView(HasTraits):
         Item('contrast',
              editor=RangeEditor(low=1.0, high=CONTRAST_MAX), label='C'),
         Item('invert'),
-        resizable=True
+        resizable=True,
+        kind='livemodal'
         )
 
     def _get_contrast_brightness(self):

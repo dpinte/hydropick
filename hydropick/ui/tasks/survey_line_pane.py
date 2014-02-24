@@ -60,6 +60,10 @@ class SurveyLinePane(TraitsTaskPane):
     def on_image_adjustment(self):
         ''' Open dialog to adjust image (B&C : task menu)'''
         self.survey_line_view.image_adjustment_dialog()
+    
+    def on_cursor_freeze(self):
+        ''' Currently just shows Key Binding to freeze cursor'''
+        pass
         
     def on_change_colormap(self):
         ''' Open dialog to adjust image (B&C : task menu)'''
