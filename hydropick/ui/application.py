@@ -129,6 +129,11 @@ class Application(HasTraits):
         print logfile, self.application_home
         handler = RotatingFileHandler(logfile, backupCount=5)
         handler.doRollover()
+        # format output
+        datefmt = '%Y%m%d:%H%M%S'
+        line_fmt = '%(asctime)s :: %(name)s : %(levelname)s : %(message)s'
+        formatter = logging.Formatter(line_fmt, datefmt=datefmt)
+        handler.setFormatter(formatter)
         return handler
 
     def _gui_default(self):
