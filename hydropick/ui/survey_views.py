@@ -26,13 +26,13 @@ import numpy as np
 from enable.api import ComponentEditor
 from traits.api import (Instance, Str, List, HasTraits, Float, Property,
                         Enum, Bool, Dict, on_trait_change, Trait,
-                        Callable, Tuple, CFloat, Button)
+                        Callable, Tuple, CFloat)
 from traitsui.api import (View, Item, EnumEditor, UItem, InstanceEditor,
                           RangeEditor, Label, HGroup, CheckListEditor, Group)
 from chaco import default_colormaps
 from chaco.api import (Plot, ArrayPlotData, VPlotContainer, HPlotContainer,
                        Legend, create_scatter_plot, PlotComponent,
-                       create_line_plot)
+                       create_line_plot, DataRange1D)
 from chaco.tools.api import (PanTool, ZoomTool, RangeSelection, LineInspector,
                              RangeSelectionOverlay, LegendHighlighter)
 
@@ -78,7 +78,7 @@ class ColormapEditView(HasTraits):
               Item('colormap')
               ),
         buttons=["OK", "Cancel"]
-        )
+    )
 
 
 class PlotContainer(HasTraits):
@@ -124,6 +124,8 @@ class PlotContainer(HasTraits):
 
     # private traits
     _cmap = Trait(default_colormaps.Spectral, Callable)
+
+    main_value_range = Instance(DataRange1D)
     #==========================================================================
     # Define Views
     #==========================================================================
@@ -162,6 +164,11 @@ class PlotContainer(HasTraits):
     def _img_colormap_default(self):
         return DEFAULT_COLORMAP
 
+    def _main_value_range_default(self):
+        dr = DataRange1D()
+        dr.set_bounds('auto', 'auto')
+        return dr
+    
     #==========================================================================
     # Helper functions
     #==========================================================================
@@ -344,14 +351,20 @@ class PlotContainer(HasTraits):
             # add to hplot and dict
             hpc.add(main)
             self.hplot_dict['mini'] = hpc
-
+            
         else:
             # add zoom tools
             main.tools.append(PanTool(main,
                                       constrain=True,
                                       constrain_direction='y'))
             main.tools.append(ZoomTool(main, tool_mode='range', axis='value'))
+            
+            main.value_mapper.on_trait_change(self.zoom_all2, 'updated')
+            # main.value_range.on_trait_change(self.zoom_all1)
+            # main.on_trait_change(self.zoom_all, 'value_range')
 
+            # main.on_trait_change(self.zoom_all, 'value_mapper')
+            
             # add line inspector and attach to freeze tool
             #*********************************************
             line_inspector = LineInspector(component=img_plot,
@@ -432,14 +445,14 @@ class PlotContainer(HasTraits):
                 plot_key = key + '_' + line_key
                 self.plot_dict[plot_key] = line_plot
 
-    def plot_depth_line(self, key, line_key, depth_line, plot):
+    def plot_depth_line(self,key,line_key, depth_line, plot):
         ''' plot a depth_line using a depth line object'''
 
         # add data to ArrayPlotData if not there
         if line_key not in self.data.arrays.keys():
             x = self.model.distance_array[depth_line.index_array]
             y = depth_line.depth_array
-            key_x, key_y = line_key + '_x',  line_key + '_y'
+            key_x, key_y = line_key + '_x', line_key + '_y'
             self.data.update({key_x: x, key_y: y})
 
         # now plot
@@ -471,6 +484,24 @@ class PlotContainer(HasTraits):
     def update(self):
         ''' make new vplot when a new survey line is selected'''
         self.create_vplot()
+
+    # def zoom_all(self,object, name, old, new):
+    #     print 'zom all',object, name, old, new
+        
+    # def zoom_all1(self):
+    #     print 'zom all1'
+    def zoom_all2(self, obj, name, old, new):
+        low, high = obj.range.low, obj.range.high
+        print 'zom all2', obj, name, old,low,high
+        for key, hpc in self.hplot_dict.items():
+            if key != 'mini':
+                vmapper = hpc.components[0].value_mapper
+                if vmapper.range.low != low:
+                    vmapper.range.low = low
+                if vmapper.range.high != high:
+                    vmapper.range.high = high
+                
+                
 
     def _range_selection_handler(self, event):
         ''' updates the main plots when the range selector in the mini plot is
@@ -650,7 +681,7 @@ class ImageAdjustView(HasTraits):
         Item('invert'),
         resizable=True,
         kind='livemodal'
-        )
+    )
 
     def _get_contrast_brightness(self):
         return (self.contrast, self.brightness)
@@ -707,7 +738,7 @@ class DataView(HasTraits):
         Item('power'),
         Item('gain'),
         resizable=True
-        )
+    )
 
 
 class MsgView(HasTraits):
