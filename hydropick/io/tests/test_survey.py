@@ -10,6 +10,7 @@ import shutil
 import tempfile
 import unittest
 
+from shapely.geometry.base import BaseGeometry
 from shapely.geometry import LineString
 
 from hydropick.io import survey_io
@@ -21,12 +22,11 @@ class TestSurveyIO(unittest.TestCase):
         self.tempdir = tempfile.mkdtemp()
         self.h5file = os.path.join(self.tempdir, 'test.h5')
         self.line_name = '12041701'
-        self.binary_file = os.path.join(os.path.dirname(__file__),
-                                       'files',
-                                       '{}.bin'.format(self.line_name))
-        self.corestick_file = os.path.join(os.path.dirname(__file__),
-                                       'files',
-                                       'Granger_CoreStick.txt')
+        files_dir = os.path.join(os.path.dirname(__file__), 'files')
+        self.binary_file = os.path.join(
+            files_dir, '{}.bin'.format(self.line_name))
+        self.corestick_file = os.path.join(files_dir, 'Granger_CoreStick.txt')
+        self.shoreline_file = os.path.join(files_dir, 'Granger_Lake1283.shp')
 
     def tearDown(self):
         shutil.rmtree(self.tempdir)
@@ -44,3 +44,13 @@ class TestSurveyIO(unittest.TestCase):
         self.assertIsInstance(core_samples, dict)
         self.assertEqual(len(core_samples), 6)
 
+    def test_import_and_read_shoreline(self):
+        lake_name = 'Granger'
+
+        survey_io.import_shoreline_from_file(lake_name, self.shoreline_file, self.h5file)
+        lake = survey_io.read_shoreline_from_hdf(self.h5file)
+
+        self.assertIsInstance(lake.shoreline, BaseGeometry)
+        self.assertEqual(len(lake.shoreline), 35)
+        self.assertEqual(lake.elevation, 504.0)
+        self.assertEqual(lake.name, lake_name)

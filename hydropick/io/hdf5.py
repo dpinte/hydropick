@@ -1,8 +1,10 @@
 import contextlib
 import json
 
+import fiona
 import numpy as np
 import sdi
+from shapely.geometry import MultiLineString, shape, mapping
 import tables
 
 
@@ -32,14 +34,64 @@ class HDF5Backend(object):
         core_sample_dicts = sdi.corestick.read(corestick_file)
         self._write_core_samples(core_sample_dicts)
 
+    def import_shoreline_file(self, lake_name, shoreline_file):
+        """ Load the shoreline from GIS file.
+
+        NB: Currently has side effects, loading crs and properties traits.
+        """
+        with fiona.open(shoreline_file) as f:
+            crs = f.crs
+            geometries = []
+            for rec in f:
+                geometries.append(rec['geometry'])
+            # XXX: assuming that the properties aren't varying by geometry
+            properties = rec['properties']
+
+            if len(geometries) == 1:
+                geom = shape(geometries[0])
+            else:
+                # XXX: this assumes we'll always get lines, not polygons or other
+                geom = MultiLineString([
+                    shape(geometry) for geometry in geometries])
+
+        with self._open_file('a') as f:
+            shoreline_group = self._get_shoreline_group(f)
+            shoreline_group._v_attrs.crs = self._safe_serialize(crs)
+            shoreline_group._v_attrs.lake_name = self._safe_serialize(lake_name)
+            shoreline_group._v_attrs.original_shapefile = self._safe_serialize(shoreline_file)
+            shoreline_group._v_attrs.properties = self._safe_serialize(properties)
+            geometry_str = self._safe_serialize(mapping(geom))
+            f.createArray(shoreline_group, 'geometry', np.array(geometry_str))
+
     def read_core_samples(self):
         try:
             with self._open_file('r') as f:
                 core_samples_group = self._get_core_samples_group(f)
-                core_samples = json.loads(core_samples_group._v_attrs.core_samples)
+                core_samples = self._safe_unserialize(core_samples_group._v_attrs.core_samples)
         except tables.FileModeError:
             raise tables.NoSuchNodeError
         return core_samples
+
+    def read_shoreline(self):
+        try:
+            with self._open_file('r') as f:
+                shoreline_group = self._get_shoreline_group(f)
+                crs = self._safe_unserialize(shoreline_group._v_attrs.crs)
+                lake_name = self._safe_unserialize(shoreline_group._v_attrs.lake_name)
+                original_shapefile = self._safe_unserialize(shoreline_group._v_attrs.original_shapefile)
+                properties = self._safe_unserialize(shoreline_group._v_attrs.properties)
+                geometry_str = str(shoreline_group.geometry.read())
+                geometry = shape(self._safe_unserialize(geometry_str))
+        except tables.FileModeError:
+            raise tables.NoSuchNodeError
+
+        return {
+            'crs': crs,
+            'geometry': geometry,
+            'lake_name': lake_name,
+            'original_shapefile': original_shapefile,
+            'properties': properties,
+        }
 
     def read_sdi_data_unseparated(self, line_name):
         try:
@@ -107,6 +159,13 @@ class HDF5Backend(object):
             frequency_group = f.createGroup(survey_line_group, 'frequencies')
         return frequency_group
 
+    def _get_or_create_group(self, f, name):
+        try:
+            group = f.getNode('/', name)
+        except tables.NoSuchNodeError:
+            group = f.createGroup('/', name)
+        return group
+
     def _get_sdi_data_unseparated_group(self, f, line_name):
         """returns the group for the collection of frequency data for a survey line"""
         survey_line_group = self._get_survey_line_group(f, line_name)
@@ -115,6 +174,10 @@ class HDF5Backend(object):
         except tables.NoSuchNodeError:
             sdi_data_unseparated_group = f.createGroup(survey_line_group, 'sdi_data_unseparated')
         return sdi_data_unseparated_group
+
+    def _get_shoreline_group(self, f):
+        """returns the group for lake shoreline"""
+        return self._get_or_create_group(f, 'shoreline')
 
     def _get_survey_lines_group(self, f):
         """returns the group for the collection of survey_lines - creating it if necessary"""
@@ -150,15 +213,27 @@ class HDF5Backend(object):
             else:
                 yield f
 
+    def _safe_serialize(self, obj):
+        """
+        Serialize to a native datatype that can be safely stored and
+        unserialized from a pytables AttributeSet class (node._v_attrs). This
+        is important for security because AttributeSet falls back to pickled
+        strings and unpickling malicious strings allows arbitrary code
+        execution (see:
+            http://lincolnloop.com/blog/playing-pickle-security/)
+        """
+        return json.dumps(obj)
+
+    def _safe_unserialize(self, string):
+        """
+        Unserialize data from a string. See note in _safe_serialize docstring for more.
+        """
+        return json.loads(string)
+
     def _write_core_samples(self, core_sample_dicts):
         with self._open_file('a') as f:
-            # note: Serializing to strings is necessary for security. Strings
-            # are native HDF5 datatypes but dicts are serialized/unserialized
-            # by pytables as python pickles and unpickling would potentially
-            # allow arbitrary code execution (see:
-            # http://lincolnloop.com/blog/playing-pickle-security/)
             core_samples_group = self._get_core_samples_group(f)
-            core_samples_group._v_attrs.core_samples = json.dumps(core_sample_dicts)
+            core_samples_group._v_attrs.core_samples = self._safe_serialize(core_sample_dicts)
             f.flush()
 
     def _write_freq_dicts(self, line_name, freq_dicts):

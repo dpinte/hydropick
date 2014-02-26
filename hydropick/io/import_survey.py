@@ -60,15 +60,17 @@ def import_cores(directory, h5file):
     ]
 
 
-def import_lake(directory):
-    # XXX this needs a proper implementation
-    from ..model.lake import Lake
-
-    # find the GIS file in the directory
-    for filename in os.listdir(directory):
-        if os.path.splitext(filename)[1] == '.shp':
-            return Lake(shoreline_file=os.path.join(directory, filename))
-    pass
+def import_lake(name, directory, h5file):
+    try:
+        shoreline = survey_io.read_shoreline_from_hdf(h5file)
+    except (IOError, tables.exceptions.NoSuchNodeError):
+        # find the GIS file in the directory
+        for filename in os.listdir(directory):
+            if os.path.splitext(filename)[1] == '.shp':
+                shp_file = os.path.join(directory, filename)
+                survey_io.import_shoreline_from_file(name, shp_file, h5file)
+        shoreline = survey_io.read_shoreline_from_hdf(h5file)
+    return shoreline
 
 
 def import_sdi(directory, h5file):
@@ -129,8 +131,7 @@ def import_survey(directory):
     core_samples = import_cores(os.path.join(directory, 'Coring'), hdf5_file)
 
     # read in lake
-    lake = import_lake(os.path.join(directory, 'ForSurvey'))
-
+    lake = import_lake(name, os.path.join(directory, 'ForSurvey'), hdf5_file)
 
     # read in sdi data
     survey_lines, survey_line_groups = import_sdi(os.path.join(directory,
