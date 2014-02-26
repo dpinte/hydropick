@@ -1,4 +1,5 @@
 import contextlib
+import json
 
 import numpy as np
 import sdi
@@ -26,6 +27,19 @@ class HDF5Backend(object):
 
         self._write_freq_dicts(line_name, data['frequencies'])
         self._write_raw_sdi_dict(line_name, data_raw)
+
+    def import_corestick_file(self, corestick_file):
+        core_sample_dicts = sdi.corestick.read(corestick_file)
+        self._write_core_samples(core_sample_dicts)
+
+    def read_core_samples(self):
+        try:
+            with self._open_file('r') as f:
+                core_samples_group = self._get_core_samples_group(f)
+                core_samples = json.loads(core_samples_group._v_attrs.core_samples)
+        except tables.FileModeError:
+            raise tables.NoSuchNodeError
+        return core_samples
 
     def read_sdi_data_unseparated(self, line_name):
         try:
@@ -60,6 +74,19 @@ class HDF5Backend(object):
         except tables.FileModeError:
             raise tables.NoSuchNodeError
         return coords
+
+    def _get_core_samples_group(self, f):
+        """returns the group for the collection of core_sample data for a
+        survey. Core samples could be attached to f.root, but giving core
+        samples a group node allows the len(f.listNodes('/')) to still work as
+        simple check for whether or not the file is new.
+        """
+        name = 'core_samples'
+        try:
+            core_sample_group = f.getNode('/', name)
+        except tables.NoSuchNodeError:
+            core_sample_group = f.createGroup('/', name)
+        return core_sample_group
 
     def _get_frequency_group(self, f, line_name, khz):
         """returns the group for the collection of frequency data for a survey line"""
@@ -123,6 +150,17 @@ class HDF5Backend(object):
             else:
                 yield f
 
+    def _write_core_samples(self, core_sample_dicts):
+        with self._open_file('a') as f:
+            # note: Serializing to strings is necessary for security. Strings
+            # are native HDF5 datatypes but dicts are serialized/unserialized
+            # by pytables as python pickles and unpickling would potentially
+            # allow arbitrary code execution (see:
+            # http://lincolnloop.com/blog/playing-pickle-security/)
+            core_samples_group = self._get_core_samples_group(f)
+            core_samples_group._v_attrs.core_samples = json.dumps(core_sample_dicts)
+            f.flush()
+
     def _write_freq_dicts(self, line_name, freq_dicts):
         with self._open_file('a') as f:
             for freq_dict in freq_dicts:
@@ -141,5 +179,5 @@ class HDF5Backend(object):
                         value = str(value)    # to avoid unicode error
                     if key is 'date':
                         value = line_name
-                    f.createArray(sdi_unsep_grp, key, value)                
+                    f.createArray(sdi_unsep_grp, key, value)
             f.flush()
