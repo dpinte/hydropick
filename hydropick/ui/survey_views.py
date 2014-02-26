@@ -74,11 +74,12 @@ class ColormapEditView(HasTraits):
 
     colormap = Enum(COLORMAPS)
 
-    plot_edit_view = View(
+    traits_view = View(
         Group(Label('Frequency to Edit'),
               Item('colormap')
               ),
-        buttons=["OK", "Cancel"]
+        buttons=["OK", "Cancel"],
+        kind='modal',
         )
 
 
@@ -665,6 +666,7 @@ class ImageAdjustView(HasTraits):
         Item('contrast',
              editor=RangeEditor(low=1.0, high=CONTRAST_MAX), label='C'),
         Item('invert'),
+        kind='modal',
         resizable=True
         )
 
@@ -689,6 +691,7 @@ class HPlotSelectionView(HasTraits):
                              ),
                        Label('Show Intensity Profiles'),
                        UItem('intensity_profile'),
+                       kind='modal',
                        resizable=True
                        )
 
@@ -722,6 +725,7 @@ class DataView(HasTraits):
         Item('_'),
         Item('power'),
         Item('gain'),
+        kind='modal',
         resizable=True
         )
 
