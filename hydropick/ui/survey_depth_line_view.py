@@ -80,7 +80,7 @@ class DepthLineView(HasTraits):
     source_names = Property(depends_on=['model.source'])
 
     # flag allows line creation/edit to continue in apply method
-    no_problem = Bool
+    no_problem = Bool(False)
     #==========================================================================
     # Define Views
     #==========================================================================
@@ -148,6 +148,8 @@ class DepthLineView(HasTraits):
         Allow same name for PRE and POST lists since these are separate
         '''
         p = proposed_line
+        # new names should begin and end with printable characters.
+        p.name = p.name.strip()
         if p.line_type == 'current surface':
             used = p.name in self.data_session.lake_depths.keys()
         elif p.line_type == 'pre-impoundment surface':
@@ -166,7 +168,6 @@ class DepthLineView(HasTraits):
         ''' apply chosen method to fill line arrays
         '''
         model = self.model
-        self.no_problem = True
         if model.lock:
             self.log_problem('locked so cannot change/create anything')
 
@@ -196,7 +197,19 @@ class DepthLineView(HasTraits):
     def apply(self, new):
         ''' save current setting and data to current line'''
         model = self.model
-        self.no_problem = True
+        no_depth_array = self.depth_array_size == 0
+        no_index_array = self.index_array_size == 0
+        depth_notequal_index = self.depth_array_size != self.index_array_size
+        if no_depth_array or no_index_array or depth_notequal_index :
+            self.no_problem = False
+            s = 'data arrays sizes are 0 or not equal'
+            self.log_problem(s)
+        if self.model.name.strip() == '':
+            self.no_problem = False
+            s = 'depth line has no printable name'
+            self.log_problem(s)
+        if self.model.name != self.selected_depth_line_name:
+            self.depth_line_name_new(model)
         if model.lock:
             self.log_problem('locked so cannot change/create anything')
         # add to the survey line's appropriate dictionary
@@ -213,7 +226,9 @@ class DepthLineView(HasTraits):
             self.selected_depth_line_name = key
             self.update_plot()
         else:
-            s = 'could not make new line.  Check log for details'
+            s = '''Could not make new line.
+            Did you update Data?
+            Check log for details'''
             self.log_problem(s)
 
     @on_trait_change('selected_depth_line_name')
