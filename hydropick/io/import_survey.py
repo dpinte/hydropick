@@ -7,10 +7,12 @@
 
 from __future__ import absolute_import
 
-import os
 import logging
-import tables
+import glob
+import os
 import warnings
+
+import tables
 
 from hydropick.io import survey_io
 from hydropick.io.survey_io import (import_survey_line_from_file,
@@ -58,6 +60,14 @@ def import_cores(directory, h5file):
         )
         for core_id, core in core_dicts.items()
     ]
+
+
+def import_pick_files(directory, h5file):
+    # find the GIS file in the directory
+    print 'hi'
+    for path in glob.glob(directory + '/*/*/*[pic,pre]'):
+        survey_io.import_pick_line_from_file(path, h5file)
+    print 'done'
 
 
 def import_lake(name, directory, h5file):
@@ -117,7 +127,7 @@ def import_sdi(directory, h5file):
     return survey_lines, survey_line_groups
 
 
-def import_survey(directory):
+def import_survey(directory, with_pick_files=False):
     """ Read in a project from the current directory-based format """
     from ..model.survey import Survey
 
@@ -139,7 +149,8 @@ def import_survey(directory):
                                                   hdf5_file)
 
     # read in edits to sdi data
-    # XXX not implemented
+    if with_pick_files:
+        import_pick_files(os.path.join(directory, 'SDI_Edits'), hdf5_file)
 
     survey = Survey(
         name=name,
