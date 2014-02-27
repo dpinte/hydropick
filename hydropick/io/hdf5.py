@@ -159,11 +159,11 @@ class HDF5Backend(object):
             frequency_group = f.createGroup(survey_line_group, 'frequencies')
         return frequency_group
 
-    def _get_or_create_group(self, f, name):
+    def _get_or_create_group(self, f, parent, name):
         try:
-            group = f.getNode('/', name)
+            group = f.getNode(parent, name)
         except tables.NoSuchNodeError:
-            group = f.createGroup('/', name)
+            group = f.createGroup(parent, name)
         return group
 
     def _get_sdi_data_unseparated_group(self, f, line_name):
@@ -177,7 +177,7 @@ class HDF5Backend(object):
 
     def _get_shoreline_group(self, f):
         """returns the group for lake shoreline"""
-        return self._get_or_create_group(f, 'shoreline')
+        return self._get_or_create_group(f, f.root, 'shoreline')
 
     def _get_survey_lines_group(self, f):
         """returns the group for the collection of survey_lines - creating it if necessary"""
