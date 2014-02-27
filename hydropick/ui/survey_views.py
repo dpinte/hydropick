@@ -28,7 +28,8 @@ from traits.api import (Instance, Str, List, HasTraits, Float, Property,
                         Enum, Bool, Dict, on_trait_change, Trait,
                         Callable, Tuple, CFloat)
 from traitsui.api import (View, Item, EnumEditor, UItem, InstanceEditor,
-                          RangeEditor, Label, HGroup, CheckListEditor, Group)
+                          TextEditor, RangeEditor, Label, HGroup,
+                          CheckListEditor, Group)
 from chaco import default_colormaps
 from chaco.api import (Plot, ArrayPlotData, VPlotContainer, HPlotContainer,
                        Legend, create_scatter_plot, PlotComponent,
@@ -73,12 +74,13 @@ class ColormapEditView(HasTraits):
 
     colormap = Enum(COLORMAPS)
 
-    plot_edit_view = View(
+    traits_view = View(
         Group(Label('Frequency to Edit'),
               Item('colormap')
               ),
-        buttons=["OK", "Cancel"]
-    )
+        buttons=["OK", "Cancel"],
+        kind='modal',
+        )
 
 
 class PlotContainer(HasTraits):
@@ -542,20 +544,41 @@ class PlotContainer(HasTraits):
         img = hplot.components[0].plots[key][0]
 
         if slice_meta:    # set metadata and data
+
             # check hplot img meta != new meta. if !=, change it.
             # this will update tools for other frequencies
             this_meta = img.index.metadata
             if this_meta.get('x_slice', None) is not slice_meta:
                 this_meta.update({"x_slice": slice_meta})
 
-            # check if cursor is 'near' core, and set visibility in sliceplot
             x_index, y_index = slice_meta
-            abs_index = self.model.freq_trace_num[key][x_index]
             try:
+                if x_index:
+                    # now updata data array which will updata slice plot
+                    slice_data = img.value.data[:, x_index]
+                    self.data.update_data({slice_key: slice_data})
+                else:
+                    self.data.update_data({slice_key: np.array([])})
+            except IndexError:
+                self.data.update_data({slice_key: np.array([])})
+
+            try:
+                # abs_index is the trace number for the selected image index
+                abs_index = self.model.freq_trace_num[key][x_index] - 1
                 x_pos = self.model.distance_array[abs_index]
             except IndexError:
-                x_pos = 0
+                # if for some reason the tool returns a crazy index then bound
+                # it to array limits.
+                logger.info('cursor index out of bounds: value set to limit')
+                indices = self.model.freq_trace_num[key]-1
+                x_ind_max = indices.size - 1
+                x_ind_clipped = np.clip(x_index, 0, x_ind_max)
+                abs_index = indices[x_ind_clipped]
+                x_pos = self.model.distance_array[abs_index]
+
+            # check if cursor is 'near' core, and set visibility in sliceplot
             for core in self.model.core_samples:
+                # show core if cursor within range of core location
                 loc_index, loc, dist = self.model.core_info_dict[core.core_id]
                 core_plot_list = self.core_plots_dict[core.core_id]
                 for core_plot in core_plot_list:
@@ -568,11 +591,6 @@ class PlotContainer(HasTraits):
                         debug = 'core dist check xpos,loc,abs(x-l)\n={},{},{}'
                         absdiff = np.abs(x_pos-loc)
                         logger.debug(debug.format(x_pos, loc, absdiff))
-
-            # now updata data array which will updata slice plot
-            # try might not be necessary depending on inspect tool
-            slice_data = img.value.data[:, x_index]
-            self.data.update_data({slice_key: slice_data})
 
         else:   # clear all slice plots
             self.data.update_data({slice_key: np.array([])})
@@ -682,8 +700,8 @@ class ImageAdjustView(HasTraits):
         resizable=True,
         kind='livemodal'
     )
-
-    def _get_contrast_brightness(self):
+    
+def _get_contrast_brightness(self):
         return (self.contrast, self.brightness)
 
 
@@ -704,6 +722,7 @@ class HPlotSelectionView(HasTraits):
                              ),
                        Label('Show Intensity Profiles'),
                        UItem('intensity_profile'),
+                       kind='modal',
                        resizable=True
                        )
 
@@ -737,13 +756,14 @@ class DataView(HasTraits):
         Item('_'),
         Item('power'),
         Item('gain'),
+        kind='modal',
         resizable=True
     )
 
 
 class MsgView(HasTraits):
     msg = Str('my msg')
-    traits_view = View('msg',
+    traits_view = View(Item('msg', editor=TextEditor(), style='custom'),
                        buttons=['OK', 'Cancel'],
                        kind='modal',
                        resizable=True
