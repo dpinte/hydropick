@@ -49,8 +49,8 @@ class HDF5Backend(object):
 
         line_data = {
             'name': 'pickfile_' + line_type,
-            'depth': pick_data['depth'],
-            'index': pick_data['trace_number'] - 1,
+            'depth_array': pick_data['depth'],
+            'index_array': pick_data['trace_number'] - 1,
             'edited': False,
             'source': 'previous depth line',
             'source_name': pick_file,
@@ -108,7 +108,7 @@ class HDF5Backend(object):
 
                 return dict([(pick['name'], pick) for pick in picks])
         except tables.FileModeError:
-            raise tables.NoSuchNodeError
+            return {}
 
     def read_shoreline(self):
         try:
@@ -171,7 +171,7 @@ class HDF5Backend(object):
         with self._open_file('a') as f:
             pick_name = line_data['name']
             pick_line_group = self._get_pick_line_group(f, line_name, line_type, pick_name)
-            for array_name in ['depth', 'index']:
+            for array_name in ['depth_array', 'index_array']:
                 array = line_data.pop(array_name)
                 if array_name in pick_line_group:
                     setattr(pick_line_group, array_name, array)
@@ -291,8 +291,8 @@ class HDF5Backend(object):
             for key in pick_line_group._v_attrs._v_attrnames
             if key not in ignore_keys
         ])
-        d['depth'] = pick_line_group.depth.read()
-        d['index'] = pick_line_group.index.read()
+        d['depth_array'] = pick_line_group.depth_array.read()
+        d['index_array'] = pick_line_group.index_array.read()
         return d
 
     def _safe_serialize(self, obj):

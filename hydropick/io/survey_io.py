@@ -11,6 +11,7 @@ import logging
 from shapely.geometry import LineString
 
 from . import hdf5
+from ..model.depth_line import DepthLine
 from ..model.survey_line import SurveyLine
 from ..model.lake import Lake
 
@@ -66,4 +67,9 @@ def read_sdi_data_unseparated_from_hdf(h5file, name):
 
 
 def read_pick_lines_from_hdf(h5file, line_name, line_type):
-    return hdf5.HDF5Backend(h5file).read_picks(line_name, line_type)
+    pick_lines = hdf5.HDF5Backend(h5file).read_picks(line_name, line_type)
+
+    return dict([
+        (name, DepthLine(**pick_line))
+        for name, pick_line in pick_lines.iteritems()
+    ])

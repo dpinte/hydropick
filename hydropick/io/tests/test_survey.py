@@ -14,6 +14,7 @@ from shapely.geometry.base import BaseGeometry
 from shapely.geometry import LineString
 
 from hydropick.io import survey_io
+from hydropick.model.depth_line import DepthLine
 
 
 class TestSurveyIO(unittest.TestCase):
@@ -59,11 +60,9 @@ class TestSurveyIO(unittest.TestCase):
         self.assertEqual(lake.name, lake_name)
 
     def test_import_and_read_pickfile(self):
-        lake_name = 'Granger'
-
         survey_io.import_pick_line_from_file(self.pick_line_file, self.h5file)
         picks = survey_io.read_pick_lines_from_hdf(self.h5file, self.pick_line_name, 'preimpoundment')
-        pick_dict = picks['pickfile_preimpoundment']
-        self.assertIsInstance(pick_dict, dict)
-        self.assertEqual(len(pick_dict['depth']), 3606)
-        self.assertEqual(len(pick_dict['index']), 3606)
+        pick = picks['pickfile_preimpoundment']
+        self.assertIsInstance(pick, DepthLine)
+        self.assertEqual(len(pick.depth_array), 3606)
+        self.assertEqual(len(pick.index_array), 3606)
