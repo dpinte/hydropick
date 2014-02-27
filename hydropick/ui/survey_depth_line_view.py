@@ -85,8 +85,7 @@ class DepthLineView(HasTraits):
     source_names = Property(depends_on=['model.source'])
 
     # flag allows line creation/edit to continue in apply method
-<<<<<<< HEAD
-    no_problem = Bool
+    no_problem = Bool(False)
 
     # determines whether to show the list of selected groups and lines
     show_selected = Bool(False)
@@ -101,9 +100,8 @@ class DepthLineView(HasTraits):
     # Set of selected survey lines (including groups) to apply algorithm to
     selected_survey_lines = List(Supports(ISurveyLine))
 
-=======
-    no_problem = Bool(False)
->>>>>>> bug/index-errors
+
+
     #==========================================================================
     # Define Views
     #==========================================================================
