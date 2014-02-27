@@ -28,6 +28,9 @@ class TestSurveyIO(unittest.TestCase):
         self.corestick_file = os.path.join(files_dir, 'Granger_CoreStick.txt')
         self.shoreline_file = os.path.join(files_dir, 'Granger_Lake1283.shp')
 
+        self.pick_line_name = '13021901'
+        self.pick_line_file = os.path.join(files_dir, self.pick_line_name + '.pre')
+
     def tearDown(self):
         shutil.rmtree(self.tempdir)
 
@@ -54,3 +57,13 @@ class TestSurveyIO(unittest.TestCase):
         self.assertEqual(len(lake.shoreline), 35)
         self.assertEqual(lake.elevation, 504.0)
         self.assertEqual(lake.name, lake_name)
+
+    def test_import_and_read_pickfile(self):
+        lake_name = 'Granger'
+
+        survey_io.import_pick_line_from_file(self.pick_line_file, self.h5file)
+        picks = survey_io.read_pick_lines_from_hdf(self.h5file, self.pick_line_name, 'preimpoundment')
+        pick_dict = picks['pickfile_preimpoundment']
+        self.assertIsInstance(pick_dict, dict)
+        self.assertEqual(len(pick_dict['depth']), 3606)
+        self.assertEqual(len(pick_dict['index']), 3606)

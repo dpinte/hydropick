@@ -1,5 +1,6 @@
 import contextlib
 import json
+import os.path
 
 import fiona
 import numpy as np
@@ -33,6 +34,29 @@ class HDF5Backend(object):
     def import_corestick_file(self, corestick_file):
         core_sample_dicts = sdi.corestick.read(corestick_file)
         self._write_core_samples(core_sample_dicts)
+
+    def import_pick_file(self, pick_file):
+        line_name = os.path.basename(pick_file).split('.pre')[0]
+        pick_data = sdi.pickfile.read(pick_file)
+        surface_number = pick_data['surface_number']
+        if surface_number == 1:
+            line_type = 'current'
+        elif surface_number == 2:
+            line_type = 'preimpoundment'
+        else:
+            raise NotImplementedError(
+                'unexpected line file type: {}'.format(surface_number))
+
+        line_data = {
+            'name': 'pickfile_' + line_type,
+            'depth': pick_data['depth'],
+            'index': pick_data['trace_number'] - 1,
+            'edited': False,
+            'source': 'previous depth line',
+            'source_name': pick_file,
+        }
+
+        self.write_pick(line_data, line_name, line_type)
 
     def import_shoreline_file(self, lake_name, shoreline_file):
         """ Load the shoreline from GIS file.
@@ -71,6 +95,20 @@ class HDF5Backend(object):
         except tables.FileModeError:
             raise tables.NoSuchNodeError
         return core_samples
+
+    def read_picks(self, line_name, line_type):
+        """returns picks for a given line and type """
+        try:
+            with self._open_file('r') as f:
+                pick_type_group = self._get_pick_type_group(f, line_name, line_type)
+                picks = [
+                    self._read_pick(line_group)
+                    for line_group in pick_type_group
+                ]
+
+                return dict([(pick['name'], pick) for pick in picks])
+        except tables.FileModeError:
+            raise tables.NoSuchNodeError
 
     def read_shoreline(self):
         try:
@@ -127,6 +165,21 @@ class HDF5Backend(object):
             raise tables.NoSuchNodeError
         return coords
 
+    def write_pick(self, line_data, line_name, line_type):
+        """writes a pick line (current surface or preimpoundment) to hdf5 file
+        """
+        with self._open_file('a') as f:
+            pick_name = line_data['name']
+            pick_line_group = self._get_pick_line_group(f, line_name, line_type, pick_name)
+            for array_name in ['depth', 'index']:
+                array = line_data.pop(array_name)
+                if array_name in pick_line_group:
+                    setattr(pick_line_group, array_name, array)
+                else:
+                    f.createArray(pick_line_group, array_name, array)
+            for key, value in line_data.iteritems():
+                pick_line_group._v_attrs[key] = self._safe_serialize(value)
+
     def _get_core_samples_group(self, f):
         """returns the group for the collection of core_sample data for a
         survey. Core samples could be attached to f.root, but giving core
@@ -165,6 +218,23 @@ class HDF5Backend(object):
         except tables.NoSuchNodeError:
             group = f.createGroup(parent, name)
         return group
+
+    def _get_pick_line_group(self, f, line_name, line_type, pick_name):
+        """returns the group for a survey line's picks of a particular type"""
+        pick_type_group = self._get_pick_type_group(f, line_name, line_type)
+        return self._get_or_create_group(f, pick_type_group, pick_name)
+
+    def _get_pick_type_group(self, f, line_name, line_type):
+        """returns the group for a survey line's picks of a particular type"""
+        if line_type not in ['current', 'preimpoundment']:
+            raise NotImplementedError(
+                'Unsupported pick type: {}'.format(line_type)
+            )
+
+        survey_lines = self._get_survey_lines_group(f)
+        picks_group = self._get_or_create_group(f, survey_lines, 'picks')
+        pick_type_group = self._get_or_create_group(f, picks_group, line_type)
+        return pick_type_group
 
     def _get_sdi_data_unseparated_group(self, f, line_name):
         """returns the group for the collection of frequency data for a survey line"""
@@ -212,6 +282,18 @@ class HDF5Backend(object):
                 )
             else:
                 yield f
+
+    def _read_pick(self, pick_line_group):
+        """returns a dict representation of a pick line group"""
+        ignore_keys = ['CLASS', 'VERSION', 'TITLE']
+        d = dict([
+            (key, self._safe_unserialize(pick_line_group._v_attrs[key]))
+            for key in pick_line_group._v_attrs._v_attrnames
+            if key not in ignore_keys
+        ])
+        d['depth'] = pick_line_group.depth.read()
+        d['index'] = pick_line_group.index.read()
+        return d
 
     def _safe_serialize(self, obj):
         """

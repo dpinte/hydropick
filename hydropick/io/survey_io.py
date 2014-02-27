@@ -26,6 +26,10 @@ def import_core_samples_from_file(filename, h5file):
     hdf5.HDF5Backend(h5file).import_corestick_file(filename)
 
 
+def import_pick_line_from_file(filename, h5file):
+    hdf5.HDF5Backend(h5file).import_pick_file(filename)
+
+
 def import_shoreline_from_file(lake_name, filename, h5file):
     logger.info("Importing shoreline file '%s'", filename)
     hdf5.HDF5Backend(h5file).import_shoreline_file(lake_name, filename)
@@ -59,3 +63,7 @@ def read_frequency_data_from_hdf(h5file, name):
 
 def read_sdi_data_unseparated_from_hdf(h5file, name):
     return hdf5.HDF5Backend(h5file).read_sdi_data_unseparated(name)
+
+
+def read_pick_lines_from_hdf(h5file, line_name, line_type):
+    return hdf5.HDF5Backend(h5file).read_picks(line_name, line_type)
