@@ -64,10 +64,8 @@ def import_cores(directory, h5file):
 
 def import_pick_files(directory, h5file):
     # find the GIS file in the directory
-    print 'hi'
     for path in glob.glob(directory + '/*/*/*[pic,pre]'):
         survey_io.import_pick_line_from_file(path, h5file)
-    print 'done'
 
 
 def import_lake(name, directory, h5file):
