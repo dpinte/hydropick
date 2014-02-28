@@ -229,6 +229,8 @@ class SurveyLineView(ModelView):
 
             # add the depth line data
             for line_key, depth_line in self.model.depth_dict.items():
+                indices = depth_line.index_array
+                print len(indices), indices.max(), indices
                 x = self.model.distance_array[depth_line.index_array]
                 y = depth_line.depth_array
                 key_x, key_y = line_key + '_x',  line_key + '_y'
@@ -280,7 +282,7 @@ class SurveyLineView(ModelView):
 
     def image_adjustment_dialog(self):
         ''' brings up image C&B edit dialog. close to continue'''
-        self.image_adjust_view.configure_traits(kind='livemodal')
+        self.image_adjust_view.configure_traits()
 
     def show_data_dialog(self):
         ''' cannot make modal if want to monitor so should be pane.
@@ -293,7 +295,7 @@ class SurveyLineView(ModelView):
 
     def plot_view_selection_dialog(self):
         ''' called from view menu to edit which plots to view'''
-        self.plot_selection_view.configure_traits(kind='livemodal')
+        self.plot_selection_view.configure_traits()
 
     ############## other handlers/notifiers  #################
 

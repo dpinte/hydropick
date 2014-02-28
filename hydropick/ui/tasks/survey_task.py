@@ -268,7 +268,6 @@ class SurveyTask(Task):
         self.selected_survey_lines[:] = [line for line in self.selected_survey_lines
                                          if line in self.survey_lines]
 
-
     @on_trait_change('survey.survey_line_groups')
     def survey_line_groups_updated(self):
         if self.current_survey_line_group not in self.survey.survey_line_groups:

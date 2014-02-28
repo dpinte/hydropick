@@ -8,17 +8,19 @@
 from __future__ import absolute_import
 
 import os
+import logging
 import numpy as np
 from shapely.geometry import LineString
 
 from traits.api import (HasTraits, Array, Dict, Event, List, Supports, Str,
-                        provides, CFloat, Instance)
+                        provides, CFloat, Instance, Bool)
 
 from .i_core_sample import ICoreSample
 from .i_survey_line import ISurveyLine
 from .i_depth_line import IDepthLine
 from .depth_line import DepthLine
 
+logger = logging.getLogger(__name__)
 
 @provides(ISurveyLine)
 class SurveyLine(HasTraits):
@@ -88,6 +90,9 @@ class SurveyLine(HasTraits):
     pixel_resolution = CFloat
 
     # XXX probably other metadata should be here
+    # if some check results in a bad survey line then some text should be
+    # put here stating why or where the check was.
+    bad_survey_line = Str('')
 
     def load_data(self, hdf5_file):
         ''' Called by UI to load this survey line when selected to edit
@@ -124,6 +129,8 @@ class SurveyLine(HasTraits):
         self.pixel_resolution = (np.mean(sdi_dict_raw['pixel_resolution']))
         self.power = sdi_dict_raw['power']
         self.gain = sdi_dict_raw['gain']
+        self.array_sizes_ok()
+
         # create depth line from sdi depth_r1 data and add to lakedepth dict
         sdi_depth_line_data = sdi_dict_raw['depth_r1']
         filename = os.path.basename(sdi_dict_raw['filepath'])
@@ -137,7 +144,7 @@ class SurveyLine(HasTraits):
                                color='blue',
                                )
         self.lake_depths[depth_line.name] = depth_line
-
+        
     def nearby_core_samples(self, core_samples, dist_tol=100):
         """ Find core samples from a list of CoreSample instances
         that lie within dist_tol units of this survey line.
@@ -150,3 +157,44 @@ class SurveyLine(HasTraits):
         cores = [core for core in core_samples
                  if distance(core, self) < dist_tol]
         return cores
+    
+    def array_sizes_ok(self):
+        ''' this is an check that the arrays for this line make sense
+        All the non-separated arrays should be the same size and the
+        trace_num array should be range(1,N) '''
+        name = self.name
+        logger.info('Checking all array integrity for line {}'.format(name))
+        arrays = ['trace_num', 'locations', 'lat_long', 'heave', 'power',
+                  'gain']
+        N = self.trace_num.shape[0]
+        check = self.trace_num - np.arange(N) - 1
+        if np.any(check != 0):
+            bad_traces = np.nonzero(check)[0] + 1
+            values = self.trace_num[bad_traces - 1]
+            print check, bad_traces, values
+            s = '''trace_num not contiguous for array: {}.
+            values of {} at traces {}
+            '''.format(name, values, bad_traces)
+            logger.warn(s)
+            self.fix_trace_num(N, bad_traces, values)
+        # now check rest of arrays
+        for a in arrays:
+            if getattr(self, a).shape[0] != N:
+                s = '{} is not size {}'.format(a, N)
+                logger.warn(s)
+                self.bad_survey_line = "Array sizes don't match on load"
+
+    def fix_trace_num(self, N, bad_traces, values):
+        for freq, trace_array in self.freq_trace_num.items():
+            for t, v in zip(bad_traces, values):
+                if v in trace_array:
+                    i = np.floor((t - 1) / 3.0)
+                    print 'freq trace i value is',freq, i, trace_array[i], i+1
+                    trace_array[i] = t
+            self.freq_trace_num[freq] = trace_array
+        for f, v in self.freq_trace_num.items():
+            print 'max is ', f, v.max(), v.shape
+        self.trace_num = np.arange(1, N + 1)
+                    
+            
+        

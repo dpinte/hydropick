@@ -487,14 +487,8 @@ class PlotContainer(HasTraits):
         ''' make new vplot when a new survey line is selected'''
         self.create_vplot()
 
-    # def zoom_all(self,object, name, old, new):
-    #     print 'zom all',object, name, old, new
-        
-    # def zoom_all1(self):
-    #     print 'zom all1'
     def zoom_all2(self, obj, name, old, new):
         low, high = obj.range.low, obj.range.high
-        print 'zom all2', obj, name, old,low,high
         for key, hpc in self.hplot_dict.items():
             if key != 'mini':
                 vmapper = hpc.components[0].value_mapper
@@ -700,8 +694,8 @@ class ImageAdjustView(HasTraits):
         resizable=True,
         kind='livemodal'
     )
-    
-def _get_contrast_brightness(self):
+
+    def _get_contrast_brightness(self):
         return (self.contrast, self.brightness)
 
 
