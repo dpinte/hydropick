@@ -31,6 +31,16 @@ class HDF5Backend(object):
         self._write_freq_dicts(line_name, data['frequencies'])
         self._write_raw_sdi_dict(line_name, data_raw)
 
+        current_surface_line = {
+            'name': 'current_surface_from_bin',
+            'depth_array': data_raw['depth_r1'],
+            'index_array': data_raw['trace_num'] - 1,
+            'edited': False,
+            'source': 'sdi_file',
+            'source_name': bin_file,
+        }
+        self.write_pick(current_surface_line, line_name, 'current')
+
     def import_corestick_file(self, corestick_file):
         core_sample_dicts = sdi.corestick.read(corestick_file)
         self._write_core_samples(core_sample_dicts)
