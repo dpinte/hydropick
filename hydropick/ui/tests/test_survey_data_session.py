@@ -2,40 +2,40 @@
 
 '''
 import os
+import shutil
+import tempfile
 import unittest
-import numpy as np
 
-from hydropick.model.survey_line import SurveyLine
-from traits.interface_checker import InterfaceError
 from traits import has_traits
 
 from hydropick.ui.survey_data_session import SurveyDataSession
 from hydropick.io.import_survey import import_sdi, import_cores
 
+
 class TestSurveyDataSession(unittest.TestCase):
-
-
     def setUp(self):
         has_traits.CHECK_INTERFACES = 1
 
-        name = 'CorpusChristi 2012'
         data_dir = 'SurveyData'
         survey_name = '12030221'
-        hdf5_file_name = name + '.h5'
+        self.tempdir = tempfile.mkdtemp()
+        self.h5file = os.path.join(self.tempdir, 'test.h5')
 
         test_dir = os.path.dirname(__file__)
         data_path = os.path.join(test_dir, data_dir)
-        hdf5_file_path = os.path.join(data_path, hdf5_file_name)
-        lines, groups =  import_sdi(data_path , hdf5_file_path)
-        self.core_samples = import_cores(os.path.join(data_path, 'Coring'), hdf5_file_path)
+        lines, groups = import_sdi(data_path, self.h5file)
+        self.core_samples = import_cores(os.path.join(data_path, 'Coring'), self.h5file)
         for line in lines:
             if line.name == survey_name:
                 self.survey_line = line
                 self.survey_line.core_samples = self.core_samples
 
         ##self.survey_line = SurveyLine(data_file_path=file_path)
-        self.survey_line.load_data(hdf5_file_path)
+        self.survey_line.load_data(self.h5file)
         self.data_session = SurveyDataSession(survey_line=self.survey_line)
+
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
 
     def test_get_freq_choices(self):
         ''' check that this returns a sorted by float value list of strings.
@@ -55,7 +55,7 @@ class TestSurveyDataSession(unittest.TestCase):
         # create key errors
         for k in self.survey_line.frequencies.copy():
             v = self.survey_line.frequencies.pop(k)
-            self.survey_line.frequencies[k+'a'] = v
+            self.survey_line.frequencies[k + 'a'] = v
 
         frequencies = self.data_session.frequencies.keys()
         frequencies.sort()
@@ -82,10 +82,6 @@ class TestSurveyDataSession(unittest.TestCase):
                 self.assertAlmostEqual(dist_fm_line, 1.1930846536)
                 two_checked = True
         self.assertTrue(two_checked)
-
-
-
-
 
 
 if __name__ == "__main__":
