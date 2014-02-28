@@ -81,6 +81,7 @@ class DepthLineView(HasTraits):
     # applys settings each survey line in selected lines
     apply_to_group = Button('Apply to Group')
 
+    # create local traits so that these options can be dynamically changed
     source_name = Str
     source_names = Property(depends_on=['model.source'])
 
@@ -168,6 +169,10 @@ class DepthLineView(HasTraits):
 
     @on_trait_change('new_button')
     def load_new_blank_line(self):
+        ''' prepare for creation of new line
+        if none is already selected, change depth line as if selected was
+        changed to none (call change depth line with none) or change
+        selected line to none and listener will handle it'''
         if self.selected_depth_line_name == 'none':
             self.change_depth_line(new='none')
         else:
@@ -261,9 +266,49 @@ class DepthLineView(HasTraits):
             Check log for details'''
             self.log_problem(s)
 
+        
+    @on_trait_change('apply_to_group')
+    def apply_to_selected(self, new):
+        ''' Apply current settings to all selected survey lines
+        
+        the will step through selected lines list and
+        - check that valid algorithm selected
+        - check if depth line exists (overwrite?)
+        - check if line is approved (apply?)
+        - check if line is bad
+        - create line with name and algorithm, args color etc.
+        - apply data and apply to make line
+        - set as final (?)
+        '''
+        model = self.model
+        selected = self.selected
+        # check that algorithm is selected and valid
+        # call change depth line
+        # get/set next surveyline/datasession
+        # log the process
+        lines_str = '\n'.join([line.name for line in selected])
+        s = '''Creating depth line for the following surveylines:
+        {lines}
+        with the following parameters:
+        name = {name}
+        algorithm = {alg}
+        args = {args}
+        color = {color}
+        '''.format(lines=lines_str,
+                   name=self.model.name,
+                   algorithm=self.source_name
+                   args= self.model.args,
+                   color=self.model.color)
+        logger.info(s)
+        # check
+        
+        
     @on_trait_change('selected_depth_line_name')
     def change_depth_line(self, new):
+        ''' selected line has changed so use the selection to change the
+        current model to selected or create new one if none'''
         if new != 'none':
+            # edit copy of line until apply button clicked
             new_line = self.data_session.depth_dict[new]
             selected_line = deepcopy(new_line)
         else:
