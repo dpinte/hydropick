@@ -1,6 +1,7 @@
 import contextlib
 import json
 import os.path
+import warnings
 
 import fiona
 import numpy as np
@@ -25,7 +26,7 @@ class HDF5Backend(object):
         line_name = data['survey_line_number']
         with self._open_file('a') as f:
             line_group = self._get_survey_line_group(f, line_name)
-            f.createArray(line_group, 'navigation_line', coords)
+            self._write_array(f, line_group, 'navigation_line', coords)
             f.flush()
 
         self._write_freq_dicts(line_name, data['frequencies'])
@@ -95,7 +96,9 @@ class HDF5Backend(object):
             shoreline_group._v_attrs.original_shapefile = self._safe_serialize(shoreline_file)
             shoreline_group._v_attrs.properties = self._safe_serialize(properties)
             geometry_str = self._safe_serialize(mapping(geom))
-            f.createArray(shoreline_group, 'geometry', np.array(geometry_str))
+
+            self._write_array(f, shoreline_group, 'geometry', np.array(geometry_str))
+            f.flush()
 
     def read_core_samples(self):
         try:
@@ -182,10 +185,7 @@ class HDF5Backend(object):
             pick_line_group = self._get_pick_line_group(f, line_name, line_type, pick_name)
             for array_name in ['depth_array', 'index_array']:
                 array = line_data.pop(array_name)
-                if array_name in pick_line_group:
-                    setattr(pick_line_group, array_name, array)
-                else:
-                    f.createArray(pick_line_group, array_name, array)
+                self._write_array(f, pick_line_group, array_name, array)
             for key, value in line_data.iteritems():
                 pick_line_group._v_attrs[key] = self._safe_serialize(value)
 
@@ -321,6 +321,24 @@ class HDF5Backend(object):
         """
         return json.loads(string)
 
+    def _write_array(self, f, group, name, array):
+        """Write an array to group/name, replacing it if it already exists or
+        creating it if it doesn't.
+        """
+        if name in group:
+            tmp_name = '__tmp_' + name
+            if tmp_name in group:
+                warnings.warn(
+                    "Deleting dangling tmp array '{}'. This can happen if the "
+                    "program crashed mid-write, but could indicate a problem if "
+                    "it you are seeing this a lot.".format(tmp_name))
+                getattr(group, tmp_name).remove()
+                f.flush()
+            tmp_array = f.createArray(group, tmp_name, array)
+            tmp_array.move(group, name, overwrite=True)
+        else:
+            f.createArray(group, name, array)
+
     def _write_core_samples(self, core_sample_dicts):
         with self._open_file('a') as f:
             core_samples_group = self._get_core_samples_group(f)
@@ -333,7 +351,7 @@ class HDF5Backend(object):
                 khz = freq_dict.pop('kHz')
                 freq_group = self._get_frequency_group(f, line_name, khz)
                 for key, value in freq_dict.iteritems():
-                    f.createArray(freq_group, key, value)
+                    self._write_array(f, freq_group, key, value)
             f.flush()
 
     def _write_raw_sdi_dict(self, line_name, raw_dict):
@@ -345,5 +363,5 @@ class HDF5Backend(object):
                         value = str(value)    # to avoid unicode error
                     if key is 'date':
                         value = line_name
-                    f.createArray(sdi_unsep_grp, key, value)
+                    self._write_array(f, sdi_unsep_grp, key, value)
             f.flush()
