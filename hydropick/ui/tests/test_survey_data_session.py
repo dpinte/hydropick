@@ -27,7 +27,7 @@ class TestSurveyDataSession(unittest.TestCase):
         data_path = os.path.join(test_dir, data_dir)
         hdf5_file_path = os.path.join(data_path, hdf5_file_name)
         lines, groups =  import_sdi(data_path , hdf5_file_path)
-        self.core_samples = import_cores(os.path.join(data_path, 'Coring'))
+        self.core_samples = import_cores(os.path.join(data_path, 'Coring'), hdf5_file_path)
         for line in lines:
             if line.name == survey_name:
                 self.survey_line = line

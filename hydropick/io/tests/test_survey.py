@@ -10,9 +10,11 @@ import shutil
 import tempfile
 import unittest
 
+from shapely.geometry.base import BaseGeometry
 from shapely.geometry import LineString
 
 from hydropick.io import survey_io
+from hydropick.model.depth_line import DepthLine
 
 
 class TestSurveyIO(unittest.TestCase):
@@ -21,16 +23,46 @@ class TestSurveyIO(unittest.TestCase):
         self.tempdir = tempfile.mkdtemp()
         self.h5file = os.path.join(self.tempdir, 'test.h5')
         self.line_name = '12041701'
-        self.binaryfile = os.path.join(os.path.dirname(__file__),
-                                       'files',
-                                       '{}.bin'.format(self.line_name))
+        files_dir = os.path.join(os.path.dirname(__file__), 'files')
+        self.binary_file = os.path.join(
+            files_dir, '{}.bin'.format(self.line_name))
+        self.corestick_file = os.path.join(files_dir, 'Granger_CoreStick.txt')
+        self.shoreline_file = os.path.join(files_dir, 'Granger_Lake1283.shp')
+
+        self.pick_line_name = '13021901'
+        self.pick_line_file = os.path.join(files_dir, self.pick_line_name + '.pre')
 
     def tearDown(self):
         shutil.rmtree(self.tempdir)
 
-    def test_import_and_read_from_file(self):
-        survey_io.import_survey_line_from_file(self.binaryfile, self.h5file, self.line_name)
+    def test_import_and_read_from_binary(self):
+        survey_io.import_survey_line_from_file(self.binary_file, self.h5file, self.line_name)
         line = survey_io.read_survey_line_from_hdf(self.h5file, self.line_name)
         line.load_data(self.h5file)
         self.assertEqual(line.name, self.line_name)
         self.assertIsInstance(line.navigation_line, LineString)
+
+    def test_import_and_read_from_corestick(self):
+        survey_io.import_core_samples_from_file(self.corestick_file, self.h5file)
+        core_samples = survey_io.read_core_samples_from_hdf(self.h5file)
+        self.assertIsInstance(core_samples, dict)
+        self.assertEqual(len(core_samples), 6)
+
+    def test_import_and_read_shoreline(self):
+        lake_name = 'Granger'
+
+        survey_io.import_shoreline_from_file(lake_name, self.shoreline_file, self.h5file)
+        lake = survey_io.read_shoreline_from_hdf(self.h5file)
+
+        self.assertIsInstance(lake.shoreline, BaseGeometry)
+        self.assertEqual(len(lake.shoreline), 35)
+        self.assertEqual(lake.elevation, 504.0)
+        self.assertEqual(lake.name, lake_name)
+
+    def test_import_and_read_pickfile(self):
+        survey_io.import_pick_line_from_file(self.pick_line_file, self.h5file)
+        picks = survey_io.read_pick_lines_from_hdf(self.h5file, self.pick_line_name, 'preimpoundment')
+        pick = picks['pickfile_preimpoundment']
+        self.assertIsInstance(pick, DepthLine)
+        self.assertEqual(len(pick.depth_array), 3606)
+        self.assertEqual(len(pick.index_array), 3606)
