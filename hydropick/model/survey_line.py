@@ -66,7 +66,7 @@ class SurveyLine(HasTraits):
 
     #: final choice for pre-impoundment depth to track sedimentation
     final_pre_imp_depth = Instance(DepthLine)
-    
+
     # and event fired when the lake depth is updated
     preimpoundment_depths_updated = Event
 
@@ -134,7 +134,8 @@ class SurveyLine(HasTraits):
                                source_name=filename,
                                index_array=self.trace_num - 1,
                                depth_array=sdi_depth_line_data,
-                               color='blue')
+                               color='blue',
+                               )
         self.lake_depths[depth_line.name] = depth_line
 
     def nearby_core_samples(self, core_samples, dist_tol=100):

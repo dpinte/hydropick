@@ -28,27 +28,39 @@ class SurveyMapPane(TraitsDockPane):
     #: proxy for the task's current survey line
     current_survey_line = DelegatesTo('task')
 
-    def _current_survey_line_changed(self):
-        self.survey_map_view.current_survey_line = self.current_survey_line
-
     #: proxy for the task's current survey line group
     current_survey_line_group = DelegatesTo('task')
 
     #: reference to the task's selected survey lines
     selected_survey_lines = DelegatesTo('task')
 
-    def _selected_survey_lines_changed(self):
-        self.survey_map_view.selected_survey_lines = self.selected_survey_lines
-
+    #: model view for map pane
     survey_map_view = Instance(ModelView)
+
+    #: plot for map view
+    plot = Property(Instance(Plot), depends_on='survey_map_view')
 
     def _survey_map_view_default(self):
         return self._get_survey_map_view()
+
+    #########  Notifications  ###########
+
+    def _current_survey_line_changed(self):
+        self.survey_map_view.current_survey_line = self.current_survey_line
+
+    def _selected_survey_lines_changed(self):
+        self.survey_map_view.selected_survey_lines = self.selected_survey_lines
 
     @on_trait_change('survey')
     def _set_survey_map_view(self):
         self.survey_map_view = self._get_survey_map_view()
 
+    @on_trait_change('survey_map_view.current_survey_line')
+    def map_selection_changed(self, new):
+        if new:    # survey line cannot be None
+            self.current_survey_line = new
+
+    #########  Pane methods ###########
     def _get_survey_map_view(self):
         if self.task is None:
             selected_survey_lines = []
@@ -56,8 +68,6 @@ class SurveyMapPane(TraitsDockPane):
             selected_survey_lines = self.selected_survey_lines
         return SurveyMapView(model=self.survey,
                              selected_survey_lines=selected_survey_lines)
-
-    plot = Property(Instance(Plot), depends_on='survey_map_view')
 
     def _get_plot(self):
         return self.survey_map_view.plot

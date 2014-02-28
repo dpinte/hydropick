@@ -32,7 +32,7 @@ class DepthLine(HasTraits):
     line_type = Enum('current surface', 'pre-impoundment surface')
 
     #: source of the line's depth data
-    source = Enum('algorithm', 'previous depth line', 'sdi_file', 'manual')
+    source = Enum('algorithm', 'previous depth line', 'sdi_file')
 
     #: name of source: like name of algorithm or source line to look up source
     source_name = Str

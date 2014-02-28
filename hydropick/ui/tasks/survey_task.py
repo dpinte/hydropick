@@ -7,7 +7,10 @@
 
 from __future__ import absolute_import
 
-from traits.api import (Bool, Property, Supports, List, on_trait_change, Dict)
+import logging
+
+from traits.api import (Bool, Property, Supports, List, on_trait_change, Dict,
+                        Str, Instance)
 
 from pyface.api import ImageResource
 from pyface.tasks.api import Task, TaskLayout, PaneItem, VSplitter
@@ -18,11 +21,14 @@ from apptools.undo.i_command_stack import ICommandStack
 
 from ...model.i_survey import ISurvey
 from ...model.i_survey_line import ISurveyLine
+from ...model.survey_line import SurveyLine
 from ...model.i_survey_line_group import ISurveyLineGroup
 from ...model import algorithms
+from ...ui.survey_data_session import SurveyDataSession
 
 from .task_command_action import TaskCommandAction
 
+logger = logging.getLogger(__name__)
 
 class SurveyTask(Task):
     """ A task for viewing and editing hydrological survey data """
@@ -43,12 +49,22 @@ class SurveyTask(Task):
     current_survey_line_group = Supports(ISurveyLineGroup)
 
     #: the currently active survey line that we are viewing
-    current_survey_line = Supports(ISurveyLine)
+    current_survey_line = Supports(ISurveyLine)# Instance(SurveyLine)#
+
+    # data object for maninpulating data for survey view and depth lines
+    current_data_session = Instance(SurveyDataSession)
 
     #: the selected survey lines
     selected_survey_lines = List(Supports(ISurveyLine))
 
-    # traits for managing Action state
+    #: reference to dictionary of available depth pic algorithms
+    # (IAlgorithm Classes)
+    algorithms = Dict
+
+    # selected depth line
+    selected_depth_line_name = Str
+
+    # traits for managing Action state ########################################
 
     #: whether the undo stack is "clean"
     dirty = Property(Bool, depends_on='command_stack.clean')
@@ -65,17 +81,16 @@ class SurveyTask(Task):
     #: the object that holds the Task's commands
     command_stack = Supports(ICommandStack)
 
-    #: reference to dictionary of available depth pic algorithms
-    #(IAlgorithm Classes)
-    algorithms = Dict
-
     ###########################################################################
     # 'Task' interface.
     ###########################################################################
 
     def _default_layout_default(self):
         return TaskLayout(left=VSplitter(PaneItem('hydropick.survey_data'),
-                                        PaneItem('hydropick.survey_map')))
+                                         PaneItem('hydropick.survey_map'),
+                                         PaneItem('hydropick.survey_depth_line'),
+                                         )
+                            )
 
     def _menu_bar_default(self):
         from apptools.undo.action.api import UndoAction, RedoAction
@@ -146,10 +161,6 @@ class SurveyTask(Task):
             ),
             SMenu(
                 SGroup(
-                    CentralPaneAction(name='New Depth Line',
-                               method='on_new_depth_line',
-                               enabled_name='show_view',
-                               accelerator='Ctrl+Shift+='),
                     CentralPaneAction(name='Image Adjustment',
                                method='on_image_adjustment',
                                enabled_name='show_view',
@@ -217,13 +228,17 @@ class SurveyTask(Task):
         """
         from .survey_data_pane import SurveyDataPane
         from .survey_map_pane import SurveyMapPane
+        from .survey_depth_pane import SurveyDepthPane
 
         data = SurveyDataPane(survey=self.survey)
         self.on_trait_change(lambda new: setattr(data, 'survey', new), 'survey')
 
         map = SurveyMapPane(survey=self.survey)
         self.on_trait_change(lambda new: setattr(map, 'survey', new), 'survey')
-        return [data, map]
+
+        depth = SurveyDepthPane()
+        
+        return [data, map, depth]
 
     def _survey_changed(self):
         from apptools.undo.api import CommandStack
@@ -340,6 +355,7 @@ class SurveyTask(Task):
         name_list = algorithms.ALGORITHM_LIST
         classes = [getattr(algorithms, cls_name) for cls_name in name_list]
         names = [cls().name for cls in classes]
+        logger.debug('found these algorithms: {}'.format(names))
         return dict(zip(names, classes))
 
     ###########################################################################
