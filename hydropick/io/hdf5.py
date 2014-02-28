@@ -105,7 +105,6 @@ class HDF5Backend(object):
                     self._read_pick(line_group)
                     for line_group in pick_type_group
                 ]
-
                 return dict([(pick['name'], pick) for pick in picks])
         except tables.FileModeError:
             return {}
@@ -231,7 +230,7 @@ class HDF5Backend(object):
                 'Unsupported pick type: {}'.format(line_type)
             )
 
-        survey_lines = self._get_survey_lines_group(f)
+        survey_lines = self._get_survey_line_group(f, line_name)
         picks_group = self._get_or_create_group(f, survey_lines, 'picks')
         pick_type_group = self._get_or_create_group(f, picks_group, line_type)
         return pick_type_group
