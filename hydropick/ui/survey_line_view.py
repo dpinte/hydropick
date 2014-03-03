@@ -11,19 +11,17 @@ import logging
 import numpy as np
 
 # ETS imports
-from traits.api import (Instance, Str, Dict, List, Int, Property,
-                        on_trait_change)
+from traits.api import (Instance, Dict, List, on_trait_change)
 from traitsui.api import ModelView, View, VGroup
 
-from chaco.api import (Plot, ArrayPlotData, PlotComponent)
+from chaco.api import (ArrayPlotData)
 
 # Local imports
-from ..model.depth_line import DepthLine
 from .survey_data_session import SurveyDataSession
 from .survey_tools import TraceTool, LocationTool, DepthTool
 from .survey_views import (ControlView, InstanceUItem, PlotContainer, DataView,
                            ImageAdjustView, MsgView,
-                           HPlotSelectionView)
+                           HPlotSelectionView, ColormapEditView)
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +68,9 @@ class SurveyLineView(ModelView):
 
     # Defines view for pop up image adjustments window
     image_adjust_view = Instance(ImageAdjustView)
+
+    # Defines view for pop up image adjustments window
+    cmap_edit_view = Instance(ColormapEditView)
 
     ######## SAVE FOR NOW - MAY GO BACK TO THIS ########
     # List of which lines are visible in plots
@@ -139,6 +140,9 @@ class SurveyLineView(ModelView):
 
     def _data_view_default(self):
         return DataView()
+
+    def _cmap_edit_view_default(self):
+        return ColormapEditView()
 
     def _image_adjust_view_default(self):
         iav = ImageAdjustView()
@@ -275,23 +279,33 @@ class SurveyLineView(ModelView):
     ##############  open dialogs when requestion by user  #################
 
     def image_adjustment_dialog(self):
-        self.image_adjust_view.configure_traits()
+        ''' brings up image C&B edit dialog. close to continue'''
+        self.image_adjust_view.configure_traits(kind='livemodal')
 
     def show_data_dialog(self):
+        ''' cannot make modal if want to monitor so should be pane.
+        for now must remember to close independent of app'''
         self.data_view.configure_traits()
 
-    def new_algorithm_line_dialog(self):
-        ''' called from UI button to bring up add line dialog'''
-        self.add_depth_line_view.configure_traits()
+    def cmap_edit_dialog(self):
+        ''' brings up cmap edit dialog. close to continue'''
+        self.cmap_edit_view.configure_traits(kind='livemodal')
 
     def plot_view_selection_dialog(self):
         ''' called from view menu to edit which plots to view'''
-        self.plot_selection_view.configure_traits()
+        self.plot_selection_view.configure_traits(kind='livemodal')
+
+    ############## other handlers/notifiers  #################
 
     @on_trait_change('model.depth_lines_updated')
     def update_lines(self):
         self.update_control_view()
         self.plot_container.update_all_line_plots(update=True)
+
+    @on_trait_change('cmap_edit_view.colormap')
+    def cmap_edit(self):
+        print 'cmap edit', self.cmap_edit_view.colormap
+        self.plot_container.img_colormap = self.cmap_edit_view.colormap
 
     @on_trait_change('plot_selection_view.visible_frequencies')
     def change_visible_frequencies(self):
