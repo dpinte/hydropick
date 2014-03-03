@@ -353,7 +353,7 @@ class PlotContainer(HasTraits):
                                       constrain=True,
                                       constrain_direction='y'))
             main.tools.append(ZoomTool(main, tool_mode='range', axis='value'))
-
+            main.value_mapper.on_trait_change(self.zoom_all, 'updated')
             # add line inspector and attach to freeze tool
             #*********************************************
             line_inspector = LineInspector(component=img_plot,
@@ -473,6 +473,16 @@ class PlotContainer(HasTraits):
     def update(self):
         ''' make new vplot when a new survey line is selected'''
         self.create_vplot()
+
+    def zoom_all(self, obj, name, old, new):
+        low, high = obj.range.low, obj.range.high
+        for key, hpc in self.hplot_dict.items():
+            if key != 'mini':
+                vmapper = hpc.components[0].value_mapper
+                if vmapper.range.low != low:
+                    vmapper.range.low = low
+                if vmapper.range.high != high:
+                    vmapper.range.high = high
 
     def _range_selection_handler(self, event):
         ''' updates the main plots when the range selector in the mini plot is
