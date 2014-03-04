@@ -79,7 +79,6 @@ class ColormapEditView(HasTraits):
               Item('colormap')
               ),
         buttons=["OK", "Cancel"],
-        kind='modal',
         )
 
 
@@ -353,20 +352,14 @@ class PlotContainer(HasTraits):
             # add to hplot and dict
             hpc.add(main)
             self.hplot_dict['mini'] = hpc
-            
+
         else:
             # add zoom tools
             main.tools.append(PanTool(main,
                                       constrain=True,
                                       constrain_direction='y'))
             main.tools.append(ZoomTool(main, tool_mode='range', axis='value'))
-            
-            main.value_mapper.on_trait_change(self.zoom_all2, 'updated')
-            # main.value_range.on_trait_change(self.zoom_all1)
-            # main.on_trait_change(self.zoom_all, 'value_range')
-
-            # main.on_trait_change(self.zoom_all, 'value_mapper')
-            
+            main.value_mapper.on_trait_change(self.zoom_all, 'updated')
             # add line inspector and attach to freeze tool
             #*********************************************
             line_inspector = LineInspector(component=img_plot,
@@ -487,7 +480,7 @@ class PlotContainer(HasTraits):
         ''' make new vplot when a new survey line is selected'''
         self.create_vplot()
 
-    def zoom_all2(self, obj, name, old, new):
+    def zoom_all(self, obj, name, old, new):
         low, high = obj.range.low, obj.range.high
         for key, hpc in self.hplot_dict.items():
             if key != 'mini':
@@ -496,8 +489,6 @@ class PlotContainer(HasTraits):
                     vmapper.range.low = low
                 if vmapper.range.high != high:
                     vmapper.range.high = high
-                
-                
 
     def _range_selection_handler(self, event):
         ''' updates the main plots when the range selector in the mini plot is
@@ -750,7 +741,6 @@ class DataView(HasTraits):
         Item('_'),
         Item('power'),
         Item('gain'),
-        kind='modal',
         resizable=True
     )
 

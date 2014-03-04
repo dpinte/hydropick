@@ -296,13 +296,12 @@ class DepthLineView(HasTraits):
         color = {color}
         '''.format(lines=lines_str,
                    name=self.model.name,
-                   algorithm=self.source_name
+                   algorithm=self.source_name,
                    args= self.model.args,
                    color=self.model.color)
         logger.info(s)
         # check
-        
-        
+
     @on_trait_change('selected_depth_line_name')
     def change_depth_line(self, new):
         ''' selected line has changed so use the selection to change the
