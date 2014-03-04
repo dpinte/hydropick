@@ -79,7 +79,6 @@ class ColormapEditView(HasTraits):
               Item('colormap')
               ),
         buttons=["OK", "Cancel"],
-        kind='modal',
         )
 
 
@@ -735,7 +734,6 @@ class DataView(HasTraits):
         Item('_'),
         Item('power'),
         Item('gain'),
-        kind='modal',
         resizable=True
         )
 
