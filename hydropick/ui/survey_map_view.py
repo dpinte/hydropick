@@ -195,18 +195,24 @@ class SurveyMapView(ModelView):
         plot.tools.append(PanTool(plot))
         plot.tools.append(ZoomTool(plot))
         self.line_select_tool = LineSelectTool(plot, line_plots=self.line_plots)
+        # single click in map sets 'select point':  toggle in selected lines
         self.line_select_tool.on_trait_event(self.select_point, 'select_point')
+        # double click in map sets 'current point': change current survey line
         self.line_select_tool.on_trait_event(self.current_point, 'current_point')
         plot.tools.append(self.line_select_tool)
         return plot
 
     def select_point(self, event):
+        ''' single click in map toggles line selection status in selected lines
+        '''
         p = Point(event)
         for line in self.survey_lines:
             if line.navigation_line.distance(p) < self.tol:
                 self._select_line(line)
 
     def current_point(self, event):
+        ''' double click in map sets line as current survey line (for editing)
+        '''
         p = Point(event)
         for line in self.survey_lines:
             if line.navigation_line.distance(p) < self.tol:

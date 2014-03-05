@@ -7,6 +7,7 @@
 
 from __future__ import absolute_import
 
+import logging
 from traits.api import (DelegatesTo, Instance, Property, Bool, Dict, List, Str,
                         Supports)
 from traitsui.api import View, Item
@@ -17,6 +18,7 @@ from ..survey_data_session import SurveyDataSession
 from ..survey_line_view import SurveyLineView
 from hydropick.model.i_core_sample import ICoreSample
 
+logger = logging.getLogger(__name__)
 
 class SurveyLinePane(TraitsTaskPane):
     """ The dock pane holding the map view of the survey """
@@ -82,6 +84,7 @@ class SurveyLinePane(TraitsTaskPane):
         provide an empty view.
         '''
         if self.survey_line is None:
+            logger.warning('current survey line is None')
             self.show_view = False
             self.survey_line_view = None
         else:

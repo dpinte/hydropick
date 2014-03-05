@@ -286,6 +286,7 @@ class DepthLineView(HasTraits):
         - apply data and apply to make line
         - set as final (?)
         '''
+        # save current model to duplicate
         model = self.model
         # list of selected lines
         selected = self.selected_survey_lines
@@ -296,23 +297,24 @@ class DepthLineView(HasTraits):
         if not_alg or not good_alg_name:
             self.no_problem = False
             self.log_problem('must select valid algorithm')
-        # log parameters
-        lines_str = '\n'.join([line.name for line in selected])
-        s = '''Creating depth line for the following surveylines:
-        {lines}
-        with the following parameters:
-        name = {name}
-        algorithm = {algorithm}
-        args = {args}
-        color = {color}
-        '''.format(lines=lines_str,
+
+        # apply to each survey line
+        if self.no_problem:
+            # log parameters
+            lines_str = '\n'.join([line.name for line in selected])
+            s = '''Creating depth line for the following surveylines:
+            {lines}
+            with the following parameters:
+            name = {name}
+            algorithm = {algorithm}
+            args = {args}
+            color = {color}
+            '''.format(lines=lines_str,
                    name=self.model.name,
                    algorithm=self.source_name,
                    args=self.model.args,
                    color=self.model.color)
-        logger.info(s)
-        # apply to each survey line
-        if self.no_problem:
+            logger.info(s)
             for line in self.selected_survey_lines:
                 self.model = deepcopy(model)
                 self.model.survey_line_name = line.name
@@ -323,10 +325,14 @@ class DepthLineView(HasTraits):
                 lname = line.name
                 s = 'saving new depth line to surveyline {}'.format(lname)
                 logger.info(s)
+                print 'saving', self.model, line.name
                 if model.line_type == 'current surface':
                     line.lake_depths[self.model.name] = self.model
+                    print line.lake_depths.keys()
                 else:
                     line.preimpoundment_depths[self.model.name] = self.model
+                    print line.preimpoundment_depths.keys()
+
         self.model = model
 
     @on_trait_change('selected_depth_line_name')
