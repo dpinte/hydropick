@@ -30,7 +30,7 @@ class SurveyDepthPane(TraitsDockPane):
 
     #: proxy for the task's current survey line
     current_survey_line = DelegatesTo('task')
-    
+
     #: proxy for the task's current survey line
     current_survey_line_group = DelegatesTo('task')
 
@@ -46,7 +46,7 @@ class SurveyDepthPane(TraitsDockPane):
     #: proxy for the editor's current depth line
     selected_depth_line_name = DelegatesTo('task')
 
-    # dict of algorithms though currently not use since datasession has it.
+    # dict of algorithms
     algorithms = DelegatesTo('task')
 
     show_view = Bool(False)
@@ -69,7 +69,7 @@ class SurveyDepthPane(TraitsDockPane):
             if self.current_survey_line_group:
                 group = self.current_survey_line_group
                 self.depth_line_view.current_survey_line_group = group
-    
+
     @on_trait_change('current_data_session')
     def _set_depth_line_view(self):
         if self.current_data_session:
@@ -81,7 +81,8 @@ class SurveyDepthPane(TraitsDockPane):
         if data and sanity_check:
             view = DepthLineView(model=DepthLine(),
                                  selected_depth_line_name='none',
-                                 data_session=self.current_data_session
+                                 data_session=self.current_data_session,
+                                 algorithms=self.algorithms
                                  )
             if self.selected_survey_lines:
                 self.update_depth_view_survey_lines()

@@ -440,7 +440,7 @@ class PlotContainer(HasTraits):
                 plot_key = key + '_' + line_key
                 self.plot_dict[plot_key] = line_plot
 
-    def plot_depth_line(self,key,line_key, depth_line, plot):
+    def plot_depth_line(self, key, line_key, depth_line, plot):
         ''' plot a depth_line using a depth line object'''
 
         # add data to ArrayPlotData if not there
