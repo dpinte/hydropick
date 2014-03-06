@@ -62,7 +62,7 @@ class SurveyDataSession(HasTraits):
     lake_depths = DelegatesTo('survey_line')
 
     #: final choice for line used as current lake depth for volume calculations
-    final_lake_depth = Instance(DepthLine)
+    final_lake_depth = DelegatesTo('survey_line')
 
     # and event fired when the lake depths are updated
     lake_depths_updated = Event
@@ -70,8 +70,8 @@ class SurveyDataSession(HasTraits):
     #: depth_line instances for pre-impoundment surfaces: below sediment
     preimpoundment_depths = DelegatesTo('survey_line', 'preimpoundment_depths')
 
-    #: final choice for pre-impoundment depth to track sedimentation
-    final_pre_imp_depth = Instance(DepthLine)
+    #: name of final choice for pre-impoundment depth to track sedimentation
+    final_preimpoundment_depth = DelegatesTo('survey_line')
 
     # and event fired when the lake depth is updated
     preimpoundment_depths_updated = Event
@@ -116,6 +116,8 @@ class SurveyDataSession(HasTraits):
 
     # dictionary of algorithms filled by the pane when new survey line selected
     algorithms = Dict
+    
+    ref_depth_line_name = Str('')
 
     #==========================================================================
     # Defaults
@@ -138,14 +140,18 @@ class SurveyDataSession(HasTraits):
             cdict[core.core_id] = (pos_index, position, distance_from_line)
         return cdict
 
-    def _final_lake_depth_default(self):
-        ''' currently this does not delegate because user may want to have
-        control over when final choice is saved to survey line'''
-        if self.survey_line.final_lake_depth:
-            line = self.survey_line.final_lake_depth
-        else:
-            line = self.survey_line.lake_depths.get('depth_r1', None)
-        return line
+    # def _final_lake_depth_default(self):
+    #     ''' currently this does not delegate because user may want to have
+    #     control over when final choice is saved to survey line'''
+    #     if self.final_lake_depth:
+    #         name = self.final_lake_depth
+    #     else:
+    #         line = self.lake_depths.get('depth_r1', None)
+    #         if line:
+    #             name = line.name
+    #         else:
+    #             name = ''
+    #     return name
 
     #==========================================================================
     # Notifications
@@ -168,6 +174,21 @@ class SurveyDataSession(HasTraits):
         distance_from_line = np.sqrt(dist_sq_array.min())
         return loc_index, core_location, distance_from_line
 
+    def get_ref_depth_line(self):
+        ''' works to get a valid lake depth line as a reference for core depths
+        '''
+        try:
+            ref_line = self.lake_depths[self.ref_depth_line_name]
+        except KeyError:
+            try:
+                ref_line = self.lake_depths[self.final_lake_depth]
+            except KeyError:
+                try:
+                    self.ref_depth_line_name = 'depth_r1'
+                    ref_line = self.lake_depths[self.ref_depth_line_name]
+                except KeyError:
+                    logger.error('cannot find a ref lake depth for core plot')
+        return ref_line or None
     #==========================================================================
     # Get/Set
     #==========================================================================
@@ -212,7 +233,7 @@ class SurveyDataSession(HasTraits):
         ''' make dict of distance bounds for each frequency intensity array'''
         d = {}
         for key, trace_array in self.freq_trace_num.items():
-            freq_dist = self.distance_array[trace_array-1]
+            freq_dist = self.distance_array[trace_array - 1]
             d[key] = (freq_dist.min(), freq_dist.max())
         return d
 

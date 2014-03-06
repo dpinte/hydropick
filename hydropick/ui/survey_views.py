@@ -593,7 +593,11 @@ class PlotContainer(HasTraits):
         main.add(line)
         # then plot boundary layers as dots on line
         layer_depths = core.layer_boundaries
-        ref_depth = self.model.final_lake_depth.depth_array[loc_index]
+        ref_depth_line = self.model.get_ref_depth_line()
+        if ref_depth_line:
+            ref_depth = ref_depth_line.depth_array[loc_index]
+        else:
+            ref_depth = 0
         ys = ref_depth + layer_depths
         xs = ys * 0 + loc
         scatter = create_scatter_plot((xs, ys), color='darkgreen',
@@ -610,10 +614,15 @@ class PlotContainer(HasTraits):
         show_core_range'''
         x_range = slice_plot.index_range
         xs = np.array([x_range.low, x_range.high])
-        ref_depth = self.model.final_lake_depth.depth_array[loc_index]
+        ref_depth_line = self.model.get_ref_depth_line()
+        if ref_depth_line:
+            ref_depth = ref_depth_line.depth_array[loc_index]
+        else:
+            ref_depth = 0
+            
         for boundary in core.layer_boundaries:
             ys = xs * 0 + (ref_depth + boundary)
-            line = create_line_plot((xs, ys),  orientation='h',
+            line = create_line_plot((xs, ys), orientation='h',
                                     color='lightgreen', width=CORE_LINE_WIDTH)
             line.origin = 'top left'
             line.value_range = slice_plot.index_range

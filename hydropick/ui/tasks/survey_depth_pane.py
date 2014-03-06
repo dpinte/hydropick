@@ -28,6 +28,8 @@ class SurveyDepthPane(TraitsDockPane):
     id = 'hydropick.survey_depth_line'
     name = "Depth Line"
 
+    survey = DelegatesTo('task')
+
     #: proxy for the task's current survey line
     current_survey_line = DelegatesTo('task')
 
@@ -48,6 +50,8 @@ class SurveyDepthPane(TraitsDockPane):
 
     # dict of algorithms
     algorithms = DelegatesTo('task')
+    
+    #hdf5_file = Property(depends_on='survey')
 
     show_view = Bool(False)
 
@@ -64,17 +68,35 @@ class SurveyDepthPane(TraitsDockPane):
 
     @on_trait_change('selected_survey_lines')
     def update_depth_view_survey_lines(self):
-        if self.depth_line_view:
-            self.depth_line_view.selected_survey_lines = self.selected_survey_lines
+        self._update_depth_view_survey_lines()
+        
+    def _update_depth_view_survey_lines(self, view=None):
+        if view is None:
+            view = self.depth_line_view
+        if view:
+            view.selected_survey_lines = self.selected_survey_lines
             if self.current_survey_line_group:
                 group = self.current_survey_line_group
-                self.depth_line_view.current_survey_line_group = group
+                view.current_survey_line_group = group
 
+    @on_trait_change('current_survey_line')
+    def log_line_change(self):
+        name = self.current_survey_line
+        if name:
+            name = name.name
+        logger.info('current survey line now {}'.format(name))
+        
+    def _get_hdf5_file(self):
+        return self.survey.hdf5_file
+    
     @on_trait_change('current_data_session')
     def _set_depth_line_view(self):
+        name = self.current_data_session
         if self.current_data_session:
             self.depth_line_view = self._get_depth_line_view()
-
+            name = self.current_data_session.survey_line.name
+        logger.info('data session changed: {}'.format(name))
+        
     def _get_depth_line_view(self):
         data = self.current_data_session
         sanity_check = data.survey_line is self.current_survey_line
@@ -82,10 +104,11 @@ class SurveyDepthPane(TraitsDockPane):
             view = DepthLineView(model=DepthLine(),
                                  selected_depth_line_name='none',
                                  data_session=self.current_data_session,
-                                 algorithms=self.algorithms
+                                 algorithms=self.algorithms,
+                                 hdf5_file=self.survey.hdf5_file
                                  )
             if self.selected_survey_lines:
-                self.update_depth_view_survey_lines()
+                self._update_depth_view_survey_lines(view=view)
             self.show_view = True
         else:
             view = None

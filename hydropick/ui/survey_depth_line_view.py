@@ -59,6 +59,9 @@ class DepthLineView(HasTraits):
     # name of depth_line to view chosen from pulldown of all available lines.
     selected_depth_line_name = Str
 
+    # name of hdf5_file for this survey in case we need to load survey lines
+    hdf5_file = Str
+
     # current depth line object
     model = Instance(DepthLine)
 
@@ -259,10 +262,13 @@ class DepthLineView(HasTraits):
             ds = self.data_session
             if model.line_type == 'current surface':
                 ds.lake_depths[self.model.name] = model
+                ds.final_lake_depth = self.model.name
                 key = 'POST_' + model.name
             else:
                 ds.preimpoundment_depths[self.model.name] = model
+                ds.final_preimpoundment_depth = self.model.name
                 key = 'PRE_' + model.name
+                       
             # set form to new line
             self.selected_depth_line_name = key
             self.update_plot()
@@ -272,6 +278,23 @@ class DepthLineView(HasTraits):
             Check log for details'''
             self.log_problem(s)
 
+    def check_name_and_arrays(self, depth_line=None):
+        if depth_line is None:
+            depth_line = self.model
+        d_array_size = self._array_size(depth_line.depth_array)
+        i_array_size = self._array_size(depth_line.index_array)
+        no_depth_array = d_array_size == 0
+        no_index_array = i_array_size == 0
+        depth_notequal_index = d_array_size != i_array_size
+        name = self.survey_line_name
+        if no_depth_array or no_index_array or depth_notequal_index:
+            self.no_problem = False
+            s = 'data arrays sizes are 0 or not equal for {}'.format(name)
+            self.log_problem(s)
+        if self.model.name.strip() == '':
+            self.no_problem = False
+            s = 'depth line has no printable name'
+            self.log_problem(s)
 
     @on_trait_change('apply_to_group')
     def apply_to_selected(self, new):
@@ -297,6 +320,8 @@ class DepthLineView(HasTraits):
         if not_alg or not good_alg_name:
             self.no_problem = False
             self.log_problem('must select valid algorithm')
+        else:
+            self.no_problem = True
 
         # apply to each survey line
         if self.no_problem:
@@ -316,23 +341,30 @@ class DepthLineView(HasTraits):
                    color=self.model.color)
             logger.info(s)
             for line in self.selected_survey_lines:
+                if line.trace_num.size == 0:
+                    # need to load line
+                    line.load_data(self.hdf5_file)
+                    
                 self.model = deepcopy(model)
                 self.model.survey_line_name = line.name
                 alg_name = model.source_name
                 args = model.args
                 logger.info('applying algorithm : {}'.format(alg_name))
                 self.make_from_algorithm(alg_name, args, survey_line=line)
-                lname = line.name
-                s = 'saving new depth line to surveyline {}'.format(lname)
-                logger.info(s)
-                print 'saving', self.model, line.name
-                if model.line_type == 'current surface':
-                    line.lake_depths[self.model.name] = self.model
-                    print line.lake_depths.keys()
-                else:
-                    line.preimpoundment_depths[self.model.name] = self.model
-                    print line.preimpoundment_depths.keys()
-
+                self.check_name_and_arrays(self.model)
+                if self.no_problem:
+                    lname = line.name
+                    s = 'saving new depth line to surveyline {}'.format(lname)
+                    logger.info(s)
+                    print 'saving', self.model, line.name
+                    if model.line_type == 'current surface':
+                        line.lake_depths[self.model.name] = self.model
+                        line.final_lake_depth = self.model.name
+                    else:
+                        line.preimpoundment_depths[self.model.name] = self.model
+                        print line.preimpoundment_depths.keys()
+                        line.final_preimpoundment_depth = self.model.name
+                    
         self.model = model
 
     @on_trait_change('selected_depth_line_name')
@@ -396,6 +428,13 @@ class DepthLineView(HasTraits):
         logger.info('creating new depthline template')
         return new_dline
 
+    def _array_size(self, array=None):
+        if array is not None:
+            size = len(array)
+        else:
+            size = 0
+        return size
+    
     #==========================================================================
     # Get/Set methods
     #==========================================================================
@@ -441,6 +480,7 @@ class DepthLineView(HasTraits):
             size = 0
         return size
 
+    
     def _get_args(self):
         d = self.model.args
         s = ','.join(['{}={}'.format(k, v) for k, v in d.items()])
