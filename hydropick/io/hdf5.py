@@ -47,7 +47,7 @@ class HDF5Backend(object):
         self._write_core_samples(core_sample_dicts)
 
     def import_pick_file(self, pick_file):
-        line_name = os.path.basename(pick_file).split('.pre')[0]
+        line_name = os.path.basename(pick_file).split('.')[0]
         pick_data = sdi.pickfile.read(pick_file)
         surface_number = pick_data['surface_number']
         if surface_number == 1:
