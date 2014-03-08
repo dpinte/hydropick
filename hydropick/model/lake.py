@@ -9,7 +9,6 @@ from __future__ import absolute_import
 
 # 3rd party imports
 import fiona
-from shapely.geometry import MultiLineString, shape
 from shapely.geometry.base import BaseGeometry
 
 # ETS imports
@@ -55,29 +54,6 @@ class Lake(HasTraits):
     #: Typically a MultiLineString, but could conceivably be a
     #: MultiPolygon or collections of lines and/or polygons.
     shoreline = Instance(BaseGeometry)
-
-    def _shoreline_default(self):
-        """ Load the shoreline from GIS file.
-
-        NB: Currently has side effects, loading crs and properties traits.
-        """
-        with fiona.open(self.shoreline_file) as f:
-            self.crs = f.crs
-            geoms = []
-            for rec in f:
-                geoms.append(shape(rec['geometry']))
-            # XXX: assuming that the proerties aren't varying by geometry
-            self._properties = rec['properties']
-            if len(geoms) == 1:
-                return geoms[0]
-            else:
-                # XXX: this assumes we'll always get lines, not polygons or other
-                return MultiLineString(geoms)
-
-    #### 'Lake' protocol ######################################################
-
-    #: The path to the GIS file containing the lake geometry
-    shoreline_file = Str
 
     #### Private protocol #####################################################
 

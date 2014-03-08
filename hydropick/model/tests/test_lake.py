@@ -23,12 +23,5 @@ class TestLake(unittest.TestCase):
     def setUp(self):
         self.test_dir = os.path.dirname(__file__)
 
-    def test_read_shapefile(self):
-        filename = os.path.join(self.test_dir, 'files', 'Granger_Lake1283.shp')
-        name = 'Granger'
-        lake = Lake(name=name, shoreline_file=filename)
-        self.assertIsInstance(lake.shoreline, BaseGeometry)
-        self.assertEqual(lake.elevation, 504.0)
-
 if __name__ == "__main__":
     unittest.main()

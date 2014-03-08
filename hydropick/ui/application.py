@@ -61,6 +61,8 @@ class Application(HasTraits):
         parser = argparse.ArgumentParser(description="Hydropick: a hydrological survey editor")
         parser.add_argument('--import', help='survey data to import',
                             dest='import_', metavar='DIR')
+        parser.add_argument('--with-picks', help='if included, then pre and pick files will be imported',
+                            dest='with_picks_', action='store_true')
         parser.add_argument('-v', '--verbose', action='store_const', dest='logging',
                             const=logging.INFO, help='verbose logging')
         parser.add_argument('-q', '--quiet', action='store_const', dest='logging',
@@ -78,7 +80,7 @@ class Application(HasTraits):
         args = self.parse_arguments()
         if args.import_:
             from ..io.import_survey import import_survey
-            survey = import_survey(args.import_)
+            survey = import_survey(args.import_, args.with_picks_)
             self.task.survey = survey
         if args.logging is not None:
             self.logger.setLevel(args.logging)

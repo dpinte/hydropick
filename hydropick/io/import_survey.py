@@ -7,10 +7,14 @@
 
 from __future__ import absolute_import
 
-import os
 import logging
+import glob
+import os
 import warnings
 
+import tables
+
+from hydropick.io import survey_io
 from hydropick.io.survey_io import (import_survey_line_from_file,
                                     read_survey_line_from_hdf)
 
@@ -33,75 +37,101 @@ def get_name(directory):
         name = "Untitled"
     return name
 
-def import_cores(directory):
-    from sdi import corestick
+def get_number_of_bin_files(path):
+    file_names = []
+    for root, dirs, files in os.walk(path):
+        files_bin = [f for f in files if os.path.splitext(f)[1] == '.bin']
+        print files_bin
+        file_names += files_bin
+    return len(file_names)
+
+def import_cores(directory, h5file):
     from ..model.core_sample import CoreSample
 
-    cores = []
-    for filename in os.listdir(directory):
-        if os.path.splitext(filename)[1] == '.txt':
-            # this is a corestick file
-            logger.info("Reading corestick file '%s'", filename)
-            for core_id, core in corestick.read(os.path.join(directory, filename)).items():
-                core_sample = CoreSample(
-                    core_id=core_id,
-                    location=(core['easting'], core['northing']),
-                    layer_boundaries=core['layer_interface_depths'],
-                )
-                cores.append(core_sample)
-    return cores
+    try:
+        core_dicts = survey_io.read_core_samples_from_hdf(h5file)
+    except (IOError, tables.exceptions.NoSuchNodeError):
+        for filename in os.listdir(directory):
+            if os.path.splitext(filename)[1] == '.txt':
+                corestick_file = os.path.join(directory, filename)
+                survey_io.import_core_samples_from_file(corestick_file, h5file)
+
+        core_dicts = survey_io.read_core_samples_from_hdf(h5file)
+
+    # this is a corestick file
+    return [
+        CoreSample(
+            core_id=core_id,
+            location=(core['easting'], core['northing']),
+            layer_boundaries=core['layer_interface_depths'],
+        )
+        for core_id, core in core_dicts.items()
+    ]
 
 
-def import_lake(directory):
-    # XXX this needs a proper implementation
-    from ..model.lake import Lake
-
+def import_pick_files(directory, h5file):
     # find the GIS file in the directory
-    for filename in os.listdir(directory):
-        if os.path.splitext(filename)[1] == '.shp':
-            return Lake(shoreline_file=os.path.join(directory, filename))
-    pass
+    for path in glob.glob(directory + '/*/*/*[pic,pre]'):
+        survey_io.import_pick_line_from_file(path, h5file)
+
+
+def import_lake(name, directory, h5file):
+    try:
+        shoreline = survey_io.read_shoreline_from_hdf(h5file)
+    except (IOError, tables.exceptions.NoSuchNodeError):
+        # find the GIS file in the directory
+        for filename in os.listdir(directory):
+            if os.path.splitext(filename)[1] == '.shp':
+                shp_file = os.path.join(directory, filename)
+                survey_io.import_shoreline_from_file(name, shp_file, h5file)
+                print 'imported shp file:', filename
+                break
+        shoreline = survey_io.read_shoreline_from_hdf(h5file)
+    return shoreline
 
 
 def import_sdi(directory, h5file):
-    import tables
     from hydropick.model.survey_line_group import SurveyLineGroup
     survey_lines = []
     survey_line_groups = []
-    stepd = 0
+    location, proj_dir = os.path.split(directory)
+    N_bin_total = get_number_of_bin_files(directory)
+    i_total = 0
     for root, dirs, files in os.walk(directory):
         group_lines = []
-        Nd = len(dirs)
-        Nf = len(files)
-        stepf = 0
-        stepd += 1
-        print root, dirs, files
-        for filename in files:
-            stepf += 1
-            if os.path.splitext(filename)[1] == '.bin':
-                linename = os.path.splitext(filename)[0]
-                print 'Reading line{}  ({}/{} of {}/{})'.format(linename,
-                                                                stepf,
-                                                                stepd, Nf, Nd)
+        currentd = root.split(location)[1]
+        N_dir = len(dirs)
+        files_bin = [f for f in files if os.path.splitext(f)[1] == '.bin']
+        N_files = len(files_bin)
+        print '\nchecking project folder: "{}"\n with {} sub-directories'\
+               .format(currentd, N_dir)
+        print 'loading {} .bin files'.format(N_files)
+        i = 0
+        for filename in files_bin:
+            i += 1
+            i_total += 1
+            linename = os.path.splitext(filename)[0]
+            print '{}  ({}/{} in folder : {}/{} total)'\
+                  .format(linename, i, N_files, i_total, N_bin_total)
+            try:
+                line = read_survey_line_from_hdf(h5file, linename)
+            except (IOError, tables.exceptions.NoSuchNodeError):
+                logger.info("Importing sdi file '%s'", filename)
                 try:
+                    import_survey_line_from_file(os.path.join(root,
+                                                              filename),
+                                                 h5file, linename)
                     line = read_survey_line_from_hdf(h5file, linename)
-                except (IOError, tables.exceptions.NoSuchNodeError):
-                    logger.info("Importing sdi file '%s'", filename)
-                    try:
-                        import_survey_line_from_file(os.path.join(root,
-                                                                  filename),
-                                                     h5file, linename)
-                        line = read_survey_line_from_hdf(h5file, linename)
-                    except Exception as e:
-                        # XXX: blind except to read all the lines that we
-                        # can for now
-                        s = 'Reading file {} failed with error "{}"'
-                        msg = s.format(filename, e)
-                        warnings.warn(msg)
-                        logger.warn(msg)
-                        line = None
-                if line:
-                    group_lines.append(line)
+                except Exception as e:
+                    # XXX: blind except to read all the lines that we
+                    # can for now
+                    s = 'Reading file {} failed with error "{}"'
+                    msg = s.format(filename, e)
+                    warnings.warn(msg)
+                    logger.warning(msg)
+                    line = None
+            if line:
+                group_lines.append(line)
         if group_lines:
             dirname = os.path.basename(root)
             group = SurveyLineGroup(name=dirname, survey_lines=group_lines)
@@ -110,21 +140,21 @@ def import_sdi(directory, h5file):
     return survey_lines, survey_line_groups
 
 
-def import_survey(directory):
+def import_survey(directory, with_pick_files=False):
     """ Read in a project from the current directory-based format """
     from ..model.survey import Survey
 
     name = get_name(directory)
 
-    # read in core samples
-    core_samples = import_cores(os.path.join(directory, 'Coring'))
-
-    # read in lake
-    lake = import_lake(os.path.join(directory, 'ForSurvey'))
-
     # HDF5 datastore file for survey
     hdf5_file = os.path.join(directory, name + '.h5')
     print hdf5_file
+
+    # read in core samples
+    core_samples = import_cores(os.path.join(directory, 'Coring'), hdf5_file)
+
+    # read in lake
+    lake = import_lake(name, os.path.join(directory, 'ForSurvey'), hdf5_file)
 
     # read in sdi data
     survey_lines, survey_line_groups = import_sdi(os.path.join(directory,
@@ -132,7 +162,8 @@ def import_survey(directory):
                                                   hdf5_file)
 
     # read in edits to sdi data
-    # XXX not implemented
+    if with_pick_files:
+        import_pick_files(os.path.join(directory, 'SDI_Edits'), hdf5_file)
 
     survey = Survey(
         name=name,
