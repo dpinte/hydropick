@@ -226,6 +226,12 @@ class SurveyLineView(ModelView):
                       slice_key: np.array([]),
                       }
                 d.update_data(**kw)
+            
+            # add zoom box points for showing zoom box in mini
+            # x = 1000
+            # y = 4
+            d.update_data(zoombox_x=np.array([0, 0, 0, 0]),
+                          zoombox_y=np.array([0, 0, 0, 0]))
 
             # add the depth line data
             for line_key, depth_line in self.model.depth_dict.items():

@@ -36,6 +36,7 @@ from chaco.api import (Plot, ArrayPlotData, VPlotContainer, HPlotContainer,
                        create_line_plot, DataRange1D)
 from chaco.tools.api import (PanTool, ZoomTool, RangeSelection, LineInspector,
                              RangeSelectionOverlay, LegendHighlighter)
+from chaco.base import n_gon
 
 # Local imports
 from .survey_tools import InspectorFreezeTool
@@ -126,7 +127,7 @@ class PlotContainer(HasTraits):
     # private traits
     _cmap = Trait(default_colormaps.Spectral, Callable)
 
-    main_value_range = Instance(DataRange1D)
+    # main_value_range = Instance(DataRange1D)   #
     #==========================================================================
     # Define Views
     #==========================================================================
@@ -165,10 +166,10 @@ class PlotContainer(HasTraits):
     def _img_colormap_default(self):
         return DEFAULT_COLORMAP
 
-    def _main_value_range_default(self):
-        dr = DataRange1D()
-        dr.set_bounds('auto', 'auto')
-        return dr
+    # def _main_value_range_default(self):
+    #     dr = DataRange1D()
+    #     dr.set_bounds('auto', 'auto')
+    #     return dr
     
     #==========================================================================
     # Helper functions
@@ -349,6 +350,9 @@ class PlotContainer(HasTraits):
             reference.overlays.append(range_overlay)
             range_tool.on_trait_change(self._range_selection_handler,
                                        "selection")
+            # add zoombox to mini plot
+            main.plot(('zoombox_x', 'zoombox_y'), type='polygon',
+                      face_color='lightgreen', alpha=.5)
             # add to hplot and dict
             hpc.add(main)
             self.hplot_dict['mini'] = hpc
@@ -483,7 +487,8 @@ class PlotContainer(HasTraits):
 
     def zoom_all_value(self, obj, name, old, new):
         low, high = obj.range.low, obj.range.high
-        print obj, name
+        # change y values of zoombox in mini
+        self.data.update_data(zoombox_y=np.array([low, low, high, high]))
         for key, hpc in self.hplot_dict.items():
             if key != 'mini':
                 vmapper = hpc.components[0].value_mapper
@@ -494,7 +499,8 @@ class PlotContainer(HasTraits):
 
     def zoom_all_index(self, obj, name, old, new):
         low, high = obj.range.low, obj.range.high
-        print obj, name
+        # change x values of zoombox
+        self.data.update_data(zoombox_x=np.array([low, high, high, low]))
         for key, hpc in self.hplot_dict.items():
             if key != 'mini':
                 vmapper = hpc.components[0].index_mapper
