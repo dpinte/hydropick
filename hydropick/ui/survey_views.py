@@ -50,6 +50,8 @@ DEFAULT_COLORMAP = 'Spectral'
 TITLE_FONT = 'swiss 10'
 MINI_HEIGHT = 100
 SLICE_PLOT_WIDTH = 75
+ZOOMBOX_COLOR = 'lightgreen'
+ZOOMBOX_ALPHA = 0.3
 
 HPLOT_PADDING = 0
 MAIN_PADDING = 10
@@ -148,9 +150,9 @@ class PlotContainer(HasTraits):
     def _inspector_freeze_tool_default(self):
         # sets up keybd shortcut and tool for freezing cursor activity
         tool = InspectorFreezeTool(tool_set=set(),
-                                   main_key="f",
-                                   modifier_key="alt",
-                                   ignore_keys=['shift']
+                                   main_key="c",
+                                   modifier_keys=["alt"],
+                                   ignore_keys=[]
                                    )
         return tool
 
@@ -352,7 +354,7 @@ class PlotContainer(HasTraits):
                                        "selection")
             # add zoombox to mini plot
             main.plot(('zoombox_x', 'zoombox_y'), type='polygon',
-                      face_color='lightgreen', alpha=.5)
+                      face_color=ZOOMBOX_COLOR, alpha=ZOOMBOX_ALPHA)
             # add to hplot and dict
             hpc.add(main)
             self.hplot_dict['mini'] = hpc
