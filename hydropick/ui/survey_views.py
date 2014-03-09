@@ -355,11 +355,12 @@ class PlotContainer(HasTraits):
 
         else:
             # add zoom tools
-            main.tools.append(PanTool(main,
-                                      constrain=True,
-                                      constrain_direction='y'))
-            main.tools.append(ZoomTool(main, tool_mode='range', axis='value'))
-            main.value_mapper.on_trait_change(self.zoom_all, 'updated')
+            main.tools.append(PanTool(main))
+            zoom = ZoomTool(main, tool_mode='box', axis='both', alpha=0.5)
+            main.tools.append(zoom)
+            main.overlays.append(zoom)
+            main.value_mapper.on_trait_change(self.zoom_all_value, 'updated')
+            main.index_mapper.on_trait_change(self.zoom_all_index, 'updated')
             # add line inspector and attach to freeze tool
             #*********************************************
             line_inspector = LineInspector(component=img_plot,
@@ -480,8 +481,9 @@ class PlotContainer(HasTraits):
         ''' make new vplot when a new survey line is selected'''
         self.create_vplot()
 
-    def zoom_all(self, obj, name, old, new):
+    def zoom_all_value(self, obj, name, old, new):
         low, high = obj.range.low, obj.range.high
+        print obj, name
         for key, hpc in self.hplot_dict.items():
             if key != 'mini':
                 vmapper = hpc.components[0].value_mapper
@@ -489,6 +491,18 @@ class PlotContainer(HasTraits):
                     vmapper.range.low = low
                 if vmapper.range.high != high:
                     vmapper.range.high = high
+
+    def zoom_all_index(self, obj, name, old, new):
+        low, high = obj.range.low, obj.range.high
+        print obj, name
+        for key, hpc in self.hplot_dict.items():
+            if key != 'mini':
+                vmapper = hpc.components[0].index_mapper
+                if vmapper.range.low != low:
+                    vmapper.range.low = low
+                if vmapper.range.high != high:
+                    vmapper.range.high = high
+
 
     def _range_selection_handler(self, event):
         ''' updates the main plots when the range selector in the mini plot is
