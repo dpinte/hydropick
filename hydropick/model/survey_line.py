@@ -130,6 +130,17 @@ class SurveyLine(HasTraits):
         self.power = sdi_dict_raw['power']
         self.gain = sdi_dict_raw['gain']
         self.array_sizes_ok()
+        filename = os.path.basename(sdi_dict_raw['filepath'])
+        sdi_surface = DepthLine(
+            name='current_surface_from_bin',
+            survey_line_name=self.name,
+            line_type='current surface',
+            source='sdi_file',
+            source_name=filename,
+            index_array=self.trace_num - 1,
+            depth_array=sdi_dict_raw['depth_r1']            
+        )
+        survey_io.write_depth_line_to_hdf(hdf5_file, sdi_surface, self.name)
         # depth lines stored separately
         self.lake_depths = survey_io.read_pick_lines_from_hdf(
                                      hdf5_file, self.name, 'current')
@@ -152,23 +163,34 @@ class SurveyLine(HasTraits):
     def array_sizes_ok(self):
         ''' this is an check that the arrays for this line make sense
         All the non-separated arrays should be the same size and the
-        trace_num array should be range(1,N) '''
+        trace_num array should be range(1,N).  This could be slightly
+        more general by assuming and order array instead of contiguous'''
         name = self.name
         logger.info('Checking all array integrity for line {}'.format(name))
         arrays = ['trace_num', 'locations', 'lat_long', 'heave', 'power',
                   'gain']
-        N = self.trace_num.shape[0]
-        check = self.trace_num - np.arange(N) - 1
-        if np.any(check != 0):
-            bad_traces = np.nonzero(check)[0] + 1
-            values = self.trace_num[bad_traces - 1]
-            print check, bad_traces, values
-            s = '''trace_num not contiguous for array: {}.
-            values of {} at traces {}
-            '''.format(name, values, bad_traces)
-            logger.warn(s)
-            self.fix_trace_num(N, bad_traces, values)
+        # N = self.trace_num.shape[0]
+        # check = self.trace_num - np.arange(N) - 1
+        # if np.any(check != 0):
+        #     bad_traces = np.nonzero(check)[0] + 1
+        #     values = self.trace_num[bad_traces - 1]
+        #     print check, bad_traces, values
+        #     s = '''trace_num not contiguous for array: {}.
+        #     values of {} at traces {}
+        #     '''.format(name, values, bad_traces)
+        #     logger.warn(s)
+        #     self.fix_trace_num(N, bad_traces, values)
         # now check rest of arrays
+        
+        from ..io import survey_io
+        bad_indices, bad_vals = survey_io.check_trace_num_array(self.trace_num,
+                                                                self.name)
+        tn, fn = survey_io.fix_trace_num_arrays(self.trace_num,
+                                                bad_indices,
+                                                self.freq_trace_num)
+        self.trace_num = tn
+        self.freq_trace_num = fn
+        N = len(tn)
         for a in arrays:
             if getattr(self, a).shape[0] != N:
                 s = '{} is not size {}'.format(a, N)

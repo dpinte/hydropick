@@ -184,7 +184,7 @@ class SurveyDataSession(HasTraits):
                 ref_line = self.lake_depths[self.final_lake_depth]
             except KeyError:
                 try:
-                    self.ref_depth_line_name = 'depth_r1'
+                    self.ref_depth_line_name = 'current_surface_from_bin'
                     ref_line = self.lake_depths[self.ref_depth_line_name]
                 except KeyError:
                     logger.error('cannot find a ref lake depth for core plot')
