@@ -51,22 +51,22 @@ class InspectorFreezeTool(BaseTool):
     will remain in place
     '''
     tool_set = Set
-    main_key = Str("f")
-    modifier_key = Str("alt")
-    ignore_keys = List(Str, value=['shift'])
+    main_key = Str("c")
+    modifier_keys = List(value=["alt", 'shift'])
+    ignore_keys = List(Str, value=[])
 
     off_key = Instance(KeySpec)
 
     def _off_key_default(self):
         self.reset_off_key()
         self.on_trait_change(self.reset_off_key, ['main_key',
-                                                  'modifier_key',
+                                                  'modifier_keys',
                                                   'ignore_keys'])
         return self.off_key
 
     def reset_off_key(self):
         self.off_key = KeySpec(self.main_key,
-                               self.modifier_key,
+                               *self.modifier_keys,
                                ignore=self.ignore_keys)
 
     def normal_key_pressed(self, event):

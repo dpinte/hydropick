@@ -168,6 +168,10 @@ class SurveyTask(Task):
                     CentralPaneAction(name='Change Colormap',
                                method='on_change_colormap',
                                enabled_name='show_view'),
+                    CentralPaneAction(name='Cursor Freeze Key = Alt+c',
+                               method='on_cursor_freeze',
+                               enabled_name='show_view'),
+                    CentralPaneAction(name='Box zoom enable = z'),
                     id='ToolGroup', name='Tool Group',
                 ),
                 id='Tools', name="&Tools",
@@ -263,7 +267,6 @@ class SurveyTask(Task):
             self.current_survey_line = None
         self.selected_survey_lines[:] = [line for line in self.selected_survey_lines
                                          if line in self.survey_lines]
-
 
     @on_trait_change('survey.survey_line_groups')
     def survey_line_groups_updated(self):

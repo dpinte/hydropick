@@ -7,6 +7,7 @@
 
 from __future__ import absolute_import
 
+import logging
 from traits.api import (DelegatesTo, Instance, Property, Bool, Dict, List, Str,
                         Supports)
 from traitsui.api import View, Item
@@ -17,6 +18,7 @@ from ..survey_data_session import SurveyDataSession
 from ..survey_line_view import SurveyLineView
 from hydropick.model.i_core_sample import ICoreSample
 
+logger = logging.getLogger(__name__)
 
 class SurveyLinePane(TraitsTaskPane):
     """ The dock pane holding the map view of the survey """
@@ -60,7 +62,11 @@ class SurveyLinePane(TraitsTaskPane):
     def on_image_adjustment(self):
         ''' Open dialog to adjust image (B&C : task menu)'''
         self.survey_line_view.image_adjustment_dialog()
-        
+
+    def on_cursor_freeze(self):
+        ''' Currently just shows Key Binding to freeze cursor'''
+        pass
+
     def on_change_colormap(self):
         ''' Open dialog to adjust image (B&C : task menu)'''
         self.survey_line_view.cmap_edit_dialog()
@@ -78,17 +84,20 @@ class SurveyLinePane(TraitsTaskPane):
         provide an empty view.
         '''
         if self.survey_line is None:
+            logger.warning('current survey line is None')
             self.show_view = False
             self.survey_line_view = None
         else:
             data_session = self.data_session_dict.get(self.line_name, None)
             if data_session is None:
                 # create new datasession object and entry for this surveyline.
-                self.survey_line.load_data(self.survey.hdf5_file)
+                if self.survey_line.trace_num.size == 0:
+                    # need to load data for this line
+                    self.survey_line.load_data(self.survey.hdf5_file)
                 data_session = SurveyDataSession(survey_line=self.survey_line,
                                                  algorithms=self.algorithms)
                 self.data_session_dict[self.line_name] = data_session
-                self.current_data_session = data_session
+            self.current_data_session = data_session
 
             # load relevant core samples into survey line
             # must do this before creating survey line view

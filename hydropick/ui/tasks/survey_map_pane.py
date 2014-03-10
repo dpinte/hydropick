@@ -58,7 +58,14 @@ class SurveyMapPane(TraitsDockPane):
     @on_trait_change('survey_map_view.current_survey_line')
     def map_selection_changed(self, new):
         if new:    # survey line cannot be None
-            self.current_survey_line = new
+            line = self.survey_map_view.current_survey_line
+            self.current_survey_line = line
+
+    @on_trait_change('survey_map_view.selected_survey_lines')
+    def lines_selection_changed(self, new):
+        if new:    # selected lines list cannot be None
+            lines = self.survey_map_view.selected_survey_lines
+            self.selected_survey_lines = lines
 
     #########  Pane methods ###########
     def _get_survey_map_view(self):

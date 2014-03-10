@@ -30,13 +30,20 @@ def get_name(directory):
     grandparent, parent_name = os.path.split(parent)
     great_grandparent, grandparent_name = os.path.split(grandparent)
     if parent_name and grandparent_name:
-        name = grandparent_name + ' ' + parent_name
+        name = grandparent_name + '_' + parent_name
     elif parent_name:
         name = parent_name
     else:
         name = "Untitled"
     return name
 
+def get_number_of_bin_files(path):
+    file_names = []
+    for root, dirs, files in os.walk(path):
+        files_bin = [f for f in files if os.path.splitext(f)[1] == '.bin']
+        print files_bin
+        file_names += files_bin
+    return len(file_names)
 
 def import_cores(directory, h5file):
     from ..model.core_sample import CoreSample
@@ -77,6 +84,8 @@ def import_lake(name, directory, h5file):
             if os.path.splitext(filename)[1] == '.shp':
                 shp_file = os.path.join(directory, filename)
                 survey_io.import_shoreline_from_file(name, shp_file, h5file)
+                print 'imported shp file:', filename
+                break
         shoreline = survey_io.read_shoreline_from_hdf(h5file)
     return shoreline
 
@@ -85,37 +94,43 @@ def import_sdi(directory, h5file):
     from hydropick.model.survey_line_group import SurveyLineGroup
     survey_lines = []
     survey_line_groups = []
-    stepd = 0
+    location, proj_dir = os.path.split(directory)
+    N_bin_total = get_number_of_bin_files(directory)
+    i_total = 0
     for root, dirs, files in os.walk(directory):
         group_lines = []
-        Nd = len(dirs)
-        Nf = len(files)
-        stepf = 0
-        stepd += 1
-        for filename in files:
-            stepf += 1
-            if os.path.splitext(filename)[1] == '.bin':
-                linename = os.path.splitext(filename)[0]
-                print 'Reading line{}  ({}/{} of {}/{})'.format(linename,
-                                                                stepf,
-                                                                stepd, Nf, Nd)
+        currentd = root.split(location)[1]
+        N_dir = len(dirs)
+        files_bin = [f for f in files if os.path.splitext(f)[1] == '.bin']
+        N_files = len(files_bin)
+        print '\nchecking project folder: "{}"\n with {} sub-directories'\
+               .format(currentd, N_dir)
+        print 'loading {} .bin files'.format(N_files)
+        i = 0
+        for filename in files_bin:
+            i += 1
+            i_total += 1
+            linename = os.path.splitext(filename)[0]
+            print '{}  ({}/{} in folder : {}/{} total)'\
+                  .format(linename, i, N_files, i_total, N_bin_total)
+            try:
+                line = read_survey_line_from_hdf(h5file, linename)
+            except (IOError, tables.exceptions.NoSuchNodeError):
+                logger.info("Importing sdi file '%s'", filename)
                 try:
+                    import_survey_line_from_file(os.path.join(root,
+                                                              filename),
+                                                 h5file, linename)
                     line = read_survey_line_from_hdf(h5file, linename)
-                except (IOError, tables.exceptions.NoSuchNodeError):
-                    logger.info("Importing sdi file '%s'", filename)
-                    try:
-                        import_survey_line_from_file(os.path.join(root,
-                                                                  filename),
-                                                     h5file, linename)
-                        line = read_survey_line_from_hdf(h5file, linename)
-                    except Exception as e:
-                        # XXX: blind except to read all the lines that we
-                        # can for now
-                        s = 'Reading file {} failed with error "{}"'
-                        msg = s.format(filename, e)
-                        warnings.warn(msg)
-                        logger.warning(msg)
-                        break
+                except Exception as e:
+                    # XXX: blind except to read all the lines that we
+                    # can for now
+                    s = 'Reading file {} failed with error "{}"'
+                    msg = s.format(filename, e)
+                    warnings.warn(msg)
+                    logger.warning(msg)
+                    line = None
+            if line:
                 group_lines.append(line)
         if group_lines:
             dirname = os.path.basename(root)
