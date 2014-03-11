@@ -4,7 +4,6 @@
 #
 # This code is open-source. See LICENSE file for details.
 #
-
 from __future__ import absolute_import
 
 import logging

@@ -21,6 +21,7 @@ from traitsui.api import (View, VGroup, HGroup, Item, UItem, EnumEditor,
 from ..model.depth_line import DepthLine
 from ..model.i_survey_line_group import ISurveyLineGroup
 from ..model.i_survey_line import ISurveyLine
+from ..model.i_algorithm import IAlgorithm
 from .survey_data_session import SurveyDataSession
 from .survey_views import MsgView
 
@@ -72,18 +73,6 @@ class DepthLineView(HasTraits):
     index_array_size = Property(Int, depends_on=['model.index_array, model'])
     depth_array_size = Property(Int, depends_on=['model.depth_array, model'])
 
-    # changes model to empty DepthLine for creating new line
-    new_button = Button('New Line')
-
-    # updates the data arrays for the selected line.  Apply does not do this
-    update_arrays_button = Button('Update Data')
-
-    # applys settings to  DepthLine updating object and updating survey line
-    apply_button = Button('Apply')
-
-    # applys settings each survey line in selected lines
-    apply_to_group = Button('Apply to Group')
-
     # create local traits so that these options can be dynamically changed
     source_name = Str
     source_names = Property(depends_on=['model.source'])
@@ -107,6 +96,24 @@ class DepthLineView(HasTraits):
     # dict of algorithms
     algorithms = Dict
 
+    # currently configured algorithm
+    current_algorithm = Supports(IAlgorithm)
+
+    ##### BUTTONS FOR THE VIEW ####
+    # changes model to empty DepthLine for creating new line
+    new_button = Button('New Line')
+
+    # updates the data arrays for the selected line.  Apply does not do this
+    update_arrays_button = Button('Update Data')
+
+    # applys settings to  DepthLine updating object and updating survey line
+    apply_button = Button('Apply')
+
+    # applys settings each survey line in selected lines
+    apply_to_group = Button('Apply to Group')
+
+    # button to open algorithm configure dialog
+    configure_algorithm = Button('Configure Algorithm')
     #==========================================================================
     # Define Views
     #==========================================================================
@@ -129,11 +136,15 @@ class DepthLineView(HasTraits):
                Item('object.model.source'),
                Item('source_name',
                     editor=EnumEditor(name='source_names')),
-               Item('args',
-                    editor=TextEditor(auto_set=False, enter_set=False),
-                    tooltip=ARG_TOOLTIP,
-                    visible_when='object.model.source=="algorithm"'
-                    ),
+
+               UItem('configure_algorithm',
+                     visible_when=('object.model.source=="algorithm"')
+                     ),
+               # Item('args',
+               #      editor=TextEditor(auto_set=False, enter_set=False),
+               #      tooltip=ARG_TOOLTIP,
+               #      visible_when='object.model.source=="algorithm"'
+               #    ),
                Item('index_array_size', style='readonly'),
                Item('depth_array_size', style='readonly'),
                Item('object.model.edited', style='readonly'),
@@ -145,6 +156,7 @@ class DepthLineView(HasTraits):
                     ),
                Item('object.model.lock'),
                ),
+        # these are the buttons to control this pane
         HGroup(UItem('new_button'),
                UItem('update_arrays_button',
                      tooltip=UPDATE_ARRAYS_TOOLTIP),
@@ -168,6 +180,13 @@ class DepthLineView(HasTraits):
     #==========================================================================
     # Notifications or Callbacks
     #==========================================================================
+
+    @on_trait_change('configure_algorithm')
+    def show_configure_algorithm_dialog(self):
+        alg_name = self.model.source_name
+        self.current_algorithm = self.data_session.algorithms[alg_name]()
+        self.current_algorithm.configure_traits()
+
     def update_plot(self):
         self.data_session.depth_lines_updated = True
 
@@ -268,7 +287,7 @@ class DepthLineView(HasTraits):
                 ds.preimpoundment_depths[self.model.name] = model
                 ds.final_preimpoundment_depth = self.model.name
                 key = 'PRE_' + model.name
-                       
+
             # set form to new line
             self.selected_depth_line_name = key
             self.update_plot()
@@ -344,7 +363,7 @@ class DepthLineView(HasTraits):
                 if line.trace_num.size == 0:
                     # need to load line
                     line.load_data(self.hdf5_file)
-                    
+
                 self.model = deepcopy(model)
                 self.model.survey_line_name = line.name
                 alg_name = model.source_name
@@ -364,7 +383,7 @@ class DepthLineView(HasTraits):
                         line.preimpoundment_depths[self.model.name] = self.model
                         print line.preimpoundment_depths.keys()
                         line.final_preimpoundment_depth = self.model.name
-                    
+
         self.model = model
 
     @on_trait_change('selected_depth_line_name')
@@ -403,9 +422,9 @@ class DepthLineView(HasTraits):
             model = self.model
         if survey_line is None:
             survey_line = self.data_session.survey_line
-        algorithm = self.data_session.algorithms[alg_name]()
-        trace_array, depth_array = algorithm.process_line(survey_line,
-                                                          **args)
+            #algorithm = self.data_session.algorithms[alg_name]()
+        algorithm = self.current_algorithm
+        trace_array, depth_array = algorithm.process_line(survey_line)
         model.index_array = np.asarray(trace_array, dtype=np.int32) - 1
         model.depth_array = np.asarray(depth_array, dtype=np.float32)
         return model
@@ -434,7 +453,7 @@ class DepthLineView(HasTraits):
         else:
             size = 0
         return size
-    
+
     #==========================================================================
     # Get/Set methods
     #==========================================================================
@@ -480,7 +499,7 @@ class DepthLineView(HasTraits):
             size = 0
         return size
 
-    
+
     def _get_args(self):
         d = self.model.args
         s = ','.join(['{}={}'.format(k, v) for k, v in d.items()])
