@@ -13,7 +13,7 @@ from shapely.geometry import Point
 
 # ETS imports
 from chaco.api import (ArrayPlotData, ArrayDataSource, LinearMapper,
-                       Plot, PolygonPlot, ScatterPlot)
+                       Plot, PolygonPlot, ScatterPlot, TextBoxOverlay)
 from chaco.tools.api import PanTool, ZoomTool
 from enable.api import BaseTool, ColorTrait
 from traits.api import Bool, Dict, Float, Instance, List, on_trait_change, Property
@@ -61,6 +61,10 @@ APPROVED_LINE_STYLE = 'dash'
 APPROVED_LINE_WIDTH = 1.0
 APPROVED_LINE_COLOR = 'black'
 
+# controls display of current survey line name in map view
+TEXTBOX_COLOR = 'red'
+TEXTBOX_POSITION = 'ul'
+TEXTBOX_BG_COLOR = 'white'
 
 class MapPlot(Plot):
     """ A subclass of Plot to allow setting of x- and y- scale to be constant.
@@ -126,7 +130,7 @@ class SurveyMapView(ModelView):
             if line.status == 'bad':
                 bad.append(line.name)
         return bad
-    
+
     def _get_approved_lines(self):
         approved = []
         for line in self.survey_lines:
@@ -199,6 +203,9 @@ class SurveyMapView(ModelView):
     #: Color to draw the survey lines
     current_line_color = ColorTrait(CURRENT_LINE_COLOR)
 
+    #: text overlay to see names of clicked lines (mouseover may be better)
+    text_overlay = Instance(TextBoxOverlay)
+
     #: The Chaco plot object
     plot = Instance(Plot)
 
@@ -269,6 +276,14 @@ class SurveyMapView(ModelView):
         # double click in map sets 'current point': change current survey line
         self.line_select_tool.on_trait_event(self.current_point, 'current_point')
         plot.tools.append(self.line_select_tool)
+        line_name_text = TextBoxOverlay(component=plot,
+                                        text=self.get_current_line_name(),
+                                        text_color=TEXTBOX_COLOR,
+                                        align=TEXTBOX_POSITION,
+                                        bgcolor=TEXTBOX_BG_COLOR
+                                        )
+        plot.overlays.append(line_name_text)
+        self.text_overlay = line_name_text
         return plot
 
     def select_point(self, event):
@@ -291,7 +306,15 @@ class SurveyMapView(ModelView):
 
     def _select_line(self, line):
         print 'select', line.name
+        self.text_overlay.text = line.name
         if line in self.selected_survey_lines:
             self.selected_survey_lines.remove(line)
         else:
             self.selected_survey_lines.append(line)
+
+    def get_current_line_name(self):
+        if self.current_survey_line:
+            name = self.current_survey_line.name
+        else:
+            name = 'No line selected'
+        return name

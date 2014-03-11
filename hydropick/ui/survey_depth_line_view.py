@@ -499,7 +499,6 @@ class DepthLineView(HasTraits):
             size = 0
         return size
 
-
     def _get_args(self):
         d = self.model.args
         s = ','.join(['{}={}'.format(k, v) for k, v in d.items()])
