@@ -55,7 +55,7 @@ CURRENT_LINE_STYLE = 'solid'
 # status attributes (applied after selected or current)
 BAD_LINE_STYLE = 'dot'
 BAD_LINE_WIDTH = 1.0
-BAD_LINE_COLOR = 'lightgrey'
+BAD_LINE_COLOR = 'grey'
 
 APPROVED_LINE_STYLE = 'dash'
 APPROVED_LINE_WIDTH = 1.0
@@ -122,18 +122,14 @@ class SurveyMapView(ModelView):
 
     def _get_bad_lines(self):
         bad = []
-        print 'get bad lines'
         for line in self.survey_lines:
-            print line.name, line.status
             if line.status == 'bad':
                 bad.append(line.name)
         return bad
     
     def _get_approved_lines(self):
         approved = []
-        print 'get approved lines'
         for line in self.survey_lines:
-            print line.name, line.status
             if line.status == 'approved':
                 approved.append(line.name)
         return approved
@@ -175,12 +171,11 @@ class SurveyMapView(ModelView):
             if name in self.bad_lines:
                 lp.line_style = BAD_LINE_STYLE
                 lp.line_width = BAD_LINE_WIDTH
-                lp.line_color = BAD_LINE_COLOR
+                lp.color = BAD_LINE_COLOR
             elif name in self.approved_lines:
                 lp.line_style = APPROVED_LINE_STYLE
                 lp.line_width = APPROVED_LINE_WIDTH
-                lp.line_color = APPROVED_LINE_COLOR
-
+                lp.color = APPROVED_LINE_COLOR
 
     #: Color to draw the lake
     lake_color = ColorTrait(LAKE_COLOR)

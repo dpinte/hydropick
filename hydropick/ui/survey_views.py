@@ -721,6 +721,26 @@ class ImageAdjustView(HasTraits):
         return (self.contrast, self.brightness)
 
 
+class LineSettingsView(HasTraits):
+    ''' Allows user to set/view certain survey line attributes'''
+    model = Instance(SurveyDataSession)
+
+    traits_view = View(
+        Label('View or Set current final depth line choices for this survey' +\
+              ' line'),
+        Item('object.model.final_lake_depth',
+             editor=EnumEditor(name='object.model.lake_depth_choices')),
+        Item('object.model.final_preimpoundment_depth',
+             editor=EnumEditor(name='object.model.preimpoundment_depth_choices')),
+        Label('View or Set status and comment for this survey line'),
+        Item('object.model.status'),
+        Item('object.model.status_string'),
+        resizable=True,
+        kind='live',
+        buttons=['Cancel', 'OK']
+    )
+
+
 class HPlotSelectionView(HasTraits):
     ''' provide checkbox pop up to set visibilty of hplots'''
 

@@ -20,6 +20,8 @@ from hydropick.model.i_core_sample import ICoreSample
 
 logger = logging.getLogger(__name__)
 
+CORE_DISTANCE_TOLERANCE = 200
+
 class SurveyLinePane(TraitsTaskPane):
     """ The dock pane holding the map view of the survey """
 
@@ -63,6 +65,10 @@ class SurveyLinePane(TraitsTaskPane):
         ''' Open dialog to adjust image (B&C : task menu)'''
         self.survey_line_view.image_adjustment_dialog()
 
+    def on_change_settings(self):
+        ''' Open dialog to adjust image (B&C : task menu)'''
+        self.survey_line_view.line_settings_dialog()
+
     def on_cursor_freeze(self):
         ''' Currently just shows Key Binding to freeze cursor'''
         pass
@@ -102,7 +108,8 @@ class SurveyLinePane(TraitsTaskPane):
             # load relevant core samples into survey line
             # must do this before creating survey line view
             all_samples = self.survey.core_samples
-            near_samples = self.survey_line.nearby_core_samples(all_samples)
+            d = CORE_DISTANCE_TOLERANCE
+            near_samples = self.survey_line.nearby_core_samples(all_samples, d)
             self.survey_line.core_samples = near_samples
 
             # create survey line view

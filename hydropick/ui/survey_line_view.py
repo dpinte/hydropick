@@ -20,7 +20,7 @@ from chaco.api import (ArrayPlotData)
 from .survey_data_session import SurveyDataSession
 from .survey_tools import TraceTool, LocationTool, DepthTool
 from .survey_views import (ControlView, InstanceUItem, PlotContainer, DataView,
-                           ImageAdjustView, MsgView,
+                           ImageAdjustView, MsgView, LineSettingsView,
                            HPlotSelectionView, ColormapEditView)
 
 logger = logging.getLogger(__name__)
@@ -71,6 +71,9 @@ class SurveyLineView(ModelView):
 
     # Defines view for pop up image adjustments window
     cmap_edit_view = Instance(ColormapEditView)
+    
+    # Defines view for pop up window for  survey line settings
+    line_settings_view = Instance(LineSettingsView)
 
     ######## SAVE FOR NOW - MAY GO BACK TO THIS ########
     # List of which lines are visible in plots
@@ -140,6 +143,9 @@ class SurveyLineView(ModelView):
 
     def _data_view_default(self):
         return DataView()
+    
+    def _line_settings_view_default(self):
+        return self.update_line_settings_view()
 
     def _cmap_edit_view_default(self):
         return ColormapEditView()
@@ -193,6 +199,15 @@ class SurveyLineView(ModelView):
     #==========================================================================
     # Helper functions
     #==========================================================================
+
+    def update_line_settings_view(self):
+        ''' called by default method or by model update notification'''
+        if self.model:
+            view = LineSettingsView(model=self.model)
+        else:
+            view = LineSettingsView()
+        return view
+    
     def message(self, msg='my message'):
         dialog = MsgView(msg=msg)
         dialog.configure_traits()
@@ -269,6 +284,7 @@ class SurveyLineView(ModelView):
         # need to call tools to activate defaults
         start_tools = self.location_tools
         start_tools = self.depth_tools
+        self.line_settings_view = self.update_line_settings_view()
         c.vplot_container.invalidate_and_redraw()
 
     def update_control_view(self):
@@ -300,6 +316,10 @@ class SurveyLineView(ModelView):
     def plot_view_selection_dialog(self):
         ''' called from view menu to edit which plots to view'''
         self.plot_selection_view.configure_traits()
+        
+    def line_settings_dialog(self):
+        ''' called from view menu to edit which plots to view'''
+        self.line_settings_view.configure_traits()
 
     ############## other handlers/notifiers  #################
 

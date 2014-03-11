@@ -15,7 +15,7 @@ import numpy as np
 
 # ETS imports
 from traits.api import (Instance, HasTraits, Property, List,
-                        Str, Dict, DelegatesTo, Event)
+                        Str, Dict, DelegatesTo, Event, on_trait_change)
 
 # Local imports
 from ..model.survey_line import SurveyLine
@@ -60,7 +60,7 @@ class SurveyDataSession(HasTraits):
 
     #: depth_line instances representing bottom surface of lake = current surf
     lake_depths = DelegatesTo('survey_line')
-
+    lake_depth_choices = List
     #: final choice for line used as current lake depth for volume calculations
     final_lake_depth = DelegatesTo('survey_line')
 
@@ -69,7 +69,7 @@ class SurveyDataSession(HasTraits):
 
     #: depth_line instances for pre-impoundment surfaces: below sediment
     preimpoundment_depths = DelegatesTo('survey_line', 'preimpoundment_depths')
-
+    preimpoundment_depth_choices = List
     #: name of final choice for pre-impoundment depth to track sedimentation
     final_preimpoundment_depth = DelegatesTo('survey_line')
 
@@ -81,6 +81,13 @@ class SurveyDataSession(HasTraits):
     # two values used to map image vertical pixel to actual depth.
     pixel_depth_offset = DelegatesTo('survey_line', 'draft')
     pixel_depth_scale = DelegatesTo('survey_line', 'pixel_resolution')
+    
+    # status of line determined by user analysis
+    status  = DelegatesTo('survey_line')
+
+    # user comment on status (who approved it or why its bad fore example)
+    status_string = DelegatesTo('survey_line')
+    
 
     ##### ADDITIONAL TRAITS FOR FUNCTIONALITY #################################
 
@@ -156,7 +163,20 @@ class SurveyDataSession(HasTraits):
     #==========================================================================
     # Notifications
     #==========================================================================
-
+    
+    @on_trait_change('target_choices')
+    def update_depth_choices(self):
+        ''' if target choices change it means a depth line is added or deleted
+        so we need to update the lake depth and preimpoundmend depth choices'''
+        if isinstance(self.lake_depths, dict):
+            self.lake_depth_choices = self.lake_depths.keys()
+        else:
+            self.lake_depth_choices = []
+        if isinstance(self.preimpoundment_depths, dict):
+            self.preimpoundment_depth_choices = self.preimpoundment_depths.keys()
+        else:
+            self.preimpoundment_depth_choices = []
+            
     #==========================================================================
     # Helper functions
     #==========================================================================
@@ -224,9 +244,10 @@ class SurveyDataSession(HasTraits):
         return depth_dict
 
     def _get_target_choices(self):
-        ''' Get list of available frequencies as strings from frequencies dic
-        limit resolution to 0.1 kHz.
+        ''' Get list of available lines to edit from depth_dict.
+        also update the depth choices for final lines
         '''
+        self.update_depth_choices()
         return self.depth_dict.keys()
 
     def _get_xbounds(self):

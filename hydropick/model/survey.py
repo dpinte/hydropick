@@ -46,13 +46,7 @@ class Survey(HasTraits):
 
     #: The core samples taken in the survey
     core_samples = List(Supports(ICoreSample))
-
-    #: List of Lines approved as editing completed by someone
-    approved_lines = List(Supports(ISurveyLine))
     
-    #: List of lines designated as bad for some reason (bad flag = True)
-    bad_lines = List(Supports(ISurveyLine))
-
     #: backend hdf5 file
     hdf5_file = File
 

@@ -135,10 +135,7 @@ def import_sdi(directory, h5file):
                     line = None
             if line:
                 group_lines.append(line)
-                if line.status == 'approved':
-                    approved_lines.append(line.name)
-                if line.status == 'bad':
-                    bad_lines.append(line.name)
+                
         if group_lines:
             dirname = os.path.basename(root)
             group = SurveyLineGroup(name=dirname, survey_lines=group_lines)
@@ -177,8 +174,6 @@ def import_survey(directory, with_pick_files=False):
         survey_lines=survey_lines,
         survey_line_groups=survey_line_groups,
         core_samples=core_samples,
-        bad_lines=bad_lines,
-        approved_lines=approved_lines,
         hdf5_file=hdf5_file,
     )
 
