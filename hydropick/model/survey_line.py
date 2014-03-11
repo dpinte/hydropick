@@ -143,7 +143,8 @@ class SurveyLine(HasTraits):
             source='sdi_file',
             source_name=filename,
             index_array=self.trace_num - 1,
-            depth_array=sdi_dict_raw['depth_r1']
+            depth_array=sdi_dict_raw['depth_r1'],
+            lock = True
         )
         survey_io.write_depth_line_to_hdf(hdf5_file, sdi_surface, self.name)
         # depth lines stored separately
