@@ -235,8 +235,6 @@ class SurveyLineView(ModelView):
 
             # add the depth line data
             for line_key, depth_line in self.model.depth_dict.items():
-                indices = depth_line.index_array
-                print len(indices), indices.max(), indices
                 x = self.model.distance_array[depth_line.index_array]
                 y = depth_line.depth_array
                 key_x, key_y = line_key + '_x',  line_key + '_y'
