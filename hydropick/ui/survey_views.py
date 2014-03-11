@@ -758,7 +758,7 @@ class HPlotSelectionView(HasTraits):
                              ),
                        Label('Show Intensity Profiles'),
                        UItem('intensity_profile'),
-                       kind='modal',
+                       kind='livemodal',
                        resizable=True
                        )
 
