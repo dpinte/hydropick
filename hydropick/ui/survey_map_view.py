@@ -118,6 +118,7 @@ class SurveyMapView(ModelView):
     survey_lines = Property(List)
 
     bad_lines = Property(List)
+    approved_lines = Property(List)
 
     def _get_bad_lines(self):
         bad = []
@@ -127,6 +128,15 @@ class SurveyMapView(ModelView):
             if line.status == 'bad':
                 bad.append(line.name)
         return bad
+    
+    def _get_approved_lines(self):
+        approved = []
+        print 'get approved lines'
+        for line in self.survey_lines:
+            print line.name, line.status
+            if line.status == 'approved':
+                approved.append(line.name)
+        return approved
 
     def _get_survey_lines(self):
         return self.model.survey_lines
