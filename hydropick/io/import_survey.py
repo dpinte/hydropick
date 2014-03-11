@@ -94,6 +94,9 @@ def import_sdi(directory, h5file):
     from hydropick.model.survey_line_group import SurveyLineGroup
     survey_lines = []
     survey_line_groups = []
+    bad_lines = []
+    approved_lines = []
+
     location, proj_dir = os.path.split(directory)
     N_bin_total = get_number_of_bin_files(directory)
     i_total = 0
@@ -132,12 +135,16 @@ def import_sdi(directory, h5file):
                     line = None
             if line:
                 group_lines.append(line)
+                if line.status == 'approved':
+                    approved_lines.append(line.name)
+                if line.status == 'bad':
+                    bad_lines.append(line.name)
         if group_lines:
             dirname = os.path.basename(root)
             group = SurveyLineGroup(name=dirname, survey_lines=group_lines)
             survey_lines += group_lines
             survey_line_groups.append(group)
-    return survey_lines, survey_line_groups
+    return survey_lines, survey_line_groups, bad_lines, approved_lines
 
 
 def import_survey(directory, with_pick_files=False):
@@ -157,9 +164,8 @@ def import_survey(directory, with_pick_files=False):
     lake = import_lake(name, os.path.join(directory, 'ForSurvey'), hdf5_file)
 
     # read in sdi data
-    survey_lines, survey_line_groups = import_sdi(os.path.join(directory,
-                                                               'SDI_Data'),
-                                                  hdf5_file)
+    l, g, b, a =  import_sdi(os.path.join(directory, 'SDI_Data'), hdf5_file)
+    survey_lines, survey_line_groups, bad_lines, approved_lines = l, g, b, a
 
     # read in edits to sdi data
     if with_pick_files:
@@ -171,6 +177,8 @@ def import_survey(directory, with_pick_files=False):
         survey_lines=survey_lines,
         survey_line_groups=survey_line_groups,
         core_samples=core_samples,
+        bad_lines=bad_lines,
+        approved_lines=approved_lines,
         hdf5_file=hdf5_file,
     )
 
