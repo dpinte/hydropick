@@ -61,7 +61,7 @@ class ZeroAlgorithm(HasTraits):
 
     # list of names of traits defined in this class that the user needs
     # to set when the algorithm is applied
-    _arglist = []
+    arglist = []
 
     # instructions for user (description of algorithm and required )
     instructions = Str('Demo algorithm that creates a depth line at 0')
@@ -76,7 +76,7 @@ class ZeroAlgorithm(HasTraits):
         zeros_array = np.zeros_like(trace_array)
         return trace_array, zeros_array
 
-    traits_view = create_view(instructions, *_arglist)
+    traits_view = create_view(instructions, *arglist)
 
 
 @provides(IAlgorithm)
@@ -89,7 +89,7 @@ class OnesAlgorithm(HasTraits):
 
     # list of names of traits defined in this class that the user needs
     # to set when the algorithm is applied
-    _arglist = []
+    arglist = []
 
     # instructions for user (description of algorithm and required )
     instructions = Str('Demo algorithm that creates a depth line at 1')
@@ -104,7 +104,7 @@ class OnesAlgorithm(HasTraits):
         depth_array = np.ones_like(trace_array)
         return trace_array, depth_array
 
-    traits_view = create_view(instructions, *_arglist)
+    traits_view = create_view(instructions, *arglist)
 
 
 @provides(IAlgorithm)
@@ -118,7 +118,7 @@ class XDepthAlgorithm(HasTraits):
 
     # list of names of traits defined in this class that the user needs
     # to set when the algorithm is applied
-    _arglist = ['depth']
+    arglist = ['depth']
 
     # instructions for user (description of algorithm and required )
     instructions = Str('Demo algorithm that creates a depth line at' +
@@ -137,4 +137,4 @@ class XDepthAlgorithm(HasTraits):
         depth_array = depth * np.ones_like(trace_array)
         return trace_array, depth_array
 
-    traits_view = create_view(instructions, *_arglist)
+    traits_view = create_view(instructions, *arglist)

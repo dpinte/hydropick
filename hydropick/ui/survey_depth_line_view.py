@@ -183,12 +183,30 @@ class DepthLineView(HasTraits):
 
     @on_trait_change('configure_algorithm')
     def show_configure_algorithm_dialog(self):
+        ''' gets/created current algorithm object and opens configure dialog'''
         alg_name = self.model.source_name
-        self.current_algorithm = self.data_session.algorithms[alg_name]()
+        if self.current_algorithm is None:
+            self.current_algorithm = self.algorithms[alg_name]()
+            self.set_args()
         self.current_algorithm.configure_traits()
 
-    def update_plot(self):
-        self.data_session.depth_lines_updated = True
+    def set_args(self):
+        ''' if possible, sets default arguments according to model.args dict.
+        Otherwise warns user and continues'''
+        alg = self.current_algorithm
+        try:
+            for arg in alg.arglist:
+                setattr(alg, arg, self.model.args[arg])
+        except Exception as e:
+            logger.warning('could not set arguments from model.args')
+            print 'Warning: could not set args', e
+
+    @on_trait_change('current_algorithm.+')
+    def update_args(self, object, name, old, new):
+        print 'args changed', object, name, old, new
+        alg = self.current_algorithm
+        for arg in self.current_algorithm.arglist:
+            self.model.args[arg] = getattr(alg, arg)
 
     @on_trait_change('new_button')
     def load_new_blank_line(self):
@@ -202,28 +220,6 @@ class DepthLineView(HasTraits):
         else:
             self.selected_depth_line_name = 'none'
 
-    def depth_line_name_new(self, proposed_line, data_session=None):
-        '''check that name is not in survey line depth lines already.
-        Allow same name for PRE and POST lists since these are separate
-        '''
-        if data_session is None:
-            data_session = self.data_session
-        p = proposed_line
-        # new names should begin and end with printable characters.
-        p.name = p.name.strip()
-        if p.line_type == 'current surface':
-            used = p.name in data_session.lake_depths.keys()
-        elif p.line_type == 'pre-impoundment surface':
-            used = p.name in data_session.preimpoundment_depths.keys()
-        else:
-            self.log_problem('problem checking depth_line_name_new')
-            used = True
-        if used:
-            s = 'name already used. Unlock to edit existing line'
-            self.log_problem(s)
-            self.model.lock = True
-        return not used
-
     @on_trait_change('update_arrays_button')
     def update_arrays(self, new):
         ''' apply chosen method to fill line arrays
@@ -234,18 +230,20 @@ class DepthLineView(HasTraits):
             self.log_problem('locked so cannot change/create anything')
 
         # if line is 'none' then this is a new line --'added line'--
-        # not a changed line. check name is new
+        # not a changed line. check name is new. if not flag problem.
         if self.selected_depth_line_name == 'none':
-            self.depth_line_name_new(model)
+            self.check_if_name_already_exists(model)
 
         if self.no_problem:
-            logger.info('no problem in update. try update')
+            logger.debug('no problem in update. try update')
+            line = self.data_session.survey_line
             # name valid.  Try to update data.
             if model.source == 'algorithm':
                 alg_name = model.source_name
-                args = model.args
-                logger.info('applying algorithm : {}'.format(alg_name))
-                self.make_from_algorithm(alg_name, args)
+                logger.debug('applying algorithm :' +
+                             '{} to line {}'.format(alg_name, line.name))
+                self.make_from_algorithm()
+                self.check_args()
 
             elif model.source == 'previous depth line':
                 line_name = model.source_name
@@ -255,29 +253,34 @@ class DepthLineView(HasTraits):
                 # source is sdi line.  create only from sdi data
                 s = 'source "sdi" only available at survey load'
                 self.log_problem(s)
+                self.no_problem = True
+
+            if self.no_problem:
+                self.check_arrays()
+                self.no_problem = True
+        else:
+            # allow user to correct problems and continue
+            self.no_problem = True
 
     @on_trait_change('apply_button')
-    def apply(self, new):
+    def apply_to_current(self, new):
         ''' save current setting and data to current line'''
         model = self.model
-        no_depth_array = self.depth_array_size == 0
-        no_index_array = self.index_array_size == 0
-        depth_notequal_index = self.depth_array_size != self.index_array_size
-        if no_depth_array or no_index_array or depth_notequal_index:
-            self.no_problem = False
-            s = 'data arrays sizes are 0 or not equal'
-            self.log_problem(s)
-        if self.model.name.strip() == '':
-            self.no_problem = False
-            s = 'depth line has no printable name'
-            self.log_problem(s)
-        if self.model.name != self.selected_depth_line_name:
-            self.depth_line_name_new(model)
+
+        # self.check name is valid
+        self.check_printable_name()
+        # check arrays are filled and equal
+        self.check_arrays()
+        # if model name is changed from selected (or selected is none => new)
+        # check that name is if name is taken that line is not locked.
+        name = self.selected_depth_line_name.split('_')[1:]
+        print 'check name', self.model.name, name, ''.join(name)
+        if self.model.name != ''.join(name):
+            self.check_if_name_already_exists(model)
         if model.lock:
             self.log_problem('locked so cannot change/create anything')
         # add to the survey line's appropriate dictionary
         if self.no_problem:
-            logger.info('saving new line')
             ds = self.data_session
             if model.line_type == 'current surface':
                 ds.lake_depths[self.model.name] = model
@@ -288,32 +291,17 @@ class DepthLineView(HasTraits):
                 ds.final_preimpoundment_depth = self.model.name
                 key = 'PRE_' + model.name
 
-            # set form to new line
+            # set form to the new line
             self.selected_depth_line_name = key
             self.update_plot()
+            logger.info('saving new {} line : {}'.format(model.line_type,
+                                                         model.name))
         else:
-            s = '''Could not make new line.
-            Did you update Data?
-            Check log for details'''
+            # notify user of problem again and reset no problem flag
+            s = '''Could not make/change line.
+                Did you update Data?  Check log for details'''
             self.log_problem(s)
-
-    def check_name_and_arrays(self, depth_line=None):
-        if depth_line is None:
-            depth_line = self.model
-        d_array_size = self._array_size(depth_line.depth_array)
-        i_array_size = self._array_size(depth_line.index_array)
-        no_depth_array = d_array_size == 0
-        no_index_array = i_array_size == 0
-        depth_notequal_index = d_array_size != i_array_size
-        name = self.survey_line_name
-        if no_depth_array or no_index_array or depth_notequal_index:
-            self.no_problem = False
-            s = 'data arrays sizes are 0 or not equal for {}'.format(name)
-            self.log_problem(s)
-        if self.model.name.strip() == '':
-            self.no_problem = False
-            s = 'depth line has no printable name'
-            self.log_problem(s)
+            self.no_problem = True
 
     @on_trait_change('apply_to_group')
     def apply_to_selected(self, new):
@@ -332,17 +320,12 @@ class DepthLineView(HasTraits):
         model = self.model
         # list of selected lines
         selected = self.selected_survey_lines
-        # check that algorithm is selected and valid
-        not_alg = self.model.source != 'algorithm'
-        alg_choices = self.algorithms.keys()
-        good_alg_name = self.model.source_name in alg_choices
-        if not_alg or not good_alg_name:
-            self.no_problem = False
-            self.log_problem('must select valid algorithm')
-        else:
-            self.no_problem = True
 
-        # apply to each survey line
+        # check that algorithm is selected and valid and configured
+        self.check_alg_ready()
+        # self.check name is valid
+        self.check_printable_name()
+
         if self.no_problem:
             # log parameters
             lines_str = '\n'.join([line.name for line in selected])
@@ -354,36 +337,41 @@ class DepthLineView(HasTraits):
             args = {args}
             color = {color}
             '''.format(lines=lines_str,
-                   name=self.model.name,
-                   algorithm=self.source_name,
-                   args=self.model.args,
-                   color=self.model.color)
+                       name=self.model.name,
+                       algorithm=self.source_name,
+                       args=self.model.args,
+                       color=self.model.color)
             logger.info(s)
+            # apply to each survey line
             for line in self.selected_survey_lines:
                 if line.trace_num.size == 0:
                     # need to load line
                     line.load_data(self.hdf5_file)
-
+                # create new deep copy of model object for each survey line
                 self.model = deepcopy(model)
                 self.model.survey_line_name = line.name
                 alg_name = model.source_name
-                args = model.args
-                logger.info('applying algorithm : {}'.format(alg_name))
-                self.make_from_algorithm(alg_name, args, survey_line=line)
-                self.check_name_and_arrays(self.model)
+                logger.debug('applying algorithm :' +
+                             '{} to line {}'.format(alg_name, line.name))
+                self.make_from_algorithm(alg_name, survey_line=line)
+                self.check_arrays()
                 if self.no_problem:
                     lname = line.name
                     s = 'saving new depth line to surveyline {}'.format(lname)
                     logger.info(s)
-                    print 'saving', self.model, line.name
+                    print 'saving', self.model.name, line.name
+                    # save to appropriate depth line dictionary and change
+                    # final line to new line
                     if model.line_type == 'current surface':
                         line.lake_depths[self.model.name] = self.model
                         line.final_lake_depth = self.model.name
                     else:
                         line.preimpoundment_depths[self.model.name] = self.model
-                        print line.preimpoundment_depths.keys()
                         line.final_preimpoundment_depth = self.model.name
-
+        else:
+            # there was a problem.  User should correct based on messages
+            # and retry.  Reset no problem flag so user can continue.
+            self.no_problem = True
         self.model = model
 
     @on_trait_change('selected_depth_line_name')
@@ -392,6 +380,7 @@ class DepthLineView(HasTraits):
         current model to selected or create new one if none'''
         if new != 'none':
             # Existing line: edit copy of line until apply button clicked
+            # then it will reploce the line in the line dictionary
             new_line = self.data_session.depth_dict[new]
             selected_line = deepcopy(new_line)
         else:
@@ -406,6 +395,81 @@ class DepthLineView(HasTraits):
     #==========================================================================
     # Helper functions
     #==========================================================================
+
+    #### checking methods ################################
+    def check_arrays(self, depth_line=None):
+        ''' checks arrays are equal and not empty'''
+        if depth_line is None:
+            depth_line = self.model
+        d_array_size = self._array_size(depth_line.depth_array)
+        i_array_size = self._array_size(depth_line.index_array)
+        no_depth_array = d_array_size == 0
+        no_index_array = i_array_size == 0
+        depth_notequal_index = d_array_size != i_array_size
+        name = self.survey_line_name
+        if no_depth_array or no_index_array or depth_notequal_index:
+            s = 'data arrays sizes are 0 or not equal for {}'.format(name)
+            self.log_problem(s)
+
+    def check_printable_name(self):
+        if self.model.name.strip() == '':
+            s = 'depth line has no printable name'
+            self.log_problem(s)
+
+    def check_if_name_already_exists(self, proposed_line, data_session=None):
+        '''check that name is not in survey line depth lines already.
+        Allow same name for PRE and POST lists since these are separate
+        '''
+        if data_session is None:
+            data_session = self.data_session
+        p = proposed_line
+        # new names should begin and end with printable characters.
+        p.name = p.name.strip()
+        if p.line_type == 'current surface':
+            used = p.name in data_session.lake_depths.keys()
+        elif p.line_type == 'pre-impoundment surface':
+            used = p.name in data_session.preimpoundment_depths.keys()
+        else:
+            self.log_problem('problem checking depth_line_name_new')
+            used = True
+        if used:
+            s = 'name already used. To overwrite, select that line, unlock' +\
+                ' and edit, then reapply'
+            self.log_problem(s)
+            self.model.lock = True
+        return not used
+
+    def check_alg_ready(self):
+        ''' check algorithm is selected and configured'''
+        # check that algorithm is selected and valid
+        not_alg = self.model.source != 'algorithm'
+        alg_choices = self.algorithms.keys()
+        good_alg_name = self.model.source_name in alg_choices
+        if not_alg or not good_alg_name:
+            self.log_problem('must select valid algorithm')
+        else:
+            self.no_problem = True
+        # check that arguments match model. Otherwise these need to be set.
+        self.check_args()
+
+    def check_args(self):
+        ''' checks that arguments match the model
+        this should be run before allowing apply to complete'''
+        alg = self.current_algorithm
+        if alg:
+            tst = [self.model.args.get(arg, None) ==
+                   getattr(alg, arg) for arg in alg.arglist]
+            if not all(tst):
+                s = 'arguments do not match - please configure algorithm.'
+                self.log_problem(s)
+
+    ############################################################
+
+    def update_plot(self):
+        ''' used as signal to update depth line choices from depth_lines prop
+        so that ui choices will update'''
+        self.data_session.depth_lines_updated = True
+
     def message(self, msg='my message'):
         dialog = MsgView(msg=msg)
         dialog.configure_traits()
@@ -417,12 +481,11 @@ class DepthLineView(HasTraits):
         logger.error(msg)
         self.message(msg)
 
-    def make_from_algorithm(self, alg_name, args, model=None, survey_line=None):
+    def make_from_algorithm(self, model=None, survey_line=None):
         if model is None:
             model = self.model
         if survey_line is None:
             survey_line = self.data_session.survey_line
-            #algorithm = self.data_session.algorithms[alg_name]()
         algorithm = self.current_algorithm
         trace_array, depth_array = algorithm.process_line(survey_line)
         model.index_array = np.asarray(trace_array, dtype=np.int32) - 1
@@ -484,20 +547,10 @@ class DepthLineView(HasTraits):
         return lines
 
     def _get_index_array_size(self):
-        a = self.model.index_array
-        if a is not None:
-            size = len(a)
-        else:
-            size = 0
-        return size
+        return self._array_size(self.model.index_array)
 
     def _get_depth_array_size(self):
-        a = self.model.depth_array
-        if a is not None:
-            size = len(a)
-        else:
-            size = 0
-        return size
+        return self._array_size(self.model.depth_array)
 
     def _get_args(self):
         d = self.model.args

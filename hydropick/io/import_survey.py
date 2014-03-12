@@ -36,6 +36,7 @@ def get_name(directory):
         name = "Untitled"
     return name
 
+
 def get_number_of_bin_files(path):
     file_names = []
     for root, dirs, files in os.walk(path):
@@ -43,6 +44,7 @@ def get_number_of_bin_files(path):
         print files_bin
         file_names += files_bin
     return len(file_names)
+
 
 def import_cores(directory, h5file):
     from ..model.core_sample import CoreSample
@@ -62,7 +64,7 @@ def import_cores(directory, h5file):
         CoreSample(
             core_id=core_id,
             location=(core['easting'], core['northing']),
-            layer_boundaries=core['layer_interface_depths'],
+            layer_boundaries=[0] + core['layer_interface_depths'],
         )
         for core_id, core in core_dicts.items()
     ]
