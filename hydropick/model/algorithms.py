@@ -63,7 +63,7 @@ class ZeroAlgorithm(HasTraits):
     # to set when the algorithm is applied
     arglist = []
 
-    # instructions for user (description of algorithm and required )
+    # instructions for user (description of algorithm and required args def)
     instructions = Str('Demo algorithm that creates a depth line at 0')
 
     # args (none for this algorithm)
@@ -91,7 +91,7 @@ class OnesAlgorithm(HasTraits):
     # to set when the algorithm is applied
     arglist = []
 
-    # instructions for user (description of algorithm and required )
+    # instructions for user (description of algorithm and required args def)
     instructions = Str('Demo algorithm that creates a depth line at 1')
 
     # args (none for this algorithm)
@@ -120,7 +120,7 @@ class XDepthAlgorithm(HasTraits):
     # to set when the algorithm is applied
     arglist = ['depth']
 
-    # instructions for user (description of algorithm and required )
+    # instructions for user (description of algorithm and required args def)
     instructions = Str('Demo algorithm that creates a depth line at' +
                        ' a depth set by user (defalut = 3.0)\n' +
                        'depth = float')

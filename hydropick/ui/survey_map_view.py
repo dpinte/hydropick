@@ -307,6 +307,7 @@ class SurveyMapView(ModelView):
     def _select_line(self, line):
         print 'select', line.name
         self.text_overlay.text = line.name
+        self.text_overlay.invalidate_and_redraw()
         if line in self.selected_survey_lines:
             self.selected_survey_lines.remove(line)
         else:
@@ -316,5 +317,5 @@ class SurveyMapView(ModelView):
         if self.current_survey_line:
             name = self.current_survey_line.name
         else:
-            name = 'No line selected'
+            name = 'No line clicked'
         return name

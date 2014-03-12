@@ -7,7 +7,7 @@
 
 from __future__ import absolute_import
 
-from traits.api import Interface, Str
+from traits.api import Interface, Str, Any
 
 
 class IAlgorithm(Interface):
@@ -20,6 +20,13 @@ class IAlgorithm(Interface):
 
     #: a user-friendly name for the algorithm
     name = Str
+    
+    # list of names of traits defined in this class that the user needs
+    # to set when the algorithm is applied
+    arglist = []
+
+    # instructions for user (description of algorithm and required args def)
+    instructions = Str()
 
     def process_line(self, survey_line, *args, **kw):
         """ Process a line, returning an array of depths and trace_num's
@@ -30,3 +37,7 @@ class IAlgorithm(Interface):
         return trace_num_array, depth_array
         """
         raise NotImplementedError
+
+    # should be a View object or somthing that returns a view object for
+    # configuring the arguments in arglist and displaying instructions
+    traits_view = Any
