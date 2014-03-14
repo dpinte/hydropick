@@ -133,7 +133,6 @@ class TraceTool(BaseTool):
             self.event_state = 'edit'
         else:
             self.event_state = 'normal'
-        self.pointer = 'bullseye'
 
     def edit_right_up(self, event):
         ''' finish editing'''
@@ -146,11 +145,9 @@ class TraceTool(BaseTool):
             if self._mask_value == self.mask_value:
                 self._mask_value = 0
                 event.window.set_pointer('cross')
-                self.pointer = 'cross'
             else:
                 self._mask_value = self.mask_value
-                event.window.set_pointer('pencil')
-                self.pointer = 'bullseye'
+                event.window.set_pointer('right arrow')
             print self._mask_value
 
     def fill_in_missing_pts(self, current_index, newy, ydata):

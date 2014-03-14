@@ -269,6 +269,7 @@ class SurveyLineView(ModelView):
 
     def set_edit_enabled(self, old, new):
         ''' enables editing tool based on ui edit selector'''
+        print 'enable edit', old, new
         cv = self.control_view
         if cv.edit == 'Editing':
             edit_allowed = True
