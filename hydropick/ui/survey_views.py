@@ -709,14 +709,15 @@ class ControlView(HasTraits):
     traits_view = View(
         HGroup(
             UItem('edit',
-                  tooltip='Toggle between "not editing" and \
-                          "editing" selected line'
+                  tooltip='Toggle between "not editing" and "editing"' +\
+                  ' selected line.  When editing mask, pressing "t" ' +
+                  ' toggles between masking and unmasking'
                   ),
             Item('line_to_edit',
                  editor=EnumEditor(name='target_choices'),
                  tooltip='Edit red line with right mouse button'
                  ),
-            ),
+               ),
         resizable=True
         )
 

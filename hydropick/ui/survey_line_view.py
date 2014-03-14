@@ -29,6 +29,7 @@ EDIT_COLOR = 'black'
 EDIT_OFF_ON_CHANGE = True
 AUTOSAVE_EDIT_ON_CHANGE = True
 
+EDIT_MASK_TOGGLE_STATE_CHAR = 't'
 
 class SurveyLineView(ModelView):
     """ View Class for working with survey line data to find depth profile.
@@ -167,6 +168,7 @@ class SurveyLineView(ModelView):
             if key is not 'mini':
                 main = hpc.components[0]
                 tool = TraceTool(main)
+                tool.toggle_character = EDIT_MASK_TOGGLE_STATE_CHAR
                 main.tools.append(tool)
                 tools[key] = tool
         return tools
@@ -267,7 +269,7 @@ class SurveyLineView(ModelView):
     # Notifications, Handlers or Callbacks
     #==========================================================================
 
-    def set_edit_enabled(self, old, new):
+    def set_edit_enabled(self, object, name, old, new):
         ''' enables editing tool based on ui edit selector'''
         print 'enable edit', old, new
         cv = self.control_view
@@ -285,7 +287,9 @@ class SurveyLineView(ModelView):
         for tool in self.trace_tools.values():
             tool.edit_allowed = edit_allowed
             tool.edit_mask = edit_mask
-            tool.mask_value = self.model.ybounds[self.model.freq_choices[-1]][1]
+            if edit_mask:
+                ymax = self.model.ybounds[self.model.freq_choices[-1]][1]
+                tool.mask_value = ymax
             
         # if Edit Mask selected need to change line to mask
         if cv.edit == 'Edit Mask':
@@ -303,7 +307,7 @@ class SurveyLineView(ModelView):
                 # tgt not None: change to None will call change_target
                 cv.line_to_edit = 'None'
         else:
-            if old == 'Edit Mask' and self.cv.line_to_edit == 'None':
+            if old == 'Edit Mask' and cv.line_to_edit == 'None':
                 # was changed out of Edit Mask => change tool tgts to None
                 self._change_target('mask','None')
             # if line_to_edit is not None, then this was reached by
@@ -502,7 +506,7 @@ class SurveyLineView(ModelView):
             if old_target_plot:
                 if old == 'mask':
                     # mask is not in depth dict need to get mask color
-                    old_color = self.model.mask_color
+                    old_color = self.plot_container.mask_color
                     old_target_plot.edge_color = old_color
                 else:
                     cv = self.plot_container.mask_color
@@ -518,7 +522,7 @@ class SurveyLineView(ModelView):
             edited_data = old_target_plot.value.get_data()
             if old == 'mask':
                 # mask is saved as array in survey_line
-                self.model.survey_line.set_to_mask(edited_data)
+                self.model.array_to_mask(edited_data)
             else:
                 # depth arrays are stored in depthline objects
                 old_target_depth_line.depth_array = edited_data

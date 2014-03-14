@@ -121,6 +121,7 @@ class TraceTool(BaseTool):
     # line key for this depth line.  from depth_dict, label data in data obj
     key = Str
     
+    toggle_character = Str('t')
     ##### private trait  ####
     _mask_value = Float(0)
 
@@ -140,14 +141,23 @@ class TraceTool(BaseTool):
         self.mouse_down = False
 
     def edit_key_pressed(self, event):
-        ''' reset '''
-        if event.character == "u":
+        '''  '''
+        self.change_mask_edit_state(event)
+        
+    def normal_key_pressed(self, event):
+        '''  '''
+        self.change_mask_edit_state(event)
+
+    def change_mask_edit_state(self, event):
+        ''' change state of mask edit between mask and unmask
+        hand indicated mask and cross inticates unmask'''
+        if event.character == self.toggle_character:
             if self._mask_value == self.mask_value:
                 self._mask_value = 0
                 event.window.set_pointer('cross')
             else:
                 self._mask_value = self.mask_value
-                event.window.set_pointer('right arrow')
+                event.window.set_pointer('hand')
             print self._mask_value
 
     def fill_in_missing_pts(self, current_index, newy, ydata):
