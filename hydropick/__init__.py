@@ -11,4 +11,7 @@ __requires__ = [
     "shapely>=1.2.17",
     "tables>=2.4.0",
     "sdi",
+    "skimage",
+    "sklearn",
+    "scipy",
 ]
