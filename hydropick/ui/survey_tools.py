@@ -135,6 +135,10 @@ class TraceTool(BaseTool):
         else:
             self.event_state = 'normal'
 
+    def normal_mouse_enter(self, event):
+        if not self.edit_mask:
+            event.window.set_pointer('arrow')
+
     def edit_right_up(self, event):
         ''' finish editing'''
         self.event_state = 'normal'
