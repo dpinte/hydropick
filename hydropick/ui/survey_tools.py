@@ -122,7 +122,7 @@ class TraceTool(BaseTool):
     key = Str
     
     ##### private trait  ####
-    _mask_value = Float
+    _mask_value = Float(0)
 
     def _get_data(self):
         return self.target_line.container.data
@@ -145,9 +145,13 @@ class TraceTool(BaseTool):
         if event.character == "u":
             if self._mask_value == self.mask_value:
                 self._mask_value = 0
+                event.window.set_pointer('cross')
+                self.pointer = 'cross'
             else:
                 self._mask_value = self.mask_value
-            print self.mask_value
+                event.window.set_pointer('pencil')
+                self.pointer = 'bullseye'
+            print self._mask_value
 
     def fill_in_missing_pts(self, current_index, newy, ydata):
         """ Fill in missing points if mouse goes to fast to capture all
@@ -163,7 +167,7 @@ class TraceTool(BaseTool):
             ypts = [self.last_y, newy]
             indices = range(*xpts)
             if self.edit_mask:
-                ys = self.mask_value * np.ones_like(indices)
+                ys = self._mask_value * np.ones_like(indices)
             else:
                 ys = np.interp(indices, xpts, ypts)
         else:
@@ -186,7 +190,7 @@ class TraceTool(BaseTool):
         '''
         have_key = self.key != 'None'
 
-        if and have_key and self.edit_allowed:
+        if have_key and self.edit_allowed:
             newx, newy = self.component.map_data((event.x, event.y))
             target = self.target_line
             xdata = target.index.get_data()
@@ -195,6 +199,7 @@ class TraceTool(BaseTool):
             if self.mouse_down:
                 ydata = target.value.get_data()
                 if self.edit_mask:
+                    newy = self._mask_value
                     indices, ys = self.fill_in_missing_pts(current_index,
                                                            newy, ydata)
                 else:
