@@ -11,7 +11,7 @@ import numpy as np
 from enable.api import BaseTool, KeySpec
 from traits.api import (Float, Enum, Int, Bool, Instance, Str, List, Set,
                         Property)
-from chaco.api import LinePlot
+from chaco.api import LinePlot, PlotComponent
 
 #==============================================================================
 # Custom Tools
@@ -92,7 +92,13 @@ class TraceTool(BaseTool):
 
     # determines whether tool is allowed in edit state when mouse pressed
     edit_allowed = Bool(False)
-
+    
+    # change behaviour of data written to line values if edit_mask is True
+    edit_mask = Bool(False)
+    
+    # value of mask array 0 or 1
+    mask_value = Float
+    
     # these record last mouse position so that new position can be checked for
     # missing points -- i.e. delta_index should be 1
     last_index = Int(np.nan)
@@ -105,14 +111,18 @@ class TraceTool(BaseTool):
     # editing starts.  this could possibly be done with mouse down instead.
     mouse_down = Bool(False)
 
-    target_line = Instance(LinePlot)
+    target_line = Instance(PlotComponent)
 
     # ArrayPlotData object holding all data.  This tool will change this data
     # which then updates all three freq plots at once.
 
     data = Property()
+    
     # line key for this depth line.  from depth_dict, label data in data obj
     key = Str
+    
+    ##### private trait  ####
+    _mask_value = Float
 
     def _get_data(self):
         return self.target_line.container.data
@@ -123,16 +133,21 @@ class TraceTool(BaseTool):
             self.event_state = 'edit'
         else:
             self.event_state = 'normal'
+        self.pointer = 'bullseye'
 
     def edit_right_up(self, event):
         ''' finish editing'''
         self.event_state = 'normal'
         self.mouse_down = False
 
-    # def edit_key_pressed(self, event):
-    #     ''' reset '''
-    #     if event.character == "Esc":
-    #         self._reset()
+    def edit_key_pressed(self, event):
+        ''' reset '''
+        if event.character == "u":
+            if self._mask_value == self.mask_value:
+                self._mask_value = 0
+            else:
+                self._mask_value = self.mask_value
+            print self.mask_value
 
     def fill_in_missing_pts(self, current_index, newy, ydata):
         """ Fill in missing points if mouse goes to fast to capture all
@@ -167,9 +182,10 @@ class TraceTool(BaseTool):
         connects only the initial and final point.
         '''
         have_key = self.key != 'None'
-        have_line_plot =  isinstance(self.target_line, LinePlot)
+        have_line_plot = isinstance(self.target_line, LinePlot)
 
-        if have_line_plot and have_key and self.edit_allowed:
+        if have_line_plot and have_key and self.edit_allowed \
+                                       and not self.edit_mask:
             newx, newy = self.component.map_data((event.x, event.y))
             target = self.target_line
             xdata = target.index.get_data()
@@ -191,3 +207,27 @@ class TraceTool(BaseTool):
                 self.mouse_down = True
                 self.last_index = current_index
                 self.last_y = newy
+        
+        elif have_key and self.edit_allowed and self.edit_mask:
+            # assume this is mask ( filled_plot/polygon plot)
+            newx, newy = self.component.map_data((event.x, event.y))
+            target = self.target_line
+            xdata = target.index.get_data()
+            current_index = np.searchsorted(xdata, newx)
+            if self.mouse_down:
+                ydata = target.value.get_data()
+                indices, ys = self.fill_in_missing_pts(current_index,
+                                                       self._mask_value, ydata)
+                ydata[indices] = ys
+                data_key = self.key + '_y'
+                self.data.set_data(data_key, ydata)
+                self.last_index = indices[-1]
+                self.last_y = ys[-1]
+
+            else:
+                # save this mouse position as reference for further moves while
+                # mouse_down is true.
+                self.mouse_down = True
+                self.last_index = current_index
+                self.last_y = newy
+            

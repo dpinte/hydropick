@@ -19,7 +19,6 @@ from traits.api import (Instance, HasTraits, Property, List,
 
 # Local imports
 from ..model.survey_line import SurveyLine
-from ..model.depth_line import DepthLine
 
 logger = logging.getLogger(__name__)
 
@@ -75,19 +74,18 @@ class SurveyDataSession(HasTraits):
 
     # and event fired when the lake depth is updated
     preimpoundment_depths_updated = Event
-    
+
     depth_lines_updated = Event
 
     # two values used to map image vertical pixel to actual depth.
     pixel_depth_offset = DelegatesTo('survey_line', 'draft')
     pixel_depth_scale = DelegatesTo('survey_line', 'pixel_resolution')
-    
+
     # status of line determined by user analysis
-    status  = DelegatesTo('survey_line')
+    status = DelegatesTo('survey_line')
 
     # user comment on status (who approved it or why its bad fore example)
     status_string = DelegatesTo('survey_line')
-    
 
     ##### ADDITIONAL TRAITS FOR FUNCTIONALITY #################################
 
@@ -123,7 +121,7 @@ class SurveyDataSession(HasTraits):
 
     # dictionary of algorithms filled by the pane when new survey line selected
     algorithms = Dict
-    
+
     ref_depth_line_name = Str('')
 
     #==========================================================================
@@ -147,23 +145,10 @@ class SurveyDataSession(HasTraits):
             cdict[core.core_id] = (pos_index, position, distance_from_line)
         return cdict
 
-    # def _final_lake_depth_default(self):
-    #     ''' currently this does not delegate because user may want to have
-    #     control over when final choice is saved to survey line'''
-    #     if self.final_lake_depth:
-    #         name = self.final_lake_depth
-    #     else:
-    #         line = self.lake_depths.get('depth_r1', None)
-    #         if line:
-    #             name = line.name
-    #         else:
-    #             name = ''
-    #     return name
-
     #==========================================================================
     # Notifications
     #==========================================================================
-    
+
     @on_trait_change('target_choices')
     def update_depth_choices(self):
         ''' if target choices change it means a depth line is added or deleted
@@ -176,10 +161,37 @@ class SurveyDataSession(HasTraits):
             self.preimpoundment_depth_choices = self.preimpoundment_depths.keys()
         else:
             self.preimpoundment_depth_choices = []
-            
+
     #==========================================================================
     # Helper functions
     #==========================================================================
+
+    def initialize_mask_xy(self):
+        ''' called if no mask exists to set an initial mask at all False/0'''
+        x = self.distance_array
+        y = x * 0
+        self.survey_line.mask = np.array((1 - y) == 0)
+        logger.debug('initialized mask x_size, y_size = {},{}'
+                     .format(x.size, y.size))
+
+    def get_mask_xy(self):
+        ''' get x, y arrays to plot from mask '''
+        if self.survey_line.masked:
+            x = self.distance_array
+            ymax = self.ybounds[self.freq_choices[-1]][1]
+            ys = np.ones_like(x) * ymax
+            y = np.where(self.survey_line.mask, ys, ys * 0)
+        else:
+            x = np.array([])
+            y = np.array([])
+        return x, y
+
+    def array_to_mask(self, array):
+        ''' takes an array and converts it to boolean where nonzero = True
+        then set this value in surveyline
+        '''
+        mask = np.array(array != 0)
+        self.survey_line.mask = mask
 
     def get_nearest_point_to_core(self, core):
         ''' for given core find the closest point in the locations array
@@ -214,8 +226,7 @@ class SurveyDataSession(HasTraits):
     #==========================================================================
 
     def _get_freq_choices(self):
-        ''' Get list of available frequencies as (value,string) pair from
-        frequencies dict for use in selector widget.
+        ''' Get list of available frequencies sorted lowest to highest
         Limit label string resolution to 0.1 kHz.
         '''
         try:

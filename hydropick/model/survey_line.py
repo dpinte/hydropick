@@ -12,7 +12,7 @@ import numpy as np
 from shapely.geometry import LineString
 
 from traits.api import (HasTraits, Array, Dict, Event, List, Supports, Str,
-                        provides, CFloat, Instance, Bool, Enum)
+                        provides, CFloat, Instance, Bool, Enum, Property)
 
 from .i_core_sample import ICoreSample
 from .i_survey_line import ISurveyLine
@@ -96,6 +96,20 @@ class SurveyLine(HasTraits):
 
     # user comment on status (who approved it or why its bad fore example)
     status_string = Str('')
+
+    # mask is bool array, size trace_num,  indicating bad traces. True is bad/masked
+    mask = Array(Bool)
+
+    # indicated if mask has been defined for this line
+    masked = Property(Bool, depends_on='mask')
+
+    def _get_masked(self):
+        masked = False
+        if self.mask is not None:
+            size = self.mask.size
+            if size > 0:
+                masked = True
+        return masked
 
     def load_data(self, hdf5_file):
         ''' Called by UI to load this survey line when selected to edit

@@ -243,10 +243,12 @@ class SurveyLineView(ModelView):
                 d.update_data(**kw)
             
             # add zoom box points for showing zoom box in mini
-            # x = 1000
-            # y = 4
             d.update_data(zoombox_x=np.array([0, 0, 0, 0]),
                           zoombox_y=np.array([0, 0, 0, 0]))
+            
+            # add arrays to display mask
+            d.update_data(mask_x=np.array([]))
+            d.update_data(mask_y=np.array([]))
 
             # add the depth line data
             for line_key, depth_line in self.model.depth_dict.items():
@@ -265,13 +267,46 @@ class SurveyLineView(ModelView):
     # Notifications, Handlers or Callbacks
     #==========================================================================
 
-    def set_edit_enabled(self):
+    def set_edit_enabled(self, old, new):
         ''' enables editing tool based on ui edit selector'''
+        cv = self.control_view
+        if cv.edit == 'Editing':
+            edit_allowed = True
+            edit_mask = False
+        elif cv.edit == 'Edit Mask':
+            edit_allowed = True
+            edit_mask = True
+        else:
+            # 'Not Editing'
+            edit_allowed = False
+            edit_mask = False
+        
         for tool in self.trace_tools.values():
-            if self.control_view.edit == 'Editing':
-                tool.edit_allowed = True
+            tool.edit_allowed = edit_allowed
+            tool.edit_mask = edit_mask
+            tool.mask_value = self.model.ybounds[self.model.freq_choices[-1]][1]
+            
+        # if Edit Mask selected need to change line to mask
+        if cv.edit == 'Edit Mask':
+            # first time this is called we need to set mask data
+            if not self.model.survey_line.masked:
+                logger.debug('initialize mask arrays to zero')
+                self.model.initialize_mask_xy()
+                x, y = self.model.get_mask_xy()
+                self.plotdata.update_data(mask_x=x, mask_y=y)
+
+            if cv.line_to_edit == 'None':
+                # explicitly call _change_target
+                self._change_target('None', 'None')
             else:
-                tool.edit_allowed = False
+                # tgt not None: change to None will call change_target
+                cv.line_to_edit = 'None'
+        else:
+            if old == 'Edit Mask' and self.cv.line_to_edit == 'None':
+                # was changed out of Edit Mask => change tool tgts to None
+                self._change_target('mask','None')
+            # if line_to_edit is not None, then this was reached by
+            # changing the line so we don't need to do anything else
 
     @on_trait_change('model')
     def update_plot_container(self):
@@ -412,31 +447,67 @@ class SurveyLineView(ModelView):
     def update_depth(self, depth):
         ''' Called by trace tool to update depth readout display'''
         self.data_view.depth = depth
-
+    
     def change_target(self, object, name, old, new_target):
         ''' update trace tool target line attribute.
         change line colors back and set edit flag and save data as requrire
+        old and new will be strings from the line_to_edit editor
+        in the control_view (choices are depthline.name strings)
+        '''
+        self._change_target(old, new_target)
+        
+    def _change_target(self, old, new_target):
+        ''' Implements editing target change normally activated by
+        change target handler from line_to_edit listener, but can
+        also be called by set_edit handler when set to Edit Mask.
+        if target goes from None to None this will only be called
+        directly by the set_edit handler, otherwise through the tgt
+        change handler.
         '''
         plot_dict = self.plot_container.plot_dict
-        if new_target is 'None' or EDIT_OFF_ON_CHANGE:
+        if self.control_view.edit == 'Edit Mask':
+            # need to change target to 'mask' and revert 'old if needed
+            if new_target != 'None':
+                # someone changed line_to_edit from None while in Edit Mask
+                self.control_view.edit = 'Not Editing'
+                old = 'mask'
+            else:
+                # get old and None with Edit Mask:  => set tgt to mask
+                # if tgt was None then old is None. Else old is last line set.
+                new_target = 'mask'
+        elif new_target == 'None' or EDIT_OFF_ON_CHANGE:
+            # this may always happens if edit is not Edit Mask
             self.control_view.edit = 'Not Editing'
-
+            
+        # otherwise:  not edit mask and not None means tgt is new line
+        # from line_to_edit editor.  old is whatever was there before
+            
         # change colors and tool tgt for each freq plot
         for key in self.model.freq_choices:
             # if new tgt, change its color, else set none
             if new_target != 'None':
                 new_plot_key = key + '_' + new_target
                 new_target_plot = plot_dict[new_plot_key]
-                new_target_plot.color = EDIT_COLOR
+                if new_target == 'mask':
+                    # set edge color
+                    new_target_plot.edge_color = EDIT_COLOR
+                else:
+                    new_target_plot.color = EDIT_COLOR
             else:
                 new_target_plot = None
             # if old tgt exists, change back color, else skip
             old_plot_key = key + '_' + old
             old_target_plot = plot_dict.get(old_plot_key, None)
             if old_target_plot:
-                old_target_depth_line = self.model.depth_dict[old]
-                old_color = old_target_depth_line.color
-                old_target_plot.color = old_color
+                if old == 'mask':
+                    # mask is not in depth dict need to get mask color
+                    old_color = self.model.mask_color
+                    old_target_plot.edge_color = old_color
+                else:
+                    cv = self.plot_container.mask_color
+                    old_target_depth_line = self.model.depth_dict[old]
+                    old_color = old_target_depth_line.color
+                    old_target_plot.color = old_color
             # update trace_tool target for this freq.
             tool = self.trace_tools[key]
             tool.target_line = new_target_plot
@@ -444,7 +515,12 @@ class SurveyLineView(ModelView):
 
         if AUTOSAVE_EDIT_ON_CHANGE and old_target_plot:
             edited_data = old_target_plot.value.get_data()
-            old_target_depth_line.depth_array = edited_data
+            if old == 'mask':
+                # mask is saved as array in survey_line
+                self.model.survey_line.set_to_mask(edited_data)
+            else:
+                # depth arrays are stored in depthline objects
+                old_target_depth_line.depth_array = edited_data
 
         self.plot_container.vplot_container.invalidate_and_redraw()
 

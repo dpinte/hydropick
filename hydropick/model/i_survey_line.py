@@ -10,7 +10,7 @@ from __future__ import absolute_import
 from shapely.geometry import LineString
 
 from traits.api import (Interface, Array, Dict, Event, Instance, List,
-                        Supports, CFloat, Str)
+                        Supports, CFloat, Str, Bool, Property, Enum)
 
 from .i_core_sample import ICoreSample
 from .i_depth_line import IDepthLine
@@ -86,3 +86,15 @@ class ISurveyLine(Interface):
     pixel_resolution = CFloat
 
     # XXX probably other metadata should be here
+
+    # status of line determined by user analysis
+    status = Enum('pending', 'approved', 'bad')
+
+    # user comment on status (who approved it or why its bad fore example)
+    status_string = Str('')
+
+    # mask is bool array, size trace_num,  indicating bad traces. True is bad/masked
+    mask = Array(Bool)
+
+    # indicated if mask has been defined for this line
+    masked = Property(Bool, depends_on='mask')

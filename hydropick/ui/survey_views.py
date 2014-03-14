@@ -64,6 +64,10 @@ CONTRAST_MAX = float(20)
 CORE_VISIBILITY_CRITERIA = 200.0
 CORE_LINE_WIDTH = 2
 
+MASK_EDGE_COLOR = 'black'
+MASK_FACE_COLOR = 'black'
+MASK_ALPHA = 1.0
+
 
 class InstanceUItem(UItem):
     '''Convenience class for inluding instance in view as Item'''
@@ -128,8 +132,9 @@ class PlotContainer(HasTraits):
 
     # private traits
     _cmap = Trait(default_colormaps.Spectral, Callable)
-
-    # main_value_range = Instance(DataRange1D)   #
+    
+    # color for mask plot edge
+    mask_color = Str(MASK_EDGE_COLOR)
     #==========================================================================
     # Define Views
     #==========================================================================
@@ -321,6 +326,7 @@ class PlotContainer(HasTraits):
         # add line plots: use method since these may change
         #************************************************************
         self.update_line_plots(key, main, update=True)
+        self.plot_mask_array(key, main)
 
         # set slice plot index range to follow main plot value range
         #************************************************************
@@ -415,7 +421,9 @@ class PlotContainer(HasTraits):
             legend.plots[k] = plot.plots[k]
 
     def update_all_line_plots(self, update=False):
-        ''' reload all line plots when added or changed'''
+        ''' reload all line plots when added or changed.
+        updates all hplot containers and legends.
+        calls "update_line_plots" for each hplot'''
         for key in self.model.freq_choices:
             hpc = self.hplot_dict[key]
             plot = hpc.components[0]
@@ -428,9 +436,27 @@ class PlotContainer(HasTraits):
                 legend.tools.remove(highlighter)
             legend.tools.append(legend_highlighter)
             plot.invalidate_and_redraw()
-
+        
+    def plot_mask_array(self, key, main):
+        ''' adds filled line plot to this Plot container showing mask
+        data comes from survey_line.  Usually empty until someone
+        edits bad points.  Then the x data is distance array and
+        y data is mask * y_max '''
+        plot_key = key + '_mask'
+        if self.model.survey_line.masked:
+            x, y = self.model.get_mask_xy()
+            self.data.update_data(mask_x=x, mask_y=y)
+        mask_plot = main.plot(('mask_x', 'mask_y'),
+                              type='filled_line',
+                              name=plot_key,
+                              edge_color=MASK_EDGE_COLOR,
+                              face_color=MASK_FACE_COLOR,
+                              alpha=MASK_ALPHA)[0]
+        self.plot_dict[plot_key] = mask_plot
+        
     def update_line_plots(self, key, plot, update=False):
-        ''' takes a Plot object and adds all available line plots to it.
+        ''' Updates all Line plots on ONE plot container.
+        takes a Plot object and adds all available line plots to it.
         Each Plot.plots has one img plot labeled by freq key and the rest are
         line plots.  When depth_dict is updated, check all keys to see all
         lines are plotted.  Update=True will replot all lines even if already
@@ -488,6 +514,7 @@ class PlotContainer(HasTraits):
         self.create_vplot()
 
     def zoom_all_value(self, obj, name, old, new):
+        ''' gets value_mapper object from notification'''
         low, high = obj.range.low, obj.range.high
         # change y values of zoombox in mini
         self.data.update_data(zoombox_y=np.array([low, low, high, high]))
@@ -500,16 +527,17 @@ class PlotContainer(HasTraits):
                     vmapper.range.high = high
 
     def zoom_all_index(self, obj, name, old, new):
+        ''' gets index_mapper object from notification'''
         low, high = obj.range.low, obj.range.high
         # change x values of zoombox
         self.data.update_data(zoombox_x=np.array([low, high, high, low]))
         for key, hpc in self.hplot_dict.items():
             if key != 'mini':
-                vmapper = hpc.components[0].index_mapper
-                if vmapper.range.low != low:
-                    vmapper.range.low = low
-                if vmapper.range.high != high:
-                    vmapper.range.high = high
+                mapper = hpc.components[0].index_mapper
+                if mapper.range.low != low:
+                    mapper.range.low = low
+                if mapper.range.high != high:
+                    mapper.range.high = high
 
 
     def _range_selection_handler(self, event):
@@ -676,7 +704,7 @@ class ControlView(HasTraits):
     line_to_edit = Str
 
     # used to explicitly get edit mode
-    edit = Enum('Editing', 'Not Editing')     # Button('Not Editing')
+    edit = Enum('Editing', 'Not Editing', 'Edit Mask')     # Button('Not Editing')
 
     traits_view = View(
         HGroup(
