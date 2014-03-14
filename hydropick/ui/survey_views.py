@@ -66,7 +66,7 @@ CORE_LINE_WIDTH = 2
 
 MASK_EDGE_COLOR = 'black'
 MASK_FACE_COLOR = 'black'
-MASK_ALPHA = 1.0
+MASK_ALPHA = 0.5
 
 
 class InstanceUItem(UItem):

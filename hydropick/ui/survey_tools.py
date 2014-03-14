@@ -162,7 +162,10 @@ class TraceTool(BaseTool):
             xpts = [start, end]
             ypts = [self.last_y, newy]
             indices = range(*xpts)
-            ys = np.interp(indices, xpts, ypts)
+            if self.edit_mask:
+                ys = self.mask_value * np.ones_like(indices)
+            else:
+                ys = np.interp(indices, xpts, ypts)
         else:
             indices = [current_index]
             ys = [newy]
@@ -182,10 +185,8 @@ class TraceTool(BaseTool):
         connects only the initial and final point.
         '''
         have_key = self.key != 'None'
-        have_line_plot = isinstance(self.target_line, LinePlot)
 
-        if have_line_plot and have_key and self.edit_allowed \
-                                       and not self.edit_mask:
+        if and have_key and self.edit_allowed:
             newx, newy = self.component.map_data((event.x, event.y))
             target = self.target_line
             xdata = target.index.get_data()
@@ -193,8 +194,12 @@ class TraceTool(BaseTool):
 
             if self.mouse_down:
                 ydata = target.value.get_data()
-                indices, ys = self.fill_in_missing_pts(current_index,
-                                                       newy, ydata)
+                if self.edit_mask:
+                    indices, ys = self.fill_in_missing_pts(current_index,
+                                                           newy, ydata)
+                else:
+                    indices, ys = self.fill_in_missing_pts(current_index,
+                                                           newy, ydata)
                 ydata[indices] = ys
                 data_key = self.key + '_y'
                 self.data.set_data(data_key, ydata)
@@ -207,27 +212,3 @@ class TraceTool(BaseTool):
                 self.mouse_down = True
                 self.last_index = current_index
                 self.last_y = newy
-        
-        elif have_key and self.edit_allowed and self.edit_mask:
-            # assume this is mask ( filled_plot/polygon plot)
-            newx, newy = self.component.map_data((event.x, event.y))
-            target = self.target_line
-            xdata = target.index.get_data()
-            current_index = np.searchsorted(xdata, newx)
-            if self.mouse_down:
-                ydata = target.value.get_data()
-                indices, ys = self.fill_in_missing_pts(current_index,
-                                                       self._mask_value, ydata)
-                ydata[indices] = ys
-                data_key = self.key + '_y'
-                self.data.set_data(data_key, ydata)
-                self.last_index = indices[-1]
-                self.last_y = ys[-1]
-
-            else:
-                # save this mouse position as reference for further moves while
-                # mouse_down is true.
-                self.mouse_down = True
-                self.last_index = current_index
-                self.last_y = newy
-            
